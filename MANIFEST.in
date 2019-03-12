@@ -1,0 +1,4 @@
+# Things to include in the built package (besides the packages defined in setup.py)
+include README.md
+include LICENSE
+recursive-include termpair/frontend_build/ *
