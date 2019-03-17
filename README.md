@@ -1,6 +1,6 @@
 # TermPair – View and control remote terminals from your browser
 
-It lets people collaborate, view, share, all in real time. And it's easy to use!
+TermPair lets people collaborate, view, and share, all in real time. And it's easy to use!
 
 To try it, use [pipx](https://github.com/pipxproject/pipx) start the server
 
