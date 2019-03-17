@@ -1,0 +1,77 @@
+html {
+  font-family: arial;
+}
+
+body {
+  background-color: #222;
+  color: white;
+}
+
+a {
+  color: white;
+}
+
+#terminal {
+  margin: 40px;
+  padding: 10px;
+  min-height: 100px;
+  background-color: black;
+}
+
+#terminal.connection-pending {
+  -webkit-box-shadow: 0 0 20px 8px #9bbaff;
+  -moz-box-shadow: 0 0 20px 8px #9bbaff;
+  box-shadow: 0 0 20px 8px #9bbaff;
+}
+
+#terminal.connected {
+  -webkit-box-shadow: 0 0 20px 8px #a1b570;
+  -moz-box-shadow: 0 0 20px 8px #a1b570;
+  box-shadow: 0 0 20px 8px #a1b570;
+}
+
+#terminal.disconnected {
+  -webkit-box-shadow: 0 0 20px 8px #bf3333;
+  -moz-box-shadow: 0 0 20px 8px #bf3333;
+  box-shadow: 0 0 20px 8px #bf3333;
+}
+
+td {
+  padding: 3px;
+}
+
+body {
+  padding: 50px;
+  background-color: #222;
+}
+
+.led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.25);
+  box-shadow: #000 0 -1px 6px 1px;
+}
+.led-red {
+  background-color: #f00;
+  box-shadow: #000 0 -1px 6px 1px, inset #600 0 -1px 8px, #f00 0 3px 11px;
+}
+.led-orange {
+  background-color: #ff7000;
+  box-shadow: #000 0 -1px 6px 1px, inset #630 0 -1px 8px, #ff7000 0 3px 11px;
+}
+
+.led-yellow {
+  background-color: #ff0;
+  box-shadow: #000 0 -1px 6px 1px, inset #660 0 -1px 8px, #ff0 0 3px 11px;
+}
+
+.led-green {
+  background-color: #80ff00;
+  box-shadow: #000 0 -1px 6px 1px, inset #460 0 -1px 8px, #80ff00 0 3px 11px;
+}
+
+.led-blue {
+  background-color: #06f;
+  box-shadow: #000 0 -1px 6px 1px, inset #006 0 -1px 8px, #06f 0 3px 11px;
+}

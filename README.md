@@ -1,5 +1,8 @@
+<p align="center">
 <img align="center" src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/>
-# TermPair – View and control remote terminals from your browser
+</p>
+
+# View and control remote terminals from your browser
 
 TermPair lets people collaborate, view, and share, all in real time. And it's easy to use!
 
