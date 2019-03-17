@@ -6,19 +6,19 @@
 
 TermPair lets people collaborate, view, and share, all in real time. And it's easy to use!
 
-To try it, use [pipx](https://github.com/pipxproject/pipx) start the server
+To try it, use [pipx](https://github.com/pipxproject/pipx) to start the server:
 
 ```
 pipx run termpair serve
 ```
 
-then share your terminal
+THen share your terminal:
 
 ```
 pipx run termpair share -b
 ```
 
-your browser will open, and you can view whatever is printed to the terminal.
+Your browser will open, and you can view whatever is printed to the terminal.
 
 <p align="center">
 <img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_terminal.png"/>
@@ -47,20 +47,20 @@ termpair share --cmd "gdb -p 1234"
 
 It should go without saying but this can be extremely dangerous if you use it improperly.
 
-By using termpair, anyone with the sharable URL can
+By using TermPair, anyone with the sharable URL can:
 
-- view every keystroke you make (even passwords that appear hidden in the terminal)
-- view every character output by the terminal
+- View every keystroke you make (even passwords that appear hidden in the terminal).
+- View every character output by the terminal.
 
 If you are in a public location, someone over your shoulder could see this url, or take a picture of it, providing them the ability to view or control your termpair session.
 
-If you allow other users to control your terminal, they can
+If you allow other users to control your terminal, they can:
 
-- run any commands
-- view/modify/delete any files
-- restart or corrupt your computer
-- install a virus
-- etc
+- Run any commands.
+- View/modify/delete any files.
+- Restart or corrupt your computer.
+- Install a virus.
+- etc.
 
 If you run the server locally on the default host, none of this can happen. The security implications only apply if you are exposing the port to others.
 
@@ -74,7 +74,7 @@ Python: 3.6
 
 ## API
 
-To view the API, run
+To view the commande line API reference, run:
 
 ```
 termpair --help
@@ -95,7 +95,7 @@ You can now view terminals at http://127.0.0.1:8000, but you need to specify the
 
 ## Broadcast Your Terminal
 
-To let others view your terminal
+To let others view your terminal:
 
 ```
 $ termpair share
@@ -116,7 +116,7 @@ logout
 You are no longer broadcasting (dxQDwwWms844)
 ```
 
-To let others view **and remotely control** your terminal
+To let others view **and remotely control** your terminal:
 
 ```
 $ termpair share -a
@@ -131,7 +131,7 @@ localhost:8000/?id=e8a7c806102134022455ddd1841470ed
 
 # Contributing
 
-Clone repo, then
+Clone repo, then run
 
 ```
 pip install -e .
@@ -139,13 +139,13 @@ pip install -e .
 
 to modify Python code.
 
-To modify frontend code, run
+To modify frontend code, run:
 
 ```
 make build_frontend
 ```
 
-then reload the pyterm server with
+Then reload the TermPair server with:
 
 ```
 termpair server
