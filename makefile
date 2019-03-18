@@ -1,8 +1,5 @@
 .PHONY: clean build publish docs
 
-docs: docs/README.md
-	yarn docs:build
-
 watch_frontend:
 	cd termpair/frontend_src && yarn start
 

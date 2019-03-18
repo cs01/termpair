@@ -1,0 +1,16 @@
+site_name: TermPair
+site_description: View and control remote terminals from your browser
+
+theme:
+  name: "material"
+
+repo_name: cs01/TermPair
+repo_url: https://github.com/cs01/termpair
+edit_uri: ""
+
+nav:
+  - Introduction: "README.md"
+
+markdown_extensions:
+  - markdown.extensions.codehilite:
+      guess_lang: false

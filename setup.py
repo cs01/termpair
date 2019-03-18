@@ -15,7 +15,6 @@ import re
 import os
 from setuptools import find_packages, setup
 
-DEPENDENCIES = ["bocadillo>=0.13"]
 EXCLUDE_FROM_PACKAGES = ["contrib", "docs", "tests*"]
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -47,7 +46,8 @@ setup(
     scripts=[],
     entry_points={"console_scripts": ["termpair=termpair.main:main"]},
     zip_safe=False,
-    install_requires=DEPENDENCIES,
+    install_requires=["bocadillo>=0.13"],
+    extras_require={"dev": ["mkdocs", "mkdocs-material", "mypy", "black"]},
     test_suite="tests.test_project",
     python_requires=">=3.6",
     # license and classifier list:
