@@ -258,6 +258,27 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#quickstart" title="Quickstart" class="md-nav__link">
+    Quickstart
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" title="Installation" class="md-nav__link">
+    Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api" title="API" class="md-nav__link">
+    API
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security-considerations" title="Security Considerations" class="md-nav__link">
     Security Considerations
   </a>
@@ -267,13 +288,6 @@
         <li class="md-nav__item">
   <a href="#system-requirements" title="System Requirements" class="md-nav__link">
     System Requirements
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api" title="API" class="md-nav__link">
-    API
   </a>
   
 </li>
@@ -324,6 +338,27 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#quickstart" title="Quickstart" class="md-nav__link">
+    Quickstart
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" title="Installation" class="md-nav__link">
+    Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api" title="API" class="md-nav__link">
+    API
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security-considerations" title="Security Considerations" class="md-nav__link">
     Security Considerations
   </a>
@@ -333,13 +368,6 @@
         <li class="md-nav__item">
   <a href="#system-requirements" title="System Requirements" class="md-nav__link">
     System Requirements
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api" title="API" class="md-nav__link">
-    API
   </a>
   
 </li>
@@ -377,39 +405,55 @@
                 
                 <p><img align="center" src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/></p>
 <h1 id="termpair-view-and-control-remote-terminals-from-your-browser">TermPair – View and control remote terminals from your browser</h1>
-<p>TermPair lets developers collaborate, view, and share terminals, all in real time. Plus it's easy to use!</p>
-<p>To try it, use <a href="https://github.com/pipxproject/pipx">pipx</a> to start the server:</p>
+<p></p>
+TermPair lets developers collaborate, view, and share terminals, all in real time. Plus it's easy to use!</p>
+<p>Start sharing your terminal by running <code>termpair share</code>:
+<img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_terminal.png"/></p>
+<p>A URL will be printed to the terminal, such as:</p>
+<div class="codehilite"><pre><span></span>http://localhost:8000/?id=5a32e471453c0bb0c642acbbd6ee58f8
+</pre></div>
+
+
+<p>That URL is valid for the current terminal sharing session. The session ends when the process being broadcast ends, usually by typing <code>quit</code> or <code>exit</code>, or by closing the terminal window. At that time, the URL is no longer valid.</p>
+<p>The session can be shared with others who you want to view and optionally control your terminal from a browser:
+<img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_browser.png"/></p>
+<p>Pass the <code>-a</code> flag to grant the browser control of the terminal:</p>
+<div class="codehilite"><pre><span></span>termpair share -a
+</pre></div>
+
+
+<h2 id="quickstart">Quickstart</h2>
+<p>To quickly get up and running (without even having to install to your system!), use <a href="https://github.com/pipxproject/pipx">pipx</a> to start the server:</p>
 <div class="codehilite"><pre><span></span>pipx run termpair serve
 </pre></div>
 
 
-<p>Then share your terminal:</p>
+<p>Then share your client by running</p>
 <div class="codehilite"><pre><span></span>pipx run termpair share -b
 </pre></div>
 
 
-<p>Your browser will open and display whatever is printed to the terminal.</p>
-<p align="center">
-<img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_terminal.png"/>
-<img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_browser.png"/>
-</p>
-
-<p>Pass the <code>-a</code> flag to grant the browser control of the terminal:</p>
-<div class="codehilite"><pre><span></span>pipx run termpair share -ba
+<p>The <code>-b</code> flag will automatically open a browser tab to view the shared terminal.</p>
+<h2 id="installation">Installation</h2>
+<p>You can install using <a href="https://github.com/pipxproject/pipx">pipx</a> or pip:</p>
+<div class="codehilite"><pre><span></span>pipx install termpair
 </pre></div>
 
 
-<p>By default it runs whichever shell you are using, such as <code>bash</code>. But it can run any executable. Pass the <code>--cmd</code> flag to customize this.</p>
-<div class="codehilite"><pre><span></span>termpair share  # shares current SHELL. Can run anything from within here, like vim.
-termpair share --cmd $SHELL  # equivalent to the above command
-termpair share --cmd &quot;python&quot;
-termpair share --cmd &quot;gdb&quot;
-termpair share --cmd &quot;gdb -p 1234&quot;
+<p>or</p>
+<div class="codehilite"><pre><span></span>pip install termpair
+</pre></div>
+
+
+<h2 id="api">API</h2>
+<p>To view the command line API reference, run:</p>
+<div class="codehilite"><pre><span></span>termpair --help
 </pre></div>
 
 
 <h2 id="security-considerations">Security Considerations</h2>
 <p>It should go without saying but this can be extremely dangerous if you use it improperly.</p>
+<p><strong>You should only broadcast a terminal session you want to be shared, and only share the URL with those you trust.</strong> No password is required after opening the URL, so consider it to be sensitive information!</p>
 <p>By using TermPair, anyone with the sharable URL can:</p>
 <ul>
 <li>View every keystroke you make (even passwords that appear hidden in the terminal).</li>
@@ -422,10 +466,8 @@ termpair share --cmd &quot;gdb -p 1234&quot;
 <li>View/modify/delete any files.</li>
 <li>Restart or corrupt your computer.</li>
 <li>Install a virus.</li>
-<li>etc.</li>
 </ul>
 <p>If you run the server locally on the default host, it will not be accessible to anyone other than you. These security implications apply if you are exposing the port to others.</p>
-<p>Still interested? Read on!</p>
 <h2 id="system-requirements">System Requirements</h2>
 <p>Operating System:</p>
 <ul>
@@ -434,12 +476,6 @@ termpair share --cmd &quot;gdb -p 1234&quot;
 <li>To share your terminal, <code>termpair share</code>: Tested on Linux. Should work on macOS. Probably doesn't work on Windows.</li>
 </ul>
 <p>Python: 3.6</p>
-<h2 id="api">API</h2>
-<p>To view the commande line API reference, run:</p>
-<div class="codehilite"><pre><span></span>termpair --help
-</pre></div>
-
-
 <h2 id="run-server">Run Server</h2>
 <p>The server acts as a router between unix terminal broadcasting and the browser(s) that are remotely viewing the terminal.</p>
 <div class="codehilite"><pre><span></span>$ termpair serve
@@ -480,6 +516,16 @@ WARNING: Your terminal is viewable AND controllable from
 
 localhost:8000/?id=e8a7c806102134022455ddd1841470ed
 ...
+</pre></div>
+
+
+<p>By default it runs whichever shell you are using, such as <code>bash</code>. But it can run any executable. The sharing session ends when the process the terminal was sharing ends, usually by typing <code>exit</code> or <code>quit</code>. It can also be ended by closing the terminal itself.</p>
+<p>You can pass the <code>--cmd</code> flag to specify the process that is shared in the terminal session.</p>
+<div class="codehilite"><pre><span></span>termpair share  # shares current SHELL. Can run anything from within here, like vim.
+termpair share --cmd $SHELL  # equivalent to the above command
+termpair share --cmd &quot;python&quot;
+termpair share --cmd &quot;gdb&quot;
+termpair share --cmd &quot;gdb -p 1234&quot;
 </pre></div>
 
 
