@@ -1,0 +1,541 @@
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+        <meta name="description" content="View and control remote terminals from your browser">
+      
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s\-]+">
+      
+      <link rel="shortcut icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.0.2">
+    
+    
+      
+        <title>TermPair</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/application.982221ab.css">
+      
+      
+    
+    
+      <script src="assets/javascripts/modernizr.1f0bcf2b.js"></script>
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+    
+    <link rel="stylesheet" href="assets/fonts/material-icons.css">
+    
+    
+    
+      
+    
+    
+  </head>
+  
+    <body dir="ltr">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448"
+    viewBox="0 0 416 448" id="__github">
+  <path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19-18.125
+        8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19 18.125-8.5
+        18.125 8.5 10.75 19 3.125 20.5zM320 304q0 10-3.125 20.5t-10.75
+        19-18.125 8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19
+        18.125-8.5 18.125 8.5 10.75 19 3.125 20.5zM360
+        304q0-30-17.25-51t-46.75-21q-10.25 0-48.75 5.25-17.75 2.75-39.25
+        2.75t-39.25-2.75q-38-5.25-48.75-5.25-29.5 0-46.75 21t-17.25 51q0 22 8
+        38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0
+        37.25-1.75t35-7.375 30.5-15 20.25-25.75 8-38.375zM416 260q0 51.75-15.25
+        82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5-41.75
+        1.125q-19.5 0-35.5-0.75t-36.875-3.125-38.125-7.5-34.25-12.875-30.25-20.25-21.5-28.75q-15.5-30.75-15.5-82.75
+        0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25
+        30.875q36.75-8.75 77.25-8.75 37 0 70 8 26.25-20.5
+        46.75-30.25t47.25-9.75q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34
+        99.5z" />
+</svg>
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#termpair-view-and-control-remote-terminals-from-your-browser" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="." title="TermPair" class="md-header-nav__button md-logo">
+          
+            <i class="md-icon"></i>
+          
+        </a>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+          
+            <span class="md-header-nav__topic">
+              TermPair
+            </span>
+            <span class="md-header-nav__topic">
+              Introduction
+            </span>
+          
+        </div>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+      
+        <div class="md-flex__cell md-flex__cell--shrink">
+          <div class="md-header-nav__source">
+            
+
+
+  
+
+<a href="https://github.com/cs01/termpair" title="Go to repository" class="md-source" data-md-source="github">
+  
+    <div class="md-source__icon">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <use xlink:href="#__github" width="24" height="24"></use>
+      </svg>
+    </div>
+  
+  <div class="md-source__repository">
+    cs01/TermPair
+  </div>
+</a>
+          </div>
+        </div>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href="." title="TermPair" class="md-nav__button md-logo">
+      
+        <i class="md-icon"></i>
+      
+    </a>
+    TermPair
+  </label>
+  
+    <div class="md-nav__source">
+      
+
+
+  
+
+<a href="https://github.com/cs01/termpair" title="Go to repository" class="md-source" data-md-source="github">
+  
+    <div class="md-source__icon">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <use xlink:href="#__github" width="24" height="24"></use>
+      </svg>
+    </div>
+  
+  <div class="md-source__repository">
+    cs01/TermPair
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Introduction
+      </label>
+    
+    <a href="." title="Introduction" class="md-nav__link md-nav__link--active">
+      Introduction
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" title="Security Considerations" class="md-nav__link">
+    Security Considerations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-requirements" title="System Requirements" class="md-nav__link">
+    System Requirements
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api" title="API" class="md-nav__link">
+    API
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-server" title="Run Server" class="md-nav__link">
+    Run Server
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#broadcast-your-terminal" title="Broadcast Your Terminal" class="md-nav__link">
+    Broadcast Your Terminal
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" title="Security Considerations" class="md-nav__link">
+    Security Considerations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-requirements" title="System Requirements" class="md-nav__link">
+    System Requirements
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api" title="API" class="md-nav__link">
+    API
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-server" title="Run Server" class="md-nav__link">
+    Run Server
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#broadcast-your-terminal" title="Broadcast Your Terminal" class="md-nav__link">
+    Broadcast Your Terminal
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <p><img align="center" src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/></p>
+<h1 id="termpair-view-and-control-remote-terminals-from-your-browser">TermPair – View and control remote terminals from your browser</h1>
+<p>TermPair lets developers collaborate, view, and share terminals, all in real time. Plus it's easy to use!</p>
+<p>To try it, use <a href="https://github.com/pipxproject/pipx">pipx</a> to start the server:</p>
+<div class="codehilite"><pre><span></span>pipx run termpair serve
+</pre></div>
+
+
+<p>Then share your terminal:</p>
+<div class="codehilite"><pre><span></span>pipx run termpair share -b
+</pre></div>
+
+
+<p>Your browser will open and display whatever is printed to the terminal.</p>
+<p align="center">
+<img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_terminal.png"/>
+<img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_browser.png"/>
+</p>
+
+<p>Pass the <code>-a</code> flag to grant the browser control of the terminal:</p>
+<div class="codehilite"><pre><span></span>pipx run termpair share -ba
+</pre></div>
+
+
+<p>By default it runs whichever shell you are using, such as <code>bash</code>. But it can run any executable. Pass the <code>--cmd</code> flag to customize this.</p>
+<div class="codehilite"><pre><span></span>termpair share  # shares current SHELL. Can run anything from within here, like vim.
+termpair share --cmd $SHELL  # equivalent to the above command
+termpair share --cmd &quot;python&quot;
+termpair share --cmd &quot;gdb&quot;
+termpair share --cmd &quot;gdb -p 1234&quot;
+</pre></div>
+
+
+<h2 id="security-considerations">Security Considerations</h2>
+<p>It should go without saying but this can be extremely dangerous if you use it improperly.</p>
+<p>By using TermPair, anyone with the sharable URL can:</p>
+<ul>
+<li>View every keystroke you make (even passwords that appear hidden in the terminal).</li>
+<li>View every character output by the terminal.</li>
+</ul>
+<p>If you are in a public location, someone over your shoulder could see this url, or take a picture of it, providing them the ability to view or control your termpair session.</p>
+<p>If you allow other users to control your terminal, they can:</p>
+<ul>
+<li>Run any commands.</li>
+<li>View/modify/delete any files.</li>
+<li>Restart or corrupt your computer.</li>
+<li>Install a virus.</li>
+<li>etc.</li>
+</ul>
+<p>If you run the server locally on the default host, it will not be accessible to anyone other than you. These security implications apply if you are exposing the port to others.</p>
+<p>Still interested? Read on!</p>
+<h2 id="system-requirements">System Requirements</h2>
+<p>Operating System:</p>
+<ul>
+<li>To view/control from the browser: All operating systems are supported.</li>
+<li>To run the server, <code>termpair serve</code>: Tested on Linux. Should work on macOS. Might work on Windows.</li>
+<li>To share your terminal, <code>termpair share</code>: Tested on Linux. Should work on macOS. Probably doesn't work on Windows.</li>
+</ul>
+<p>Python: 3.6</p>
+<h2 id="api">API</h2>
+<p>To view the commande line API reference, run:</p>
+<div class="codehilite"><pre><span></span>termpair --help
+</pre></div>
+
+
+<h2 id="run-server">Run Server</h2>
+<p>The server acts as a router between unix terminal broadcasting and the browser(s) that are remotely viewing the terminal.</p>
+<div class="codehilite"><pre><span></span>$ termpair serve
+INFO: Started server process [16592]
+INFO: Waiting for application startup.
+INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+</pre></div>
+
+
+<p>Terminals can now be shared at http://127.0.0.1:8000. However, to actually connect to a terminal in the browser, a terminal id must be supplied. Terminal id's consist of long strings of characters and should be basically impossible to guess. Terminal id's and their associated URL are provided to the user whenthey begin sharing their unix terminal.</p>
+<h2 id="broadcast-your-terminal">Broadcast Your Terminal</h2>
+<p>To let others view your terminal:</p>
+<div class="codehilite"><pre><span></span>$ termpair share
+
+Sharing all input and output of `bash -l`.
+
+WARNING: Your terminal is viewable but NOT controllable from
+
+localhost:8000/?id=e8a7c806102134022455ddd1841470ed
+
+Type &#39;exit&#39; to stop sharing.
+
+When you are no longer sharing, you will see the secret string &#39;dxQDwwWms844&#39; printed.
+
+
+$ exit
+logout
+You are no longer broadcasting (dxQDwwWms844)
+</pre></div>
+
+
+<p>To let others view <strong>and remotely control</strong> your terminal:</p>
+<div class="codehilite"><pre><span></span>$ termpair share -a
+
+...
+
+WARNING: Your terminal is viewable AND controllable from
+
+localhost:8000/?id=e8a7c806102134022455ddd1841470ed
+...
+</pre></div>
+
+
+<h1 id="contributing">Contributing</h1>
+<p>Clone repo, then run</p>
+<div class="codehilite"><pre><span></span>pip install -e .
+</pre></div>
+
+
+<p>to modify Python code.</p>
+<p>To modify frontend code, run:</p>
+<div class="codehilite"><pre><span></span>make build_frontend
+</pre></div>
+
+
+<p>Then reload the TermPair server with:</p>
+<div class="codehilite"><pre><span></span>termpair server
+</pre></div>
+                
+                  
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        powered by
+        <a href="https://www.mkdocs.org">MkDocs</a>
+        and
+        <a href="https://squidfunk.github.io/mkdocs-material/">
+          Material for MkDocs</a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="assets/javascripts/application.d9aa80ab.js"></script>
+      
+      <script>app.initialize({version:"1.0.4",url:{base:"."}})</script>
+      
+    
+  </body>
+</html>
