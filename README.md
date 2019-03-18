@@ -1,10 +1,8 @@
-<p align="center">
 <img align="center" src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/>
-</p>
 
-# View and control remote terminals from your browser
+# TermPair – View and control remote terminals from your browser
 
-TermPair lets people collaborate, view, and share, all in real time. And it's easy to use!
+TermPair lets developers collaborate, view, and share terminals, all in real time. Plus it's easy to use!
 
 To try it, use [pipx](https://github.com/pipxproject/pipx) to start the server:
 
@@ -12,22 +10,20 @@ To try it, use [pipx](https://github.com/pipxproject/pipx) to start the server:
 pipx run termpair serve
 ```
 
-THen share your terminal:
+Then share your terminal:
 
 ```
 pipx run termpair share -b
 ```
 
-Your browser will open, and you can view whatever is printed to the terminal.
+Your browser will open and display whatever is printed to the terminal.
 
 <p align="center">
 <img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_terminal.png"/>
 <img align="center" src="https://github.com/cs01/termpair/raw/master/termpair_browser.png"/>
 </p>
 
-It works with any program: vim, emacs, tmux, ssh, anything you want!
-
-If you want the browser to be able to send input to your terminal, start sharing with the `-a` flag as well:
+Pass the `-a` flag to grant the browser control of the terminal:
 
 ```
 pipx run termpair share -ba
@@ -62,13 +58,17 @@ If you allow other users to control your terminal, they can:
 - Install a virus.
 - etc.
 
-If you run the server locally on the default host, none of this can happen. The security implications only apply if you are exposing the port to others.
+If you run the server locally on the default host, it will not be accessible to anyone other than you. These security implications apply if you are exposing the port to others.
 
 Still interested? Read on!
 
 ## System Requirements
 
-Operating System: Tested on Linux. Should work on macOS. Probably doesn't work on Windows.
+Operating System:
+
+- To view/control from the browser: All operating systems are supported.
+- To run the server, `termpair serve`: Tested on Linux. Should work on macOS. Might work on Windows.
+- To share your terminal, `termpair share`: Tested on Linux. Should work on macOS. Probably doesn't work on Windows.
 
 Python: 3.6
 
@@ -91,7 +91,7 @@ INFO: Waiting for application startup.
 INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
 
-You can now view terminals at http://127.0.0.1:8000, but you need to specify the terminal id.
+Terminals can now be shared at http://127.0.0.1:8000. However, to actually connect to a terminal in the browser, a terminal id must be supplied. Terminal id's consist of long strings of characters and should be basically impossible to guess. Terminal id's and their associated URL are provided to the user whenthey begin sharing their unix terminal.
 
 ## Broadcast Your Terminal
 

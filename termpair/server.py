@@ -63,7 +63,7 @@ async def index(req, res):
         res.html = await templates.render("index.html", initial_data=initial_data)
     else:
         initial_data = dict(
-            name=NAME, title=TITLE, cols=50, rows=15, allow_browser_control=False
+            cols=50, rows=15, allow_browser_control=False
         )
         res.html = await templates.render("index.html", initial_data=initial_data)
 
