@@ -158,22 +158,4 @@ termpair share --cmd "gdb -p 1234"
 
 # Contributing
 
-Clone repo, then run
-
-```
-pip install -e .
-```
-
-to modify Python code.
-
-To modify frontend code, run:
-
-```
-make build_frontend
-```
-
-Then reload the TermPair server with:
-
-```
-termpair server
-```
+Interested in contributing to TermPair? You'll find all the information you need in our [Contributing guidelines](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md).

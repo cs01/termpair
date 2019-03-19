@@ -2,20 +2,55 @@
 
 Welcome! We're glad to see you here. This short document should give you some hints to get started with contributing to TermPair.
 
-## Setting up the repo
+## Getting started
 
-1. Fork the repository.
-1. Clone it on your computer.
-1. Create a virtual environment: `python -m venv venv`.
-1. Activate it: `. venv/bin/activate`.
-1. Install dev dependencies: `pip install -e ".[dev]".
-1. Run the test suite to make sure all is well: `python setup.py test`.
+The first step should be to fork the repo and clone it to your computer.
 
-## Contributing documentation
+### Contributing Python code
 
-> TODO
+To modify Python code, setup a virtual environment:
 
-## Development process
+```bash
+python -m venv venv
+```
+
+Then activate it with:
+
+```bash
+. venv/bin/activate
+```
+
+You can then install development dependencies using:
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Contributing frontend code
+
+To modify frontend code, get [yarn](https://yarnpkg.com/en/) and run:
+
+```bash
+make build_frontend
+```
+
+You'll need to reload the TermPair server. Stop it with `Ctrl+C` if it's running, then restart it:
+
+```bash
+termpair server
+```
+
+### Contributing documentation
+
+TermPair's documentation is built with [MkDocs](https://www.mkdocs.org) and the [MkDocs Material theme](https://squidfunk.github.io/mkdocs-material/).
+
+To run the documentation site locally, run:
+
+```bash
+mkdocs serve
+```
+
+## Proposing changes
 
 If you've found a bug, have a feature request, or would like to contribute documentation, here's what you can do to have your change merged in:
 
