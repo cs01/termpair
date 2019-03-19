@@ -46,7 +46,7 @@ setup(
     scripts=[],
     entry_points={"console_scripts": ["termpair=termpair.main:main"]},
     zip_safe=False,
-    install_requires=["bocadillo>=0.13"],
+    install_requires=["bocadillo>=0.13.1"],
     extras_require={"dev": ["mkdocs", "mkdocs-material", "mypy", "black"]},
     test_suite="tests.test_project",
     python_requires=">=3.6",
