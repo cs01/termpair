@@ -4,7 +4,7 @@ Welcome! We're glad to see you here. This short document should give you some hi
 
 ## Getting started
 
-The first step should be to fork the repo and clone it to your computer.
+First, fork the repo and clone it to your computer, then read the section you're interested in. 👍
 
 ### Contributing Python code
 
