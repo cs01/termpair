@@ -1,13 +1,13 @@
 .PHONY: clean build publish docs
 
 install_frontend:
-	pushd . && cd termpair/frontend_src && yarn install && popd
+	cd termpair/frontend_src && yarn install
 
 watch_frontend:
-	pushd . && cd termpair/frontend_src && yarn start && popd
+	cd termpair/frontend_src && yarn start
 
 build_frontend:
-	pushd . && cd termpair/frontend_src && yarn build && popd
+	cd termpair/frontend_src && yarn build
 
 build: clean
 	python -m pip install --upgrade --quiet setuptools wheel twine
