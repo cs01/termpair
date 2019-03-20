@@ -30,14 +30,28 @@ pip install -e ".[dev]"
 
 To modify frontend code, get [yarn](https://yarnpkg.com/en/) and run:
 
+```
+make install_frontend
+```
+
+to install dependencies.
+
+You'll then be able to build the frontend app using:
+
 ```bash
 make build_frontend
 ```
 
-You'll need to reload the TermPair server. Stop it with `Ctrl+C` if it's running, then restart it:
+You'll need to reload the TermPair server for changes to be taken into account. Stop it with `Ctrl+C`, then restart it:
 
 ```bash
 termpair server
+```
+
+Alternatively, changes that don't require an actively connected terminal can be tested much more easily with hot reloading by running:
+
+```bash
+make watch_frontend
 ```
 
 ### Contributing documentation
