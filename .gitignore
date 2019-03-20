@@ -27,6 +27,7 @@ var/
 
 # production
 /build
+termpair/frontend_build/
 
 # misc
 .DS_Store
