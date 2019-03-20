@@ -155,7 +155,3 @@ termpair share --cmd "python"
 termpair share --cmd "gdb"
 termpair share --cmd "gdb -p 1234"
 ```
-
-# Contributing
-
-Interested in contributing to TermPair? You'll find all the information you need in our [Contributing guidelines](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md).
