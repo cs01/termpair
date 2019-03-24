@@ -10,6 +10,7 @@ edit_uri: ""
 
 nav:
   - Introduction: "README.md"
+  - Contributing: "CONTRIBUTING.md"
 
 markdown_extensions:
   - markdown.extensions.codehilite:

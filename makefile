@@ -1,5 +1,8 @@
 .PHONY: clean build publish docs
 
+install_frontend:
+	cd termpair/frontend_src && yarn install
+
 watch_frontend:
 	cd termpair/frontend_src && yarn start
 
