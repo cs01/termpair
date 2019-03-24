@@ -17,6 +17,7 @@ var/
 .mypy_cache/
 .vscode
 
+site
 # dependencies
 *node_modules*
 .pnp

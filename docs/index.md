@@ -5,8 +5,6 @@
 
 ---
 
-# Introduction
-
 ## What is TermPair?
 
 TermPair lets developers collaborate, view, and share terminals, all in real time. Plus it's easy to use!
@@ -109,9 +107,16 @@ Operating System:
 
 Python: 3.6
 
-## Run Server
 
-The server acts as a router between unix terminal broadcasting and the browser(s) that are remotely viewing the terminal.
+## How It Works
+
+TermPair is built with Python and leverages asynchronous paradigms, so it's efficient and snappy. It uses the [Bocadillo](https://bocadilloproject.github.io/) web framework on the backend.
+
+### Run Server
+
+The server acts as a router between a unix terminal broadcasting and the browser(s) that are remotely viewing the terminal.
+
+It must be started before a terminal session can be broadcast.
 
 ```
 $ termpair serve
@@ -120,15 +125,15 @@ INFO: Waiting for application startup.
 INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
 
-Terminals can now be shared at http://127.0.0.1:8000. However, to actually connect to a terminal in the browser, a terminal id must be supplied. Terminal id's consist of long strings of characters and should be basically impossible to guess. Terminal id's and their associated URL are provided to the user whenthey begin sharing their unix terminal.
+Terminals can now broadcast to http://127.0.0.1:8000 🎉.
 
-## Broadcast Your Terminal
+
+### Broadcast Your Terminal
 
 To let others view your terminal:
 
 ```
 $ termpair share
-
 Sharing all input and output of `bash -l`.
 
 WARNING: Your terminal is viewable but NOT controllable from
@@ -145,6 +150,8 @@ logout
 You are no longer broadcasting (dxQDwwWms844)
 ```
 
+Your terminal is now viewable at `localhost:8000/?id=e8a7c806102134022455ddd1841470ed`.  🎉
+
 To let others view **and remotely control** your terminal:
 
 ```
@@ -158,7 +165,7 @@ localhost:8000/?id=e8a7c806102134022455ddd1841470ed
 ...
 ```
 
-By default it runs whichever shell you are using, such as `bash`. But it can run any executable. The sharing session ends when the process the terminal was sharing ends, usually by typing `exit` or `quit`. It can also be ended by closing the terminal itself.
+When you run this, a new [pty](https://en.wikipedia.org/wiki/Pseudoterminal) process is started locally, and by default launches a new instance of the shell you are using, such as `bash`. But it can run any executable, interactive or not, with any arguments you want to supply.
 
 You can pass the `--cmd` flag to specify the process that is shared in the terminal session.
 
@@ -169,3 +176,7 @@ termpair share --cmd "python"
 termpair share --cmd "gdb"
 termpair share --cmd "gdb -p 1234"
 ```
+
+The sharing session ends when the process the terminal was sharing ends, usually by typing `exit` or `quit`. It can also be ended by closing the terminal itself. Each session is assigned a unique TermPair session id, which is a short string of characters. The session id is never shared with the server or any viewers watching the session.
+
+

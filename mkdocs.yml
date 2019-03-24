@@ -6,11 +6,10 @@ theme:
 
 repo_name: cs01/TermPair
 repo_url: https://github.com/cs01/termpair
-edit_uri: ""
 
 nav:
-  - Introduction: "README.md"
-  - Contributing: "CONTRIBUTING.md"
+  - Overview: "index.md"
+  - Contributing: "contributing.md"
 
 markdown_extensions:
   - markdown.extensions.codehilite:
