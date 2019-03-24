@@ -1,4 +1,4 @@
-<div style="text-align: center">
+<div align="center">
     <img src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/>
     <p>View and control remote terminals from your browser</p>
     <p><a href="https://cs01.github.io/termpair/">Documentation</a></p>
