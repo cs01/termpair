@@ -34,7 +34,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.0.2">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.2.0">
     
     
       
@@ -42,12 +42,12 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/application.982221ab.css">
+      <link rel="stylesheet" href="assets/stylesheets/application.750b69bd.css">
       
       
     
     
-      <script src="assets/javascripts/modernizr.1f0bcf2b.js"></script>
+      <script src="assets/javascripts/modernizr.74668098.js"></script>
     
     
       
@@ -472,19 +472,30 @@
     <p>View and control remote terminals from your browser</p>
 </div>
 
+<p><strong>Documentation</strong>: https://cs01.github.io/termpair</p>
+<p><strong>Source Code</strong>: https://github.com/cs01/termpair</p>
 <hr />
 <h2 id="what-is-termpair">What is TermPair?</h2>
-<p>TermPair lets developers collaborate, view, and share terminals, all in real time. Plus it's easy to use!</p>
+<p>TermPair lets developers share and control terminals in real time.</p>
 <h2 id="usage">Usage</h2>
-<p>Start sharing your terminal by running <code>termpair share</code>:</p>
-<div style="text-align: center">
-    <img src="https://github.com/cs01/termpair/raw/master/termpair_terminal.png"/>
-</div>
+<p>Start the TermPair server:</p>
+<div class="codehilite"><pre><span></span>termpair share
+</pre></div>
+
+
+<p>Then share your terminal by running:</p>
+<div class="codehilite"><pre><span></span>termpair share
+</pre></div>
+
 
 <p>A URL will be printed to the terminal, such as:</p>
 <div class="codehilite"><pre><span></span>http://localhost:8000/?id=5a32e471453c0bb0c642acbbd6ee58f8
 </pre></div>
 
+
+<div style="text-align: center">
+    <img src="https://github.com/cs01/termpair/raw/master/termpair_terminal.png"/>
+</div>
 
 <p>That URL is valid for the current terminal sharing session. The session ends when the process being broadcast ends, usually by typing <code>quit</code> or <code>exit</code>, or by closing the terminal window. At that time, the URL is no longer valid.</p>
 <p>The session can be shared with others who you want to view and optionally control your terminal from a browser:</p>
@@ -584,7 +595,7 @@ You are no longer broadcasting (dxQDwwWms844)
 </pre></div>
 
 
-<p>Your terminal is now viewable at <code>localhost:8000/?id=e8a7c806102134022455ddd1841470ed</code>.  🎉</p>
+<p>Your terminal is now viewable at <code>localhost:8000/?id=e8a7c806102134022455ddd1841470ed</code>. 🎉</p>
 <p>To let others view <strong>and remotely control</strong> your terminal:</p>
 <div class="codehilite"><pre><span></span>$ termpair share -a
 
@@ -663,7 +674,7 @@ termpair share --cmd &quot;gdb -p 1234&quot;
       
     </div>
     
-      <script src="assets/javascripts/application.d9aa80ab.js"></script>
+      <script src="assets/javascripts/application.39abc4af.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:"."}})</script>
       
