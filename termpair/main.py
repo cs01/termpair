@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import argparse
 import asyncio
@@ -8,7 +7,7 @@ import shlex
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from . import share, server
 
-__version__ = "0.0.0.1"
+__version__ = "0.0.0.2"
 
 
 def _ws_url(host, port):
