@@ -19,7 +19,7 @@ TermPair lets developers share and control terminals in real time.
 Start the TermPair server:
 
 ```
-termpair share
+termpair serve
 ```
 
 Then share your terminal by running:
