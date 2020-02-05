@@ -44,7 +44,7 @@ def publish(session):
     print("REMINDER: Has the changelog been updated?")
     session.run("rm", "-rf", "dist", "build", external=True)
     publish_deps = ["setuptools", "wheel", "twine"]
-    session.install(publish_deps)
+    session.install(*publish_deps)
     session.run("python", "setup.py", "--quiet", "sdist", "bdist_wheel")
     session.run("python", "-m", "twine", "upload", "dist/*")
     publish_docs(session)
