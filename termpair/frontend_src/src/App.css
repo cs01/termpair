@@ -1,48 +1,103 @@
 html {
   font-family: arial;
+  height: 100%;
+  width: 100%;
 }
 
 body {
-  background-color: #222;
+  background-color: black;
   color: white;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
 }
 
+#root {
+  height: 100%;
+}
 a {
-  color: white;
+  color: #555;
+}
+
+.flexnowrap {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+}
+
+#statusbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-evenly;
+  color: #555;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+#top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-evenly;
+  color: #555;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+#statusbar div,
+#bottom div {
+  margin: 2px;
+}
+#bottom {
+  display: flex;
+  justify-content: space-between;
+  color: #555;
+  padding: 5px;
 }
 
 #terminal {
-  margin: 40px;
   padding: 10px;
-  min-height: 100px;
-  background-color: black;
+  overflow: auto;
+  height: 80vh;
+}
+
+#terminal-entry {
+  padding: 10px;
+  overflow: auto;
+  height: 80vh;
+  background: black;
+  font-size: 2rem;
+}
+
+input {
+  margin: 10px;
+  height: 50px;
+  font-size: 2rem;
+  width: 300px;
+}
+button {
+  font-size: 2rem;
 }
 
 #terminal.connection-pending {
-  -webkit-box-shadow: 0 0 20px 8px #9bbaff;
-  -moz-box-shadow: 0 0 20px 8px #9bbaff;
-  box-shadow: 0 0 20px 8px #9bbaff;
+  -webkit-box-shadow: 0 0 5px 2px #9bbaff;
+  -moz-box-shadow: 0 0 5px 2px #9bbaff;
+  box-shadow: 0 0 5px 2px #9bbaff;
 }
 
 #terminal.connected {
-  -webkit-box-shadow: 0 0 20px 8px #a1b570;
-  -moz-box-shadow: 0 0 20px 8px #a1b570;
-  box-shadow: 0 0 20px 8px #a1b570;
+  -webkit-box-shadow: 0 0 5px 2px #a1b570;
+  -moz-box-shadow: 0 0 5px 2px #a1b570;
+  box-shadow: 0 0 5px 2px #a1b570;
 }
 
 #terminal.disconnected {
-  -webkit-box-shadow: 0 0 20px 8px #bf3333;
-  -moz-box-shadow: 0 0 20px 8px #bf3333;
-  box-shadow: 0 0 20px 8px #bf3333;
+  -webkit-box-shadow: 0 0 5px 2px #bf3333;
+  -moz-box-shadow: 0 0 5px 2px #bf3333;
+  box-shadow: 0 0 5px 2px #bf3333;
 }
 
 td {
   padding: 3px;
-}
-
-body {
-  padding: 50px;
-  background-color: #222;
 }
 
 .led {

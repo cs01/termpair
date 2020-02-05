@@ -5,6 +5,7 @@ import asyncio
 import os
 import shlex
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+import uvicorn  # type: ignore
 from . import share, server
 
 __version__ = "0.0.0.2"
@@ -103,7 +104,7 @@ def main():
 
         url = _url(args.host, args.port)
         asyncio.get_event_loop().run_until_complete(
-            share.broadcastterminal(
+            share.broadcast_terminal(
                 cmd, url, args.allow_browser_control, args.open_browser
             )
         )
@@ -111,7 +112,8 @@ def main():
         if args.certfile or args.keyfile:
             server.app.add_asgi_middleware(HTTPSRedirectMiddleware)
 
-        server.app.run(
+        uvicorn.run(
+            server.app,
             host=args.host,
             port=int(args.port),
             ssl_certfile=args.certfile,

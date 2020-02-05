@@ -8,23 +8,18 @@ First, fork the repo and clone it to your computer, then read the section you're
 
 ### Contributing Python code
 
-To modify Python code, setup a virtual environment:
+Install [nox](https://pypi.org/project/nox/), then run the server with:
 
-```bash
-python -m venv venv
+```
+nox -s serve
 ```
 
-Then activate it with:
-
-```bash
-. venv/bin/activate
+After the server is running, you can share your terminal to it:
 ```
-
-You can then install development dependencies using:
-
-```bash
-pip install -e ".[dev]"
+nox -s broadcast
 ```
+Then type `exit` to stop broadcasting.
+
 
 ### Contributing frontend code
 
@@ -42,11 +37,7 @@ You'll then be able to build the frontend app using:
 make build_frontend
 ```
 
-You'll need to reload the TermPair server for changes to be taken into account. Stop it with `Ctrl+C`, then restart it:
-
-```bash
-termpair server
-```
+You'll need to reload the TermPair server for changes to be taken into account. Stop it with `Ctrl+C`, then restart it.
 
 Alternatively, changes that don't require an actively connected terminal can be tested much more easily with hot reloading by running:
 
@@ -56,12 +47,12 @@ make watch_frontend
 
 ### Contributing documentation
 
-TermPair's documentation is built with [MkDocs](https://www.mkdocs.org) and the [MkDocs Material theme](https://squidfunk.github.io/mkdocs-material/).
+TermPair's documentation is built with [MkDocs](https://www.mkdocs.org) and the [MkDocs Material theme](https://squidfunk.github.io/mkdocs-material/) and is in the `docs/` directory.
 
-To run the documentation site locally, run:
+To view documentation locally, run:
 
 ```bash
-mkdocs serve
+nox -s watch_docs
 ```
 
 ## Proposing changes

@@ -1,3 +1,4 @@
+frontend_build
 *.pyc
 venv/
 bin/
