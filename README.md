@@ -1,13 +1,14 @@
-
 <div style="text-align: center">
     <img src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/>
     <p>View and control remote terminals from your browser</p>
+
 </div>
 
 **Documentation**: https://cs01.github.io/termpair
 
 **Source Code**: https://github.com/cs01/termpair
 
+<a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a>
 ---
 
 ## What is TermPair?
@@ -45,7 +46,6 @@ http://localhost:8000/?id=5a32e471453c0bb0c642acbbd6ee58f8
 That URL is valid for the current terminal sharing session. The session ends when the process being broadcast ends, usually by typing `quit` or `exit`, or by closing the terminal window. At that time, the URL is no longer valid.
 
 The session can be shared with others who you want to view and optionally control your terminal from a browser.
-
 
 Pass the `-a` flag to grant the browser control of the terminal:
 

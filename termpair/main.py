@@ -8,7 +8,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 import uvicorn  # type: ignore
 from . import share, server
 
-__version__ = "0.0.0.2"
+__version__ = "0.0.0.3"
 
 
 def _ws_url(host, port):
