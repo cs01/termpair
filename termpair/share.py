@@ -1,74 +1,54 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""The local terminal is replaced with a pty spawned in this code. All input and output
-to the terminal is routed through here, and recorded to a transcript file.
+"""
+Establish a websocket connection and replace local terminal with a pty
+that sends all output to the server.
 """
 
 import asyncio
+import base64
+import datetime
+import json
 import os
 import pty
-import json
-import base64
 import shlex
 import signal
+import ssl
 import sys
 import textwrap
-from typing import List
-import websockets
 import webbrowser
+from typing import List, Optional
+
+import websockets
+
 from . import utils
-import ssl
-import datetime
 
 
 max_read_bytes = 1024 * 2
 ws_queue: asyncio.Queue = asyncio.Queue()
 
 
-def _print_warning(
-    url: str, cmd: List[str], allow_browser_control: bool, session_id: str
-):
+async def _task_send_ws_queue_to_server(ws):
+    """Waits for new pty output (nonblocking), then immediately sends to server"""
+    while True:
+        data = await ws_queue.get()
+        await ws.send(data)
 
+
+def _print_broadcast_init_message(url: str, cmd: List[str]):
     cmd_str = " ".join(shlex.quote(c) for c in cmd)
-    if allow_browser_control:
-        warning = "WARNING: Your terminal is viewable AND controllable from"
-    else:
-        warning = "WARNING: Your terminal is viewable but NOT controllable from"
-
-    if url.startswith("https://"):
-        secure = "Your connection is secure."
-    else:
-        secure = "WARNING: Your connection NOT secure."
-
+    _, cols = utils.get_terminal_size(sys.stdin)
+    dashes = "-" * cols
     print(
         textwrap.dedent(
-            f"""
-        Sharing all input and output of `{cmd_str}`.
-
-        {warning}
-
-        {url}
-        {secure}
-
-        Type 'exit' to stop sharing.
-
-        When you are no longer sharing, you will see the session id '{session_id}' printed.
-        This id is not shared with the server or any connected browsers.
-        """
+            f"""        {dashes}
+        Running {cmd_str!r} and sharing to {url!r}.
+        Type 'exit' or close terminal to stop sharing.
+        {dashes}"""
         )
     )
 
 
 def _get_share_url(url, ws_id):
-    return f"{url}/?id={ws_id}"
-
-
-async def _forward_pty_queue(ws):
-    """Waits for new pty output (nonblocking), then immediately sends to server"""
-    while True:
-        data = await ws_queue.get()
-        await ws.send(data)
+    return f"{url}/?terminal_id={ws_id}"
 
 
 def _handle_new_stdin(stdin_fd: int, pty_fd: int):
@@ -88,9 +68,8 @@ def _handle_new_pty_output(ws, pty_fd: int, stdout_fd: int, cleanup):
     if pty_output:
         # forward output to user's terminal
         os.write(stdout_fd, pty_output)
+        # also forward output to the server so it can forward to connected browsers
         payload = base64.b64encode(pty_output)
-        # data = pty_output.decode()
-        # add output to queue to be sent to server
         ws_queue.put_nowait(
             json.dumps({"event": "new_output", "payload": payload.decode()})
         )
@@ -99,65 +78,52 @@ def _handle_new_pty_output(ws, pty_fd: int, stdout_fd: int, cleanup):
         return
 
 
-async def _recv(ws):
+async def _receive_data_from_websocket(ws):
     data = await ws.recv()
     parsed = json.loads(data)
     return parsed["event"], parsed["payload"]
 
 
-async def broadcastterminal(
-    cmd: List[str], url: str, allow_browser_control: bool, open_browser: bool
-):
-    # create child process attached to a pty we can read from and write to
-    (child_pid, pty_fd) = pty.fork()
-    if child_pid == 0:
-        os.execvpe(cmd[0], cmd, os.environ)
-        return
-
-    stdin_fd = sys.stdin.fileno()
-    stdout_fd = sys.stdout.fileno()
-
+async def _initialize_broadcast(
+    cmd, url, ws, stdin_fd, pty_fd, allow_browser_control
+) -> str:
+    """Prepare server to store i/o about this terminal"""
+    # copy our terminal dimensions to the pty so its row/col count
+    # matches and we don't get unexpected line breaks/misalignments
     utils.copy_terminal_dimensions(stdin_fd, pty_fd)
 
-    if url.startswith("https"):
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-    else:
-        ssl_context = None
-    ws_url = url.replace("http", "ws")
+    rows, cols = utils.get_terminal_size(stdin_fd)
 
-    async with websockets.connect(
-        f"{ws_url}/connect_to_terminal", ssl=ssl_context
-    ) as ws:
-        rows, cols = utils.get_terminal_size(stdin_fd)
-        cmd_str = " ".join(cmd)
-        broadcast_start_time_iso = datetime.datetime.now(
-            datetime.timezone.utc
-        ).isoformat()
-        await ws.send(
-            json.dumps(
-                {
-                    "rows": rows,
-                    "cols": cols,
-                    "allow_browser_control": allow_browser_control,
-                    "command": cmd_str,
-                    "broadcast_start_time_iso": broadcast_start_time_iso,
-                }
-            )
+    cmd_str = " ".join(cmd)
+    broadcast_start_time_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    await ws.send(
+        json.dumps(
+            {
+                "rows": rows,
+                "cols": cols,
+                "allow_browser_control": allow_browser_control,
+                "command": cmd_str,
+                "broadcast_start_time_iso": broadcast_start_time_iso,
+            }
         )
-        _, ws_id = await _recv(ws)
-        url = _get_share_url(url, ws_id)
-        session_id = utils.get_random_string(12)
-        _print_warning(url, cmd, allow_browser_control, session_id)
-
-        with utils.make_raw(stdin_fd):
-            await _do_broadcast(pty_fd, stdin_fd, stdout_fd, ws, url, open_browser)
-
-        print(f"You are no longer broadcasting session id {session_id}")
+    )
+    _, ws_id = await _receive_data_from_websocket(ws)
+    share_url = _get_share_url(url, ws_id)
+    _print_broadcast_init_message(share_url, cmd)
+    return ws_id
 
 
 async def _do_broadcast(
-    pty_fd: int, stdin_fd: int, stdout_fd: int, ws, url: str, open_browser: bool
+    pty_fd: int,
+    stdin_fd: int,
+    stdout_fd: int,
+    ws,
+    share_url: str,
+    open_browser: bool,
+    allow_browser_control: bool,
 ):
+    """forward pty i/o to/from file descriptors and websockets"""
+
     def _on_resize(signum, frame):
         utils.copy_terminal_dimensions(stdin_fd, pty_fd)
         rows, cols = utils.get_terminal_size(stdin_fd)
@@ -167,12 +133,13 @@ async def _do_broadcast(
 
     signal.signal(signal.SIGWINCH, _on_resize)
     if open_browser:
-        webbrowser.open(url)
+        webbrowser.open(share_url)
 
     tasks = [
-        asyncio.ensure_future(_forward_pty_queue(ws)),
-        asyncio.ensure_future(_take_commands_from_websocket(pty_fd, ws)),
+        asyncio.ensure_future(_task_send_ws_queue_to_server(ws)),
     ]
+    if allow_browser_control:
+        tasks.append(asyncio.ensure_future(_task_receive_server_pty_input(pty_fd, ws)))
 
     loop = asyncio.get_event_loop()
 
@@ -182,8 +149,11 @@ async def _do_broadcast(
             loop.remove_reader(stdin_fd)
             loop.remove_reader(pty_fd)
 
-    # add event-based reading for file on file descriptors
+    # add event-based reading of input to stdin, and forward to the pty
+    # process
     loop.add_reader(stdin_fd, _handle_new_stdin, stdin_fd, pty_fd)
+    # add event based reading of output from the pty and write to
+    # stdout and to the server
     loop.add_reader(pty_fd, _handle_new_pty_output, ws, pty_fd, stdout_fd, cleanup)
 
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
@@ -191,15 +161,55 @@ async def _do_broadcast(
         task.cancel()
 
 
-async def _take_commands_from_websocket(fd, ws):
+async def _task_receive_server_pty_input(fd, ws):
     """receives commands from websocket and writes them to associated fd"""
     try:
         while True:
-            event, payload = await _recv(ws)
+            event, payload = await _receive_data_from_websocket(ws)
             if event == "command":
-                output = payload
+                os.write(fd, payload.encode())
             else:
-                pass
-            os.write(fd, output.encode())
+                print(f"Got unhandled event {event}")
     except websockets.exceptions.ConnectionClosed:
-        pass
+        return
+
+
+async def broadcast_terminal(
+    cmd: List[str], url: str, allow_browser_control: bool, open_browser: bool
+):
+    """For this process and connect it to websocket to broadcast it"""
+    # create child process attached to a pty we can read from and write to
+    (child_pid, pty_fd) = pty.fork()
+    if child_pid == 0:
+        # This is the forked process. Replace it with the shell command
+        # the user wants to run.
+        os.execvpe(cmd[0], cmd, os.environ)
+        return
+
+    stdin_fd = sys.stdin.fileno()
+    stdout_fd = sys.stdout.fileno()
+
+    ssl_context: Optional[ssl.SSLContext] = ssl.SSLContext(
+        ssl.PROTOCOL_TLS
+    ) if url.startswith("https") else None
+    ws_url = url.replace("http", "ws")
+
+    session_id = utils.get_random_string(12)
+
+    async with websockets.connect(
+        f"{ws_url}/connect_to_terminal", ssl=ssl_context
+    ) as ws:
+        ws_id = await _initialize_broadcast(
+            cmd, url, ws, stdin_fd, pty_fd, allow_browser_control
+        )
+        with utils.make_raw(stdin_fd):
+            await _do_broadcast(
+                pty_fd,
+                stdin_fd,
+                stdout_fd,
+                ws,
+                _get_share_url(url, ws_id),
+                open_browser,
+                allow_browser_control,
+            )
+        print(f"You are no longer broadcasting session id {session_id}")

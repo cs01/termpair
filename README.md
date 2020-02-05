@@ -14,6 +14,10 @@
 
 TermPair lets developers share and control terminals in real time.
 
+<div style="text-align: center">
+    <img src="https://github.com/cs01/termpair/raw/master/termpair_browser.gif"/>
+</div>
+
 ## Usage
 
 Start the TermPair server:
@@ -40,11 +44,8 @@ http://localhost:8000/?id=5a32e471453c0bb0c642acbbd6ee58f8
 
 That URL is valid for the current terminal sharing session. The session ends when the process being broadcast ends, usually by typing `quit` or `exit`, or by closing the terminal window. At that time, the URL is no longer valid.
 
-The session can be shared with others who you want to view and optionally control your terminal from a browser:
+The session can be shared with others who you want to view and optionally control your terminal from a browser.
 
-<div style="text-align: center">
-    <img src="https://github.com/cs01/termpair/raw/master/termpair_browser.png"/>
-</div>
 
 Pass the `-a` flag to grant the browser control of the terminal:
 
@@ -121,10 +122,6 @@ Operating System:
 - To share your terminal, `termpair share`: Tested on Linux. Should work on macOS. Probably doesn't work on Windows.
 
 Python: 3.6
-
-## How It Works
-
-TermPair is built with Python and leverages asynchronous paradigms, so it's efficient and snappy. It uses the [Bocadillo](https://bocadilloproject.github.io/) web framework on the backend.
 
 ### Run Server
 

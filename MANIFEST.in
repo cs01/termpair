@@ -1,4 +1,21 @@
 # Things to include in the built package (besides the packages defined in setup.py)
+
+graft termpair/frontend_build
+
 include README.md
 include LICENSE
-recursive-include termpair/frontend_build/ *
+
+prune termpair/frontend_src
+prune docs
+prune tests
+
+exclude .flake8
+exclude Dockerfile
+exclude makefile
+exclude mkdocs.yml
+exclude mypy.ini
+exclude noxfile.py
+exclude package.json
+exclude termpair_browser.png
+exclude termpair_terminal.png
+exclude yarn.lock

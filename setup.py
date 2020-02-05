@@ -1,19 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# For a fully annotated version of this file and what it does, see
-# https://github.com/pypa/sampleproject/blob/master/setup.py
-
-# To upload this file to PyPI you must build it then upload it:
-# python setup.py sdist bdist_wheel  # build in 'dist' folder
-# python-m twine upload dist/*  # 'twine' must be installed: 'pip install twine'
-
 
 import ast
 import io
 import re
 import os
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup  # type: ignore
 
 EXCLUDE_FROM_PACKAGES = ["contrib", "docs", "tests*"]
 CURDIR = os.path.abspath(os.path.dirname(__file__))
@@ -46,9 +37,7 @@ setup(
     scripts=[],
     entry_points={"console_scripts": ["termpair=termpair.main:main"]},
     zip_safe=False,
-    install_requires=["bocadillo>=0.13.1, <0.14"],
-    extras_require={"dev": ["mkdocs", "mkdocs-material", "mypy", "black"]},
-    test_suite="tests.test_project",
+    install_requires=["fastapi", "uvicorn", "aiofiles", "jinja2"],
     python_requires=">=3.6",
     # license and classifier list:
     # https://pypi.org/pypi?%3Aaction=list_classifiers
