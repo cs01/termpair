@@ -396,7 +396,6 @@ INFO:     (&#39;127.0.0.1&#39;, 35470) - &quot;WebSocket /connect_to_terminal&qu
 </pre></div>
 
 
-<p>The server multicasts terminal output to as many browsers that connect to the session.</p>
 <p>Then share your terminal by running:</p>
 <div class="codehilite"><pre><span></span>&gt;&gt; termpair share -a
 --------------------------------------------------------------------------------
@@ -407,6 +406,7 @@ Type &#39;exit&#39; or close terminal to stop sharing.
 
 
 <p>You can share that URL with whoever you want. Note that anyone that has it can view and possible control your terminal.</p>
+<p>The server multicasts terminal output to as many browsers that connect to the session.</p>
 <h2 id="installation">Installation</h2>
 <p>Use <a href="https://github.com/pipxproject/pipx">pipx</a> to run the latest version without installing:</p>
 <div class="codehilite"><pre><span></span>&gt;&gt; pipx run termpair serve
