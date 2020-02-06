@@ -253,13 +253,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quickstart" class="md-nav__link">
-    Quickstart
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
   </a>
@@ -274,36 +267,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#security-considerations" class="md-nav__link">
-    Security Considerations
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#system-requirements" class="md-nav__link">
     System Requirements
   </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#run-server" class="md-nav__link">
-    Run Server
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#broadcast-your-terminal" class="md-nav__link">
-    Broadcast Your Terminal
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -363,13 +329,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quickstart" class="md-nav__link">
-    Quickstart
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
   </a>
@@ -384,36 +343,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#security-considerations" class="md-nav__link">
-    Security Considerations
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#system-requirements" class="md-nav__link">
     System Requirements
   </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#run-server" class="md-nav__link">
-    Run Server
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#broadcast-your-terminal" class="md-nav__link">
-    Broadcast Your Terminal
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -455,47 +387,40 @@
 
 <h2 id="usage">Usage</h2>
 <p>Start the TermPair server:</p>
-<div class="codehilite"><pre><span></span>termpair serve
+<div class="codehilite"><pre><span></span>&gt;&gt; termpair serve
+INFO:     Started server process [15455]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
+INFO:     (&#39;127.0.0.1&#39;, 35470) - &quot;WebSocket /connect_to_terminal&quot; [accepted]
 </pre></div>
 
 
+<p>The server multicasts terminal output to as many browsers that connect to the session.</p>
 <p>Then share your terminal by running:</p>
-<div class="codehilite"><pre><span></span>termpair share
+<div class="codehilite"><pre><span></span>&gt;&gt; termpair share -a
+--------------------------------------------------------------------------------
+Running &#39;/bin/bash&#39; and sharing to &#39;http://localhost:8000/?terminal_id=b26903e19ffff2bc9ace60491e8200d5&#39;.
+Type &#39;exit&#39; or close terminal to stop sharing.
+--------------------------------------------------------------------------------
 </pre></div>
 
 
-<p>A URL will be printed to the terminal, such as:</p>
-<div class="codehilite"><pre><span></span>http://localhost:8000/?id=5a32e471453c0bb0c642acbbd6ee58f8
-</pre></div>
-
-
-<p>That URL is valid for the current terminal sharing session. The session ends when the process being broadcast ends, usually by typing <code>quit</code> or <code>exit</code>, or by closing the terminal window. At that time, the URL is no longer valid.</p>
-<p>The session can be shared with others who you want to view and optionally control your terminal from a browser.</p>
-<p>Pass the <code>-a</code> flag to grant the browser control of the terminal:</p>
-<div class="codehilite"><pre><span></span>termpair share -a
-</pre></div>
-
-
-<h2 id="quickstart">Quickstart</h2>
-<p>To quickly get up and running (without even having to install to your system!), use <a href="https://github.com/pipxproject/pipx">pipx</a> to start the server:</p>
-<div class="codehilite"><pre><span></span>pipx run termpair serve
-</pre></div>
-
-
-<p>Then share your client by running</p>
-<div class="codehilite"><pre><span></span>pipx run termpair share -b
-</pre></div>
-
-
-<p>The <code>-b</code> flag will automatically open a browser tab to view the shared terminal.</p>
+<p>You can share that URL with whoever you want. Note that anyone that has it can view and possible control your terminal.</p>
 <h2 id="installation">Installation</h2>
-<p>You can install using <a href="https://github.com/pipxproject/pipx">pipx</a> or pip:</p>
-<div class="codehilite"><pre><span></span>pipx install termpair
+<p>Use <a href="https://github.com/pipxproject/pipx">pipx</a> to run the latest version without installing:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt; pipx run termpair serve
+&gt;&gt; pipx run termpair share -b
+</pre></div>
+
+
+<p>You can also install using <a href="https://github.com/pipxproject/pipx">pipx</a> or pip:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt; pipx install termpair
 </pre></div>
 
 
 <p>or</p>
-<div class="codehilite"><pre><span></span>pip install termpair
+<div class="codehilite"><pre><span></span>&gt;&gt; pip install termpair
 </pre></div>
 
 
@@ -505,72 +430,14 @@
 </pre></div>
 
 
-<h2 id="security-considerations">Security Considerations</h2>
-<p>It should go without saying but this can be extremely dangerous if you use it improperly.</p>
-<p><strong>You should only broadcast a terminal session you want to be shared, and only share the URL with those you trust.</strong> No password is required after opening the URL, so consider it to be sensitive information!</p>
-<p>By using TermPair, anyone with the sharable URL can:</p>
-<ul>
-<li>View every keystroke you make (even passwords that appear hidden in the terminal).</li>
-<li>View every character output by the terminal.</li>
-</ul>
-<p>If you are in a public location, someone over your shoulder could see this url, or take a picture of it, providing them the ability to view or control your termpair session.</p>
-<p>If you allow other users to control your terminal, they can:</p>
-<ul>
-<li>Run any commands.</li>
-<li>View/modify/delete any files.</li>
-<li>Restart or corrupt your computer.</li>
-<li>Install a virus.</li>
-</ul>
-<p>If you run the server locally on the default host, it will not be accessible to anyone other than you. These security implications apply if you are exposing the port to others.</p>
 <h2 id="system-requirements">System Requirements</h2>
+<p>Python: 3.6+</p>
 <p>Operating System:</p>
 <ul>
 <li>To view/control from the browser: All operating systems are supported.</li>
 <li>To run the server, <code>termpair serve</code>: Tested on Linux. Should work on macOS. Might work on Windows.</li>
 <li>To share your terminal, <code>termpair share</code>: Tested on Linux. Should work on macOS. Probably doesn't work on Windows.</li>
 </ul>
-<p>Python: 3.6</p>
-<h3 id="run-server">Run Server</h3>
-<p>The server acts as a router between a unix terminal broadcasting and the browser(s) that are remotely viewing the terminal.</p>
-<p>It must be started before a terminal session can be broadcast.</p>
-<div class="codehilite"><pre><span></span>$ termpair serve
-INFO: Started server process [16592]
-INFO: Waiting for application startup.
-INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-</pre></div>
-
-
-<p>Terminals can now broadcast to http://127.0.0.1:8000 🎉.</p>
-<h3 id="broadcast-your-terminal">Broadcast Your Terminal</h3>
-<p>To let others view your terminal:</p>
-<div class="codehilite"><pre><span></span>$ termpair share
-</pre></div>
-
-
-<p>Your terminal is now viewable at <code>localhost:8000/?id=e8a7c806102134022455ddd1841470ed</code>. 🎉</p>
-<p>To let others view <strong>and remotely control</strong> your terminal:</p>
-<div class="codehilite"><pre><span></span>$ termpair share -a
-
-...
-
-WARNING: Your terminal is viewable AND controllable from
-
-localhost:8000/?id=e8a7c806102134022455ddd1841470ed
-...
-</pre></div>
-
-
-<p>When you run this, a new <a href="https://en.wikipedia.org/wiki/Pseudoterminal">pty</a> process is started locally, and by default launches a new instance of the shell you are using, such as <code>bash</code>. But it can run any executable, interactive or not, with any arguments you want to supply.</p>
-<p>You can pass the <code>--cmd</code> flag to specify the process that is shared in the terminal session.</p>
-<div class="codehilite"><pre><span></span>termpair share  # shares current SHELL. Can run anything from within here, like vim.
-termpair share --cmd $SHELL  # equivalent to the above command
-termpair share --cmd &quot;python&quot;
-termpair share --cmd &quot;gdb&quot;
-termpair share --cmd &quot;gdb -p 1234&quot;
-</pre></div>
-
-
-<p>The sharing session ends when the process the terminal was sharing ends, usually by typing <code>exit</code> or <code>quit</code>. It can also be ended by closing the terminal itself. Each session is assigned a unique TermPair session id, which is a short string of characters. The session id is never shared with the server or any viewers watching the session.</p>
                 
                   
                 
