@@ -45,6 +45,7 @@ def publish(session):
     session.run("rm", "-rf", "dist", "build", external=True)
     publish_deps = ["setuptools", "wheel", "twine"]
     session.install(*publish_deps)
+    session.run("make", "build_frontend", external=True)
     session.run("python", "setup.py", "--quiet", "sdist", "bdist_wheel")
     session.run("python", "-m", "twine", "upload", "dist/*")
     publish_docs(session)

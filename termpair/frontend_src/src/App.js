@@ -1,9 +1,9 @@
-import React, { Component, useState } from "react";
+import React, { Component } from "react";
 import "./App.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
 import { Terminal as Xterm } from "xterm";
 import moment from "moment";
-
+import { getSecretKey, decrypt, encrypt } from "./encryption";
 function Led(props) {
   return (
     <div className="flexnowrap">
@@ -66,34 +66,25 @@ function StatusBar(props) {
   );
 }
 function Terminal(props) {
-  return <div id="terminal" className={props.status} ref={props.terminalEl} />;
+  return (
+    <div
+      id="terminal"
+      className={props.status}
+      ref={props.terminalRef.current}
+    />
+  );
 }
 
-function TerminalIdEntry(props) {
-  const [id, setId] = useState("");
+function BroadcastInstructions(props) {
+  const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
   return (
     <div id="terminal-entry">
-      Enter terminal id
-      <input
-        value={id}
-        onChange={event => {
-          setId(event.target.value);
-        }}
-        onKeyDown={event => {
-          if (event.keyCode === 13) {
-            window.location = `?terminal_id=${id}`;
-          }
-        }}
-      />
-      <button onClick={() => (window.location = `?terminal_id=${id}`)}>
-        Connect
-      </button>
-      <p>
-        To view or broadcast a terminal, see instructions at{" "}
-        <a href="https://github.com/cs01/termpair">
-          https://github.com/cs01/termpair
-        </a>
-      </p>
+      <p>{props.error}</p>
+      <p>To broadcast a terminal, run</p>
+      <pre>
+        pipx run termpair=={props.termpair_version} share --host "{host}"
+      </pre>
+      <p>then open the link printed to the terminal.</p>
     </div>
   );
 }
@@ -102,21 +93,51 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      rows: this.props.rows || 20,
-      cols: this.props.cols || 60,
-      status: "connection-pending",
+      status:
+        props.terminal_id && window.crypto != null
+          ? "connection-pending"
+          : "disconnected",
       num_clients: this.props.num_clients,
-      terminal_id: this.props.terminal_id
+      terminal_id: this.props.terminal_id,
+      secretEncryptionKey: "pending"
     };
-    this.term = new Xterm({
+    this.xterm = new Xterm({
       cursorBlink: true,
       macOptionIsMeta: true,
       scrollback: 1000
     });
-    this.terminalEl = React.createRef();
-    this.term.resize(this.state.cols, this.state.rows);
+    this.terminalRef = React.createRef();
+    this.xterm.resize(props.cols || 60, props.rows || 20);
   }
   render() {
+    const hasEncryption = window.crypto != null;
+    let body;
+    if (!hasEncryption) {
+      body = (
+        <BroadcastInstructions
+          error={
+            "This domain is not secure and thus cannot perform in-browser encryption/decryption."
+          }
+          {...this.props}
+        />
+      );
+    } else if (!this.state.terminal_id) {
+      body = (
+        <BroadcastInstructions
+          {...this.props}
+          error={"Valid terminal id not provided."}
+        />
+      );
+    } else if (this.state.secretEncryptionKey == null) {
+      body = (
+        <BroadcastInstructions
+          {...this.props}
+          error={"Encryption key is invalid or missing"}
+        />
+      );
+    } else {
+      body = <Terminal {...this.props} terminalRef={this.terminalRef} />;
+    }
     return (
       <div
         style={{
@@ -125,71 +146,83 @@ class App extends Component {
         }}
       >
         <TopBar {...this.props} {...this.state} />
-        {this.state.terminal_id ? (
-          <Terminal {...this.props} terminalEl={this.terminalEl} />
-        ) : (
-          <TerminalIdEntry />
-        )}
-
+        {body}
         <StatusBar {...this.props} {...this.state} />
         <BottomBar />
       </div>
     );
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     if (!this.state.terminal_id) {
       return;
     }
-    const term = this.term;
+    const secretEncryptionKey = await getSecretKey();
+    this.setState({ secretEncryptionKey });
+    const xterm = this.xterm;
 
-    term.open(document.getElementById("terminal"));
-    term.writeln(`Welcome to TermPair!`);
-    term.writeln("https://github.com/cs01/termpair");
-    if (!this.state.terminal_id) {
-      term.writeln("");
-      term.writeln("A valid terminal id was not provided.");
-      term.writeln("To view or broadcast a terminal, see instructions at");
-      term.writeln("https://github.com/cs01/termpair");
+    xterm.open(document.getElementById("terminal"));
+    xterm.writeln(`Welcome to TermPair! https://github.com/cs01/termpair`);
+    if (!this.state.terminal_id || !secretEncryptionKey) {
+      xterm.writeln("");
+      xterm.writeln("A valid terminal id and e2ee key must be provided.");
+      xterm.writeln("To view or broadcast a terminal, see instructions at");
+      xterm.writeln("https://github.com/cs01/termpair");
       this.setState({ status: "disconnected" });
       return;
     }
-    term.writeln("Connecting to terminal...");
     const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const socket = new WebSocket(
-      `${ws_protocol}://${window.location.hostname}:${window.location.port}/connect_browser_to_terminal?terminal_id=${this.state.terminal_id}`
+    const webSocket = new WebSocket(
+      `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${this.state.terminal_id}`
     );
 
-    term.on("key", (key, ev) => {
-      socket.send(key);
+    xterm.on("key", async (pressedKey, ev) => {
+      webSocket.send(await encrypt(secretEncryptionKey, pressedKey));
     });
-    socket.addEventListener("open", event => {
+
+    webSocket.addEventListener("open", event => {
       this.setState({ status: "connected" });
-      term.writeln("Connection established");
+      xterm.writeln("Connection established with end-to-end encryption,");
+      xterm.writeln(
+        "which means the termpair server and third parties can't read transmitted data."
+      );
     });
 
-    socket.addEventListener("close", event => {
+    webSocket.addEventListener("close", event => {
+      if (this.state.status === "connected") {
+        xterm.writeln("Connection ended");
+      } else {
+        xterm.writeln(
+          "Failed to establish connection. Ensure you have a valid url."
+        );
+        xterm.writeln("To view or broadcast a terminal, see instructions at");
+        xterm.writeln("https://github.com/cs01/termpair");
+      }
       this.setState({ status: "disconnected" });
-      term.writeln("Connection ended");
-      this.setState({ num_clients: 0, terminal_id: null });
+      this.setState({ num_clients: 0 });
     });
 
-    socket.addEventListener("message", event => {
-      const data = JSON.parse(event.data);
+    async function handleWebsocketMessage(message) {
+      const data = JSON.parse(message.data);
       if (data.event === "new_output") {
-        term.write(atob(data.payload));
+        const encryptedBase64Payload = data.payload;
+        const decryptedPayload = await decrypt(
+          secretEncryptionKey,
+          encryptedBase64Payload
+        );
+        xterm.write(decryptedPayload);
       } else if (data.event === "resize") {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(() => {
-          this.term.resize(data.payload.cols, data.payload.rows);
-          this.setState({ rows: data.payload.rows, cols: data.payload.cols });
+          xterm.resize(data.payload.cols, data.payload.rows);
         }, 500);
       } else if (data.event === "num_clients") {
         this.setState({ num_clients: data.payload });
       } else {
         console.error("unknown event type", data);
       }
-    });
+    }
+    webSocket.addEventListener("message", handleWebsocketMessage.bind(this));
   }
 }
 

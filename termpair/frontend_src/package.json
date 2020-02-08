@@ -17,6 +17,7 @@
     "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:8000",
+  "homepage": ".",
   "eslintConfig": {
     "extends": "react-app"
   },
