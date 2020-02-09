@@ -1,3 +1,7 @@
+## 0.0.1.1
+
+* Fix pipx install link in frontend
+
 ## 0.0.1.0
 
 * Add end-to-end encryption

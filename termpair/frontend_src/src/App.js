@@ -82,7 +82,8 @@ function BroadcastInstructions(props) {
       <p>{props.error}</p>
       <p>To broadcast a terminal, run</p>
       <pre>
-        pipx run termpair=={props.termpair_version} share --host "{host}"
+        pipx run --spec termpair=={props.termpair_version} termpair share --host
+        "{host}"
       </pre>
       <p>then open the link printed to the terminal.</p>
     </div>
