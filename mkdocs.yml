@@ -10,6 +10,7 @@ repo_url: https://github.com/cs01/termpair
 nav:
   - Overview: "index.md"
   - Contributing: "contributing.md"
+  - Changelog: "changelog.md"
 
 markdown_extensions:
   - markdown.extensions.codehilite:

@@ -37,7 +37,7 @@ You'll then be able to build the frontend app using:
 make build_frontend
 ```
 
-You'll need to reload the TermPair server for changes to be taken into account. Stop it with `Ctrl+C`, then restart it.
+The TermPair server does not need to be reloaded, so you can just refresh the webpage to view changes.
 
 Alternatively, changes that don't require an actively connected terminal can be tested much more easily with hot reloading by running:
 

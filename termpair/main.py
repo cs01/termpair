@@ -4,19 +4,12 @@ import argparse
 import asyncio
 import os
 import shlex
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from urllib.parse import urlparse
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: ignore
 import uvicorn  # type: ignore
 from . import share, server
 
-__version__ = "0.0.0.3"
-
-
-def _ws_url(host, port):
-    return f"ws://{host}:{port}"
-
-
-def _url(host, port):
-    return f"{host}:{port}"
+__version__ = "0.0.1.0"
 
 
 def main():
@@ -43,15 +36,15 @@ def main():
             "Defaults to the SHELL environment variable"
         ),
     )
-    sp.add_argument("--port", "-p", default=8000, help="port server is running on")
+    sp.add_argument("--port", "-p", default=None, help="port server is running on")
     sp.add_argument(
         "--host", default="http://localhost", help="host server is running on"
     )
     sp.add_argument(
-        "--allow-browser-control",
-        "-a",
+        "--no-browser-control",
+        "-n",
         action="store_true",
-        help="Allow browsers to control your terminal remotely (Use with caution!)",
+        help="Do not allow browsers to control your terminal remotely",
     )
     sp.add_argument(
         "--open-browser",
@@ -102,11 +95,15 @@ def main():
         if not args.host.startswith("http://") and not args.host.startswith("https://"):
             exit("host must start with either http:// or https://")
 
-        url = _url(args.host, args.port)
+        parsed = urlparse(args.host)
+        if args.port:
+            url = f"{parsed.scheme}://{parsed.netloc}:{args.port}{parsed.path}"
+        else:
+            url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        url = url if url.endswith("/") else f"{url}/"
+        allow_browser_control = not args.no_browser_control
         asyncio.get_event_loop().run_until_complete(
-            share.broadcast_terminal(
-                cmd, url, args.allow_browser_control, args.open_browser
-            )
+            share.broadcast_terminal(cmd, url, allow_browser_control, args.open_browser)
         )
     elif args.command == "serve":
         if args.certfile or args.keyfile:

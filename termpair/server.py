@@ -12,7 +12,7 @@ import time
 from hashlib import md5
 from typing import Any, Dict, List, NamedTuple, NewType, Optional
 
-import starlette
+import starlette  # type: ignore
 from fastapi import FastAPI  # type: ignore
 from starlette.requests import Request  # type: ignore
 from starlette.staticfiles import StaticFiles  # type: ignore
@@ -53,6 +53,7 @@ terminals: Dict[TerminalId, Terminal] = {}
 
 @app.get("/")
 async def index(request: Request, terminal_id: Optional[TerminalId] = None):
+    from .main import __version__
 
     terminal = None
     if terminal_id:
@@ -71,9 +72,12 @@ async def index(request: Request, terminal_id: Optional[TerminalId] = None):
             allow_browser_control=allow_browser_control,
             command=terminal.command,
             broadcast_start_time_iso=terminal.broadcast_start_time_iso,
+            termpair_version=__version__,
         )
     else:
-        initial_data = dict(cols=50, rows=15, allow_browser_control=False)
+        initial_data = dict(
+            cols=50, rows=15, allow_browser_control=False, termpair_version=__version__
+        )
     return templates.TemplateResponse(
         "index.html", {"request": request, "initial_data": initial_data}
     )
@@ -97,11 +101,11 @@ async def connect_browser_to_terminal(ws: WebSocket):
             await browser.send_json({"event": "num_clients", "payload": num_browsers})
         # read any input from the browser that just connected
         while True:
-            browser_input = await ws.receive_text()
+            encrypted_browser_input = await ws.receive_text()
             if terminal.allow_browser_control:
                 # Got input, send it to the single terminal that's broadcasting.
                 await terminal.ws.send_json(
-                    {"event": "command", "payload": browser_input}
+                    {"event": "command", "payload": encrypted_browser_input}
                 )
     except starlette.websockets.WebSocketDisconnect:
         # this can happen when the broadcasting terminal disconnects
