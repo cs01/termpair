@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, useState } from "react";
 import "./App.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
 import { Terminal as Xterm } from "xterm";
@@ -77,14 +77,26 @@ function Terminal(props) {
 
 function BroadcastInstructions(props) {
   const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
+  const command = `pipx run termpair share --host "${host}"`;
+  const [copyText, setCopyText] = useState("copy command to clipboard");
   return (
     <div id="terminal-entry">
       <p>{props.error}</p>
       <p>To broadcast a terminal, run</p>
-      <pre>
-        pipx run --spec termpair=={props.termpair_version} termpair share --host
-        "{host}"
-      </pre>
+      <pre>{command}</pre>
+      <button
+        className="btn btn-normal"
+        onClick={async () => {
+          await navigator.clipboard.writeText(command);
+          setCopyText("copied!");
+          setTimeout(() => {
+            setCopyText("copy command to clipboard");
+          }, 2000);
+        }}
+        style={{ fontSize: "1rem", marginRight: "10px" }}
+      >
+        {copyText}
+      </button>
       <p>then open the link printed to the terminal.</p>
     </div>
   );
@@ -123,12 +135,7 @@ class App extends Component {
         />
       );
     } else if (!this.state.terminal_id) {
-      body = (
-        <BroadcastInstructions
-          {...this.props}
-          error={"Valid terminal id not provided."}
-        />
-      );
+      body = <BroadcastInstructions {...this.props} />;
     } else if (this.state.secretEncryptionKey == null) {
       body = (
         <BroadcastInstructions
