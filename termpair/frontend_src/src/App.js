@@ -1,5 +1,6 @@
-import React, { Component, useState } from "react";
+import React, { Component } from "react";
 import "./App.css";
+import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
 import { Terminal as Xterm } from "xterm";
 import moment from "moment";
@@ -24,7 +25,6 @@ function TopBar(props) {
 }
 
 function StatusBar(props) {
-  console.log(props);
   return (
     <div id="statusbar">
       {" "}
@@ -147,14 +147,15 @@ class App extends Component {
       `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${this.state.terminalId}`
     );
 
-    xterm.on("key", async (pressedKey, ev) => {
-      webSocket.send(await encrypt(secretEncryptionKey, pressedKey));
+    xterm.onKey(async (pressedKey, ev) => {
+      webSocket.send(await encrypt(secretEncryptionKey, pressedKey.key));
     });
 
     webSocket.addEventListener("open", event => {
       this.setState({ status: "connected" });
+      xterm.writeln("Connection established with end-to-end encryption 🔒.");
       xterm.writeln(
-        "Connection established with end-to-end encryption 🔒. The termpair server and third parties can't read transmitted data."
+        "The termpair server and third parties can't read transmitted data."
       );
     });
 
@@ -179,8 +180,7 @@ class App extends Component {
           secretEncryptionKey,
           encryptedBase64Payload
         );
-        console.log(decryptedPayload);
-        xterm.write(decryptedPayload);
+        xterm.writeUtf8(decryptedPayload);
       } else if (data.event === "resize") {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(() => {
@@ -204,6 +204,10 @@ function writeInstructions(xterm) {
   xterm.writeln("");
   xterm.writeln("Then open or share the url printed to the terminal.");
   xterm.writeln("To install pipx, see https://pipxproject.github.io/pipx/");
+  xterm.writeln("All terminal data is end-to-end encrypted 🔒.");
+  xterm.writeln(
+    "The termpair server and third parties can't read transmitted data."
+  );
 }
 
 export default App;

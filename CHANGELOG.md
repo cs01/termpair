@@ -1,3 +1,7 @@
+## 0.0.1.3
+
+* Upgrade xtermjs
+
 ## 0.0.1.2
 
 * Update landing page when terminal id is not provided

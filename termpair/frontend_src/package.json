@@ -7,7 +7,7 @@
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "react-scripts": "2.1.8",
-    "xterm": "^3.12.0"
+    "xterm": "^4.4.0"
   },
   "scripts": {
     "start": "react-scripts start",
