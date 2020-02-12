@@ -14,26 +14,18 @@ from typing import Any, Dict, List, NamedTuple, NewType, Optional
 
 import starlette  # type: ignore
 from fastapi import FastAPI  # type: ignore
-from starlette.requests import Request  # type: ignore
 from starlette.staticfiles import StaticFiles  # type: ignore
-from starlette.templating import Jinja2Templates  # type: ignore
 from starlette.websockets import WebSocket  # type: ignore
 
 from .utils import get_random_string
 
 
-TEMPLATES_DIR = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "frontend_build"
-)
+PUBLIC_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "frontend_build")
 STATIC_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "frontend_build/static"
 )
 
 app = FastAPI()
-
-
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
-app.mount("/static", StaticFiles(directory=STATIC_DIR))
 
 
 class Terminal(NamedTuple):
@@ -51,21 +43,22 @@ TerminalId = NewType("TerminalId", str)
 terminals: Dict[TerminalId, Terminal] = {}
 
 
-@app.get("/")
-async def index(request: Request, terminal_id: Optional[TerminalId] = None):
+@app.get("/terminal/{terminal_id}")
+async def index(terminal_id: Optional[TerminalId] = None):
     from .main import __version__
 
     terminal = None
     if terminal_id:
         terminal = terminals.get(terminal_id)
 
-    initial_data: Dict[str, Any]
+    data: Dict[str, Any]
 
+    print(terminal, "!!")
     if terminal:
         rows = terminal.rows
         cols = terminal.cols
         allow_browser_control = terminal.allow_browser_control
-        initial_data = dict(
+        data = dict(
             terminal_id=terminal_id,
             cols=cols,
             rows=rows,
@@ -75,12 +68,8 @@ async def index(request: Request, terminal_id: Optional[TerminalId] = None):
             termpair_version=__version__,
         )
     else:
-        initial_data = dict(
-            cols=50, rows=15, allow_browser_control=False, termpair_version=__version__
-        )
-    return templates.TemplateResponse(
-        "index.html", {"request": request, "initial_data": initial_data}
-    )
+        data = dict(termpair_version=__version__)
+    return data
 
 
 @app.websocket("/connect_browser_to_terminal")
@@ -214,3 +203,7 @@ async def connect_to_terminal(ws: WebSocket):
             task.cancel()
     finally:
         terminals.pop(terminal_id, None)
+
+
+app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True))
+app.mount("/static", StaticFiles(directory=STATIC_DIR, html=True))

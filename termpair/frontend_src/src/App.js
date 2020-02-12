@@ -13,6 +13,50 @@ function Led(props) {
   );
 }
 
+function TopBar(props) {
+  return (
+    <div id="top">
+      <a href="https://github.com/cs01/termpair">
+        <img height="30px" src={logo} alt="logo" />
+      </a>
+    </div>
+  );
+}
+
+function StatusBar(props) {
+  console.log(props);
+  return (
+    <div id="statusbar">
+      {" "}
+      <div>
+        {props.status === "connected" ? (
+          <Led color="green" text={props.status} />
+        ) : (
+          <Led color="red" text={props.status} />
+        )}
+      </div>
+      <div>
+        {props.terminalData.allow_browser_control &&
+        props.status === "connected" ? (
+          <Led color="green" text="can type" />
+        ) : (
+          <Led color="orange" text="cannot type" />
+        )}
+      </div>
+      <div>
+        {props.terminalData.num_clients ? props.terminalData.num_clients : "0"}{" "}
+        Connected Clients
+      </div>
+      <div>
+        Started at{" "}
+        {moment(props.terminalData.broadcast_start_time_iso).format(
+          "h:mm:ss a on MMM Do YYYY"
+        )}
+      </div>
+    </div>
+  );
+}
+
 function BottomBar() {
   return (
     <div id="bottom">
@@ -28,90 +72,20 @@ function BottomBar() {
     </div>
   );
 }
-function TopBar(props) {
-  return (
-    <div id="top">
-      <a href="https://github.com/cs01/termpair">
-        <img height="30px" src={logo} alt="logo" />
-      </a>
-    </div>
-  );
-}
-function StatusBar(props) {
-  return (
-    <div id="statusbar">
-      {" "}
-      <div>
-        {props.status === "connected" ? (
-          <Led color="green" text={props.status} />
-        ) : (
-          <Led color="red" text={props.status} />
-        )}
-      </div>
-      <div>
-        {props.allow_browser_control ? (
-          <Led color="green" text="can type" />
-        ) : (
-          <Led color="orange" text="cannot type" />
-        )}
-      </div>
-      <div>{props.num_clients ? props.num_clients : "0"} Connected Clients</div>
-      <div>
-        Started at{" "}
-        {moment(props.broadcast_start_time_iso).format(
-          "h:mm:ss a on MMM Do YYYY"
-        )}
-      </div>
-    </div>
-  );
-}
-function Terminal(props) {
-  return (
-    <div
-      id="terminal"
-      className={props.status}
-      ref={props.terminalRef.current}
-    />
-  );
-}
-
-function BroadcastInstructions(props) {
-  const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
-  const command = `pipx run termpair share --host "${host}"`;
-  const [copyText, setCopyText] = useState("copy command to clipboard");
-  return (
-    <div id="terminal-entry">
-      <p>{props.error}</p>
-      <p>To broadcast a terminal, run</p>
-      <pre>{command}</pre>
-      <button
-        className="btn btn-normal"
-        onClick={async () => {
-          await navigator.clipboard.writeText(command);
-          setCopyText("copied!");
-          setTimeout(() => {
-            setCopyText("copy command to clipboard");
-          }, 2000);
-        }}
-        style={{ fontSize: "1rem", marginRight: "10px" }}
-      >
-        {copyText}
-      </button>
-      <p>then open the link printed to the terminal.</p>
-    </div>
-  );
-}
 
 class App extends Component {
   constructor(props) {
     super(props);
+    const terminalId = new URLSearchParams(window.location.search).get(
+      "terminal_id"
+    );
+    const hasCrypto = window.crypto != null;
     this.state = {
-      status:
-        props.terminal_id && window.crypto != null
-          ? "connection-pending"
-          : "disconnected",
-      num_clients: this.props.num_clients,
-      terminal_id: this.props.terminal_id,
+      terminalData: {},
+      terminalId,
+      hasCrypto,
+      status: terminalId && hasCrypto ? "connection-pending" : "disconnected",
+      num_clients: null,
       secretEncryptionKey: "pending"
     };
     this.xterm = new Xterm({
@@ -120,32 +94,11 @@ class App extends Component {
       scrollback: 1000
     });
     this.terminalRef = React.createRef();
-    this.xterm.resize(props.cols || 60, props.rows || 20);
+    const defaultCols = 90;
+    const defaultRows = 20;
+    this.xterm.resize(defaultCols, defaultRows);
   }
   render() {
-    const hasEncryption = window.crypto != null;
-    let body;
-    if (!hasEncryption) {
-      body = (
-        <BroadcastInstructions
-          error={
-            "This domain is not secure and thus cannot perform in-browser encryption/decryption."
-          }
-          {...this.props}
-        />
-      );
-    } else if (!this.state.terminal_id) {
-      body = <BroadcastInstructions {...this.props} />;
-    } else if (this.state.secretEncryptionKey == null) {
-      body = (
-        <BroadcastInstructions
-          {...this.props}
-          error={"Encryption key is invalid or missing"}
-        />
-      );
-    } else {
-      body = <Terminal {...this.props} terminalRef={this.terminalRef} />;
-    }
     return (
       <div
         style={{
@@ -154,34 +107,44 @@ class App extends Component {
         }}
       >
         <TopBar {...this.props} {...this.state} />
-        {body}
-        <StatusBar {...this.props} {...this.state} />
+        <div id="terminal" ref={this.terminalRef.current} />
+        {this.state.terminalId ? (
+          <StatusBar {...this.props} {...this.state} />
+        ) : null}
         <BottomBar />
       </div>
     );
   }
 
   async componentDidMount() {
-    if (!this.state.terminal_id) {
-      return;
-    }
+    const xterm = this.xterm;
     const secretEncryptionKey = await getSecretKey();
     this.setState({ secretEncryptionKey });
-    const xterm = this.xterm;
+    const terminalData = await (
+      await fetch(`terminal/${this.state.terminalId}`)
+    ).json();
+    this.setState({ terminalData });
 
     xterm.open(document.getElementById("terminal"));
+
     xterm.writeln(`Welcome to TermPair! https://github.com/cs01/termpair`);
-    if (!this.state.terminal_id || !secretEncryptionKey) {
-      xterm.writeln("");
-      xterm.writeln("A valid terminal id and e2ee key must be provided.");
-      xterm.writeln("To view or broadcast a terminal, see instructions at");
-      xterm.writeln("https://github.com/cs01/termpair");
-      this.setState({ status: "disconnected" });
+    xterm.writeln("");
+    if (!terminalData.terminal_id) {
+      writeInstructions(xterm);
+      return;
+    } else if (!secretEncryptionKey) {
+      writeInstructions(xterm);
+      return;
+    } else if (!this.state.hasCrypto) {
+      xterm.writeln("TermPair only works on secure connections.");
+      writeInstructions(xterm);
       return;
     }
+
+    // all good! proceed with connecting to terminal websocket
     const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const webSocket = new WebSocket(
-      `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${this.state.terminal_id}`
+      `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${this.state.terminalId}`
     );
 
     xterm.on("key", async (pressedKey, ev) => {
@@ -190,9 +153,8 @@ class App extends Component {
 
     webSocket.addEventListener("open", event => {
       this.setState({ status: "connected" });
-      xterm.writeln("Connection established with end-to-end encryption,");
       xterm.writeln(
-        "which means the termpair server and third parties can't read transmitted data."
+        "Connection established with end-to-end encryption 🔒. The termpair server and third parties can't read transmitted data."
       );
     });
 
@@ -203,9 +165,8 @@ class App extends Component {
         xterm.writeln(
           "Failed to establish connection. Ensure you have a valid url."
         );
-        xterm.writeln("To view or broadcast a terminal, see instructions at");
-        xterm.writeln("https://github.com/cs01/termpair");
       }
+      writeInstructions(xterm);
       this.setState({ status: "disconnected" });
       this.setState({ num_clients: 0 });
     });
@@ -218,6 +179,7 @@ class App extends Component {
           secretEncryptionKey,
           encryptedBase64Payload
         );
+        console.log(decryptedPayload);
         xterm.write(decryptedPayload);
       } else if (data.event === "resize") {
         clearTimeout(this.resizeTimeout);
@@ -232,6 +194,16 @@ class App extends Component {
     }
     webSocket.addEventListener("message", handleWebsocketMessage.bind(this));
   }
+}
+
+function writeInstructions(xterm) {
+  xterm.writeln("To broadcast a terminal, run");
+  const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
+  xterm.writeln("");
+  xterm.writeln(`    pipx run termpair share --host "${host}"`);
+  xterm.writeln("");
+  xterm.writeln("Then open or share the url printed to the terminal.");
+  xterm.writeln("To install pipx, see https://pipxproject.github.io/pipx/");
 }
 
 export default App;

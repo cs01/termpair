@@ -37,7 +37,7 @@ setup(
     scripts=[],
     entry_points={"console_scripts": ["termpair=termpair.main:main"]},
     zip_safe=False,
-    install_requires=["fastapi", "uvicorn", "aiofiles", "cryptography", "jinja2"],
+    install_requires=["fastapi", "uvicorn", "aiofiles", "cryptography"],
     python_requires=">=3.6",
     # license and classifier list:
     # https://pypi.org/pypi?%3Aaction=list_classifiers

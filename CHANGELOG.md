@@ -1,3 +1,7 @@
+## 0.0.1.2
+
+* Update landing page when terminal id is not provided
+
 ## 0.0.1.1
 
 * Fix pipx install link in frontend

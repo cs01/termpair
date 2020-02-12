@@ -41,9 +41,11 @@ def _print_broadcast_init_message(url: str, cmd: List[str]):
     print(
         textwrap.dedent(
             f"""        {dashes}
-        Running {cmd_str!r} and sharing at {url}
-        Connection is end-to-end encrypted, which means the termpair server and third parties can't read transmitted data.
-        Environment variables starting with 'TERMPAIR_' have been set in this shell.
+        \033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒
+        Sharing {cmd_str!r} at
+
+        {url}
+
         Type 'exit' or close terminal to stop sharing.
         {dashes}"""
         )
