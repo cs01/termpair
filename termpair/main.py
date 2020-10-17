@@ -9,7 +9,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: 
 import uvicorn  # type: ignore
 from . import share, server
 
-__version__ = "0.0.1.3"
+__version__ = "0.1.0.0b0"
 
 
 def main():
@@ -36,7 +36,7 @@ def main():
             "Defaults to the SHELL environment variable"
         ),
     )
-    sp.add_argument("--port", "-p", default=None, help="port server is running on")
+    sp.add_argument("--port", "-p", default=8000, help="port server is running on")
     sp.add_argument(
         "--host", default="http://localhost", help="host server is running on"
     )

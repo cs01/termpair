@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+aiofiles
+cryptography
+websockets
