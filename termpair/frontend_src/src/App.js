@@ -86,12 +86,12 @@ class App extends Component {
       hasCrypto,
       status: terminalId && hasCrypto ? "connection-pending" : "disconnected",
       num_clients: null,
-      secretEncryptionKey: "pending"
+      secretEncryptionKey: "pending",
     };
     this.xterm = new Xterm({
       cursorBlink: true,
       macOptionIsMeta: true,
-      scrollback: 1000
+      scrollback: 1000,
     });
     this.terminalRef = React.createRef();
     const defaultCols = 90;
@@ -103,7 +103,7 @@ class App extends Component {
       <div
         style={{
           display: "flex",
-          flexDirection: "column"
+          flexDirection: "column",
         }}
       >
         <TopBar {...this.props} {...this.state} />
@@ -151,7 +151,7 @@ class App extends Component {
       webSocket.send(await encrypt(secretEncryptionKey, pressedKey.key));
     });
 
-    webSocket.addEventListener("open", event => {
+    webSocket.addEventListener("open", (event) => {
       this.setState({ status: "connected" });
       xterm.writeln("Connection established with end-to-end encryption 🔒.");
       xterm.writeln(
@@ -159,7 +159,7 @@ class App extends Component {
       );
     });
 
-    webSocket.addEventListener("close", event => {
+    webSocket.addEventListener("close", (event) => {
       if (this.state.status === "connected") {
         xterm.writeln("Connection ended");
       } else {
@@ -201,7 +201,11 @@ function writeInstructions(xterm) {
   xterm.writeln("To broadcast a terminal, run");
   const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
   xterm.writeln("");
-  xterm.writeln(`    pipx run termpair share --host "${host}"`);
+  xterm.writeln(
+    `    pipx run termpair share --host "${host}" ${
+      window.location.port ? "--port " + window.location.port : ""
+    }`
+  );
   xterm.writeln("");
   xterm.writeln("Then open or share the url printed to the terminal.");
   xterm.writeln("To install pipx, see https://pipxproject.github.io/pipx/");

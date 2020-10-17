@@ -1,3 +1,7 @@
+## 0.1.0.2
+* Change default sharing port to None due to difficulties sharing to port 80/reverse proxies
+* Print port in web UI's sharing command
+
 ## 0.1.0.1
 * Remove debug message from server
 

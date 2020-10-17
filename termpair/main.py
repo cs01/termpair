@@ -9,7 +9,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: 
 import uvicorn  # type: ignore
 from . import share, server
 
-__version__ = "0.1.0.1"
+__version__ = "0.1.0.2"
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
     p.add_argument("--version", action="store_true")
     subparsers = p.add_subparsers(dest="command")
 
-    sp = subparsers.add_parser(
+    share_parser = subparsers.add_parser(
         "share",
         description=(
             "Share your terminal session with one or more browsers. "
@@ -28,7 +28,7 @@ def main():
         ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    sp.add_argument(
+    share_parser.add_argument(
         "--cmd",
         default=os.environ.get("SHELL", "bash"),
         help=(
@@ -36,24 +36,26 @@ def main():
             "Defaults to the SHELL environment variable"
         ),
     )
-    sp.add_argument("--port", "-p", default=8000, help="port server is running on")
-    sp.add_argument(
+    share_parser.add_argument(
+        "--port", "-p", default=None, help="port server is running on"
+    )
+    share_parser.add_argument(
         "--host", default="http://localhost", help="host server is running on"
     )
-    sp.add_argument(
+    share_parser.add_argument(
         "--no-browser-control",
         "-n",
         action="store_true",
         help="Do not allow browsers to control your terminal remotely",
     )
-    sp.add_argument(
+    share_parser.add_argument(
         "--open-browser",
         "-b",
         action="store_true",
         help="Open a browser tab to the terminal after you start sharing",
     )
 
-    sp = subparsers.add_parser(
+    server_parser = subparsers.add_parser(
         "serve",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=(
@@ -67,18 +69,20 @@ def main():
             "Then use them, pass the '--certfile' and '--keyfile' arguments."
         ),
     )
-    sp.add_argument("--port", "-p", default=8000, help="Port to run the server on")
-    sp.add_argument(
+    server_parser.add_argument(
+        "--port", "-p", default=8000, help="Port to run the server on"
+    )
+    server_parser.add_argument(
         "--host",
         default="localhost",
         help="Host to run the server on (0.0.0.0 exposes publicly)",
     )
-    sp.add_argument(
+    server_parser.add_argument(
         "--certfile",
         "-c",
         help="Path to SSL certificate file (commonly .crt extension)",
     )
-    sp.add_argument(
+    server_parser.add_argument(
         "--keyfile",
         "-k",
         help="Path to SSL private key .key file (commonly .key extension)",
@@ -105,6 +109,7 @@ def main():
         asyncio.get_event_loop().run_until_complete(
             share.broadcast_terminal(cmd, url, allow_browser_control, args.open_browser)
         )
+
     elif args.command == "serve":
         if args.certfile or args.keyfile:
             server.app.add_asgi_middleware(HTTPSRedirectMiddleware)

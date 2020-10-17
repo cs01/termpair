@@ -49,6 +49,6 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
     ],
 )
