@@ -53,7 +53,6 @@ async def index(terminal_id: Optional[TerminalId] = None):
 
     data: Dict[str, Any]
 
-    print(terminal, "!!")
     if terminal:
         rows = terminal.rows
         cols = terminal.cols

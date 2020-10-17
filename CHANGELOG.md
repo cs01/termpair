@@ -1,3 +1,6 @@
+## 0.1.0.1
+* Remove debug message from server
+
 ## 0.1.0.0
 
 * Pin dependencies
