@@ -1,3 +1,8 @@
+## 0.1.0.0
+
+* Pin dependencies
+* Change default sharing port to 8000 to match default server port
+
 ## 0.0.1.3
 
 * Upgrade xtermjs

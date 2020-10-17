@@ -5,6 +5,7 @@ import io
 import re
 import os
 from setuptools import find_packages, setup  # type: ignore
+import distutils.text_file
 
 EXCLUDE_FROM_PACKAGES = ["contrib", "docs", "tests*"]
 CURDIR = os.path.abspath(os.path.dirname(__file__))
@@ -37,7 +38,9 @@ setup(
     scripts=[],
     entry_points={"console_scripts": ["termpair=termpair.main:main"]},
     zip_safe=False,
-    install_requires=["fastapi", "uvicorn", "aiofiles", "cryptography"],
+    install_requires=distutils.text_file.TextFile(
+        filename="./requirements.txt"
+    ).readlines(),
     python_requires=">=3.6",
     # license and classifier list:
     # https://pypi.org/pypi?%3Aaction=list_classifiers

@@ -3,6 +3,7 @@
 graft termpair/frontend_build
 
 include README.md
+include requirements.txt
 include LICENSE
 
 prune termpair/frontend_src
@@ -11,6 +12,9 @@ prune tests
 
 exclude .flake8
 exclude Dockerfile
+exclude CHANGELOG.md
+exclude requirements.in
+exclude termpair_browser.gif
 exclude makefile
 exclude mkdocs.yml
 exclude mypy.ini
