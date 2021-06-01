@@ -32,7 +32,7 @@ def main():
         "--cmd",
         default=os.environ.get("SHELL", "bash"),
         help=(
-            "The command to run in this termshare session. "
+            "The command to run in this TermPair session. "
             "Defaults to the SHELL environment variable"
         ),
     )
@@ -61,8 +61,8 @@ def main():
         description=(
             "Run termpair server to route messages between unix terminals and browsers. "
             "Run this before connecting any clients. "
-            "It is highly recommended to encrypt communication by using SSL. "
-            "To generate a SSL certificate and private key, run "
+            "It is recommended to encrypt communication by using SSL/TLS. "
+            "To generate an SSL certificate and private key, run "
             "`openssl req -newkey rsa:2048 -nodes -keyout host.key -x509 -days 365 -out host.crt`. "
             "To skip questions and use defaults, add the `-batch` flag. "
             "You can ignore warnings about self-signed certificates since you know you just made it. "

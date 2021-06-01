@@ -66,9 +66,6 @@ function BottomBar() {
       <div>
         <a href="https://github.com/cs01">GitHub</a>
       </div>
-      <div>
-        <a href="https://twitter.com/grassfedcode">Twitter</a>
-      </div>
     </div>
   );
 }
