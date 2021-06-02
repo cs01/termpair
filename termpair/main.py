@@ -61,7 +61,7 @@ def main():
         description=(
             "Run termpair server to route messages between unix terminals and browsers. "
             "Run this before connecting any clients. "
-            "It is recommended to encrypt communication by using SSL/TLS. "
+            "TermPair only works in secure contexts; SSL/TLS is generally required. "
             "To generate an SSL certificate and private key, run "
             "`openssl req -newkey rsa:2048 -nodes -keyout host.key -x509 -days 365 -out host.crt`. "
             "To skip questions and use defaults, add the `-batch` flag. "
