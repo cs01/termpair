@@ -9,7 +9,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: 
 import uvicorn  # type: ignore
 from . import share, server
 
-__version__ = "0.1.1.0"
+__version__ = "0.1.1.1"
 
 
 def main():
@@ -112,7 +112,7 @@ def main():
 
     elif args.command == "serve":
         if args.certfile or args.keyfile:
-            server.app.add_asgi_middleware(HTTPSRedirectMiddleware)
+            server.app.add_middleware(HTTPSRedirectMiddleware)
 
         uvicorn.run(
             server.app,
