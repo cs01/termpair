@@ -54,7 +54,9 @@ The server multicasts terminal output to all browsers that connect to the sessio
 
 TermPair uses 128 bit end-to-end encryption for all terminal input and output.
 
-### How it Works
+The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running on localhost, or with secure http traffic (https).
+
+## How it Works
 
 <div style="text-align: center">
     <a href="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png">

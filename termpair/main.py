@@ -9,7 +9,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: 
 import uvicorn  # type: ignore
 from . import share, server
 
-__version__ = "0.1.0.2"
+__version__ = "0.1.1.0"
 
 
 def main():
