@@ -92,6 +92,8 @@ Then share:
 > pipx run termpair share --open-browser
 ```
 
+Note: pipx caches installations for a few days. To ignore the cache and force a fresh installation, use `pipx run --no-cache termpair ...`.
+
 ## Installation
 
 You can install using [pipx](https://github.com/pipxproject/pipx) or pip:
