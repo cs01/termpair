@@ -1,3 +1,6 @@
+## 0.1.1.1
+* Fix server bug when using SSL certs (#44)
+
 ## 0.1.1.0
 * Ensure error message is printed to browser's terminal if site is not served in a secure context (#39)
 * Make default TermPair terminal client port 8000 to match default server port (#38)
