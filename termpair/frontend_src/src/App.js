@@ -76,7 +76,7 @@ class App extends Component {
     const terminalId = new URLSearchParams(window.location.search).get(
       "terminal_id"
     );
-    const hasCrypto = window.crypto != null;
+    const hasCrypto = window.crypto != null && window.crypto.subtle != null;
     this.state = {
       terminalData: {},
       terminalId,
@@ -115,6 +115,16 @@ class App extends Component {
 
   async componentDidMount() {
     const xterm = this.xterm;
+    xterm.open(document.getElementById("terminal"));
+
+    if (!this.state.hasCrypto) {
+      xterm.writeln(
+        "\x1b[1;31mFatal Error: TermPair only works on secure connections. Ensure url starts with https. See `termpair serve --help` for more information.\x1b[0m"
+      );
+      xterm.writeln("");
+      writeInstructions(xterm);
+      return;
+    }
     const secretEncryptionKey = await getSecretKey();
     this.setState({ secretEncryptionKey });
     const terminalData = await (
@@ -122,18 +132,12 @@ class App extends Component {
     ).json();
     this.setState({ terminalData });
 
-    xterm.open(document.getElementById("terminal"));
-
     xterm.writeln(`Welcome to TermPair! https://github.com/cs01/termpair`);
     xterm.writeln("");
     if (!terminalData.terminal_id) {
       writeInstructions(xterm);
       return;
     } else if (!secretEncryptionKey) {
-      writeInstructions(xterm);
-      return;
-    } else if (!this.state.hasCrypto) {
-      xterm.writeln("TermPair only works on secure connections.");
       writeInstructions(xterm);
       return;
     }
