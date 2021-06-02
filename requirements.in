@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+uvicorn[standard]
 aiofiles
 cryptography
 websockets
