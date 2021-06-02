@@ -203,8 +203,8 @@ function writeInstructions(xterm) {
   const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
   xterm.writeln("");
   xterm.writeln(
-    `    pipx run termpair share --host "${host}" ${
-      window.location.port ? "--port " + window.location.port : ""
+    `    pipx run termpair share --host "${host}" --port ${
+      window.location.port ? window.location.port : "80"
     }`
   );
   xterm.writeln("");

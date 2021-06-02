@@ -24,7 +24,7 @@ TermPair lets developers securely share and control terminals in real time.
 Start the TermPair server with `termpair serve`, or use the one already running at [https://grassfedcode.com/termpair](https://grassfedcode.com/termpair).
 
 ```
-> termpair serve
+> termpair serve --port 8000
 INFO:     Started server process [25289]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.

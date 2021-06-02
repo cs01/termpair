@@ -37,7 +37,7 @@ def main():
         ),
     )
     share_parser.add_argument(
-        "--port", "-p", default=None, help="port server is running on"
+        "--port", "-p", default=8000, help="port server is running on"
     )
     share_parser.add_argument(
         "--host", default="http://localhost", help="host server is running on"

@@ -1,5 +1,6 @@
-## 0.1.0.3
+## 0.1.1.0
 * Ensure error message is printed to browser's terminal if site is not served in a secure context (#39)
+* Make default TermPair terminal client port 8000 to match default server port (#38)
 
 ## 0.1.0.2
 * Change default sharing port to None due to difficulties sharing to port 80/reverse proxies
