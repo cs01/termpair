@@ -202,11 +202,15 @@ function writeInstructions(xterm) {
   xterm.writeln("To broadcast a terminal, run");
   const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
   xterm.writeln("");
-  xterm.writeln(
-    `    pipx run termpair share --host "${host}" --port ${
-      window.location.port ? window.location.port : "80"
-    }`
-  );
+  let port = window.location.port;
+  if (!window.location.port) {
+    if (window.location.protocol === "https:") {
+      port = 443;
+    } else {
+      port = 80;
+    }
+  }
+  xterm.writeln(`    pipx run termpair share --host "${host}" --port ${port}`);
   xterm.writeln("");
   xterm.writeln("Then open or share the url printed to the terminal.");
   xterm.writeln("To install pipx, see https://pipxproject.github.io/pipx/");
