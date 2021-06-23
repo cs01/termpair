@@ -7,7 +7,7 @@
 
 **Source Code**: [https://github.com/cs01/termpair](https://github.com/cs01/termpair)
 
-**Try It**: [https://grassfedcode.com/termpair](https://grassfedcode.com/termpair)
+**Try It**: [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair)
 
 ## <a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a>
 
@@ -21,7 +21,7 @@ TermPair lets developers securely share and control terminals in real time.
 
 ## Usage
 
-Start the TermPair server with `termpair serve`, or use the one already running at [https://grassfedcode.com/termpair](https://grassfedcode.com/termpair).
+Start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
 
 ```
 > termpair serve --port 8000
