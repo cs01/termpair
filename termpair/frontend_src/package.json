@@ -6,7 +6,7 @@
     "moment": "^2.24.0",
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
-    "react-scripts": "2.1.8",
+    "react-scripts": "3.3.0",
     "xterm": "^4.4.0"
   },
   "scripts": {
