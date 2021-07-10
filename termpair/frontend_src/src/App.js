@@ -61,7 +61,7 @@ function BottomBar() {
   return (
     <div id="bottom">
       <div>
-        A <a href="https://grassfedcode.com">Chad Smith</a> project
+        A <a href="https://chadsmith.dev">Chad Smith</a> project
       </div>
       <div>
         <a href="https://github.com/cs01">GitHub</a>
@@ -116,6 +116,15 @@ class App extends Component {
   async componentDidMount() {
     const xterm = this.xterm;
     xterm.open(document.getElementById("terminal"));
+    xterm.attachCustomKeyEventHandler(
+      getCustomKeyEventHandler(
+        xterm,
+        this.props?.terminalData?.allow_browser_control,
+        async (newInput) => {
+          webSocket.send(await encrypt(secretEncryptionKey, newInput));
+        }
+      )
+    );
 
     if (!this.state.hasCrypto) {
       xterm.writeln(
@@ -148,8 +157,8 @@ class App extends Component {
       `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${this.state.terminalId}`
     );
 
-    xterm.onKey(async (pressedKey, ev) => {
-      webSocket.send(await encrypt(secretEncryptionKey, pressedKey.key));
+    xterm.onData(async (data) => {
+      webSocket.send(await encrypt(secretEncryptionKey, data));
     });
 
     webSocket.addEventListener("open", (event) => {
@@ -158,6 +167,11 @@ class App extends Component {
       xterm.writeln(
         "The termpair server and third parties can't read transmitted data."
       );
+      xterm.writeln("");
+      xterm.writeln(
+        "You can copy text with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v."
+      );
+      xterm.writeln("");
     });
 
     webSocket.addEventListener("close", (event) => {
@@ -181,7 +195,7 @@ class App extends Component {
           secretEncryptionKey,
           encryptedBase64Payload
         );
-        xterm.writeUtf8(decryptedPayload);
+        xterm.write(decryptedPayload);
       } else if (data.event === "resize") {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(() => {
@@ -218,6 +232,58 @@ function writeInstructions(xterm) {
   xterm.writeln(
     "The termpair server and third parties can't read transmitted data."
   );
+}
+
+/**
+ * The API to xterm.attachCustomKeyEventHandler is hardcoded. This function
+ * provides a closure so that other variables can be used inside it.
+ *
+ * https://github.com/xtermjs/xterm.js/blob/70babeacb62fe05264d64324ca1f4436997efa1b/typings/xterm.d.ts#L538-L547
+ *
+ * @param {*} terminal - xterm object
+ * @param {*} canType  - is user allowed to type (this is also enforced on the server)
+ * @param {*} sendInputToTerminal - function to encode and send input over the websocket
+ * @returns nothing
+ */
+function getCustomKeyEventHandler(terminal, canType, sendInputToTerminal) {
+  /**
+   * Custom key event handler which is run before keys are
+   * processed, giving consumers of xterm.js ultimate control as to what keys
+   * should be processed by the terminal and what keys should not.
+   * @param customKeyEventHandler The custom KeyboardEvent handler to attach.
+   * This is a function that takes a KeyboardEvent, allowing consumers to stop
+   * propagation and/or prevent the default action. The function returns
+   * whether the event should be processed by xterm.js.
+   */
+  async function customKeyEventHandler(e) {
+    if (e.type !== "keydown") {
+      return true;
+    }
+    if (e.ctrlKey && e.shiftKey) {
+      const key = e.key.toLowerCase();
+      if (key === "v") {
+        if (!canType) {
+          return false;
+        }
+        const toPaste = await navigator.clipboard.readText();
+        sendInputToTerminal(toPaste);
+        return false;
+      } else if (key === "c" || key === "x") {
+        // 'x' is used as an alternate to 'c' because ctrl+c is taken
+        // by the terminal (SIGINT) and ctrl+shift+c is taken by the browser
+        // (open devtools).
+        // I'm not aware of ctrl+shift+x being used by anything in the terminal
+        // or browser
+        const toCopy = terminal.getSelection();
+        navigator.clipboard.writeText(toCopy);
+        terminal.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return customKeyEventHandler;
 }
 
 export default App;
