@@ -115,6 +115,10 @@ or install with [pip](https://pip.pypa.io/en/stable/)
 ```
 
 ## Serving with NGINX
+Running behind an nginx proxy can be done with the following configuration.
+
+TermPair must be started with `termpair serve`, and the port being run on must be specified in the `upstream` configuration.
+
 ```nginx
 upstream termpair_app {
   server 127.0.0.1:8000;
