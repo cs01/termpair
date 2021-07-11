@@ -226,28 +226,21 @@ async def broadcast_terminal(
 
     ws_url = url.replace("http", "ws")
 
-    try:
-        ws_endpoint = urljoin(ws_url, "connect_to_terminal")
-        async with websockets.connect(ws_endpoint, ssl=ssl_context) as ws:
-            secret_key = encryption.gen_key()
-            ws_id = await _initialize_broadcast(
-                cmd, url, ws, stdin_fd, pty_fd, allow_browser_control, secret_key
-            )
-            with utils.make_raw(stdin_fd):
-                await _do_broadcast(
-                    pty_fd,
-                    stdin_fd,
-                    stdout_fd,
-                    ws,
-                    _get_share_url(url, ws_id, secret_key),
-                    open_browser,
-                    allow_browser_control,
-                    secret_key,
-                )
-            print(f"You are no longer broadcasting session id {session_id}")
-    except websockets.exceptions.InvalidStatusCode as e:
-        print(
-            f"Failed to connect to {ws_endpoint}. "
-            "Check the url and port, and ensure the server is running."
+    ws_endpoint = urljoin(ws_url, "connect_to_terminal")
+    async with websockets.connect(ws_endpoint, ssl=ssl_context) as ws:
+        secret_key = encryption.gen_key()
+        ws_id = await _initialize_broadcast(
+            cmd, url, ws, stdin_fd, pty_fd, allow_browser_control, secret_key
         )
-        print(str(e))
+        with utils.make_raw(stdin_fd):
+            await _do_broadcast(
+                pty_fd,
+                stdin_fd,
+                stdout_fd,
+                ws,
+                _get_share_url(url, ws_id, secret_key),
+                open_browser,
+                allow_browser_control,
+                secret_key,
+            )
+        print(f"You are no longer broadcasting session id {session_id}")
