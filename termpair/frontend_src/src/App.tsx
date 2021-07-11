@@ -71,11 +71,8 @@ function BottomBar() {
 }
 
 type AppState = any;
-
-class App extends Component<{}, AppState> {
-  props: any;
-  setState: any;
-  state: any;
+type AppProps = any;
+class App extends Component<AppProps, AppState> {
   terminalRef: any;
   xterm: Xterm;
   constructor(props: {}) {
@@ -129,16 +126,6 @@ class App extends Component<{}, AppState> {
     }
 
     xterm.open(el);
-    xterm.attachCustomKeyEventHandler(
-      getCustomKeyEventHandler(
-        xterm,
-        this.props?.terminalData?.allow_browser_control,
-        async (newInput: any) => {
-          // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'Nullable<CryptoKey>' is not assi... Remove this comment to see the full error message
-          webSocket.send(await encrypt(secretEncryptionKey, newInput));
-        }
-      )
-    );
 
     if (!this.state.hasCrypto) {
       xterm.writeln(
@@ -160,7 +147,8 @@ class App extends Component<{}, AppState> {
     if (!terminalData.terminal_id) {
       writeInstructions(xterm);
       return;
-    } else if (!secretEncryptionKey) {
+    }
+    if (!secretEncryptionKey) {
       writeInstructions(xterm);
       return;
     }
@@ -169,6 +157,16 @@ class App extends Component<{}, AppState> {
     const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const webSocket = new WebSocket(
       `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${this.state.terminalId}`
+    );
+
+    xterm.attachCustomKeyEventHandler(
+      getCustomKeyEventHandler(
+        xterm,
+        this.props?.terminalData?.allow_browser_control,
+        async (newInput: any) => {
+          webSocket.send(await encrypt(secretEncryptionKey, newInput));
+        }
+      )
     );
 
     xterm.onData(async (data: any) => {
@@ -201,29 +199,32 @@ class App extends Component<{}, AppState> {
       this.setState({ num_clients: 0 });
     });
 
-    async function handleWebsocketMessage(this: any, message: any) {
+    const handleWebsocketMessage = async (message: any) => {
       const data = JSON.parse(message.data);
       if (data.event === "new_output") {
         const encryptedBase64Payload = data.payload;
         const decryptedPayload = await decrypt(
-          // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'Nullable<CryptoKey>' is not assi... Remove this comment to see the full error message
           secretEncryptionKey,
           encryptedBase64Payload
         );
         xterm.write(decryptedPayload);
       } else if (data.event === "resize") {
+        // @ts-ignore
         clearTimeout(this.resizeTimeout);
+        // @ts-ignore
         this.resizeTimeout = setTimeout(() => {
           xterm.resize(data.payload.cols, data.payload.rows);
         }, 500);
       } else if (data.event === "num_clients") {
+        // @ts-ignore
         this.state.terminalData.num_clients = data.payload;
+        // @ts-ignore
         this.setState({ terminalData: this.state.terminalData });
       } else {
         console.error("unknown event type", data);
       }
-    }
-    webSocket.addEventListener("message", handleWebsocketMessage.bind(this));
+    };
+    webSocket.addEventListener("message", handleWebsocketMessage);
   }
 }
 
