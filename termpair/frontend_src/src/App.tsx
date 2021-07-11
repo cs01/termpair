@@ -5,7 +5,7 @@ import logo from "./logo.png"; // logomakr.com/4N54oK
 import { Terminal as Xterm } from "xterm";
 import moment from "moment";
 import { getSecretKey, decrypt, encrypt } from "./encryption";
-function Led(props) {
+function Led(props: any) {
   return (
     <div className="flexnowrap">
       <div className={`led led-${props.color}`} />
@@ -14,7 +14,7 @@ function Led(props) {
   );
 }
 
-function TopBar(props) {
+function TopBar(props: any) {
   return (
     <div id="top">
       <a href="https://github.com/cs01/termpair">
@@ -24,7 +24,7 @@ function TopBar(props) {
   );
 }
 
-function StatusBar(props) {
+function StatusBar(props: any) {
   return (
     <div id="statusbar">
       {" "}
@@ -70,8 +70,15 @@ function BottomBar() {
   );
 }
 
-class App extends Component {
-  constructor(props) {
+type AppState = any;
+
+class App extends Component<{}, AppState> {
+  props: any;
+  setState: any;
+  state: any;
+  terminalRef: any;
+  xterm: Xterm;
+  constructor(props: {}) {
     super(props);
     const terminalId = new URLSearchParams(window.location.search).get(
       "terminal_id"
@@ -115,12 +122,19 @@ class App extends Component {
 
   async componentDidMount() {
     const xterm = this.xterm;
-    xterm.open(document.getElementById("terminal"));
+    const el = document.getElementById("terminal");
+    if (!el) {
+      console.error("no xterm element found");
+      return;
+    }
+
+    xterm.open(el);
     xterm.attachCustomKeyEventHandler(
       getCustomKeyEventHandler(
         xterm,
         this.props?.terminalData?.allow_browser_control,
-        async (newInput) => {
+        async (newInput: any) => {
+          // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'Nullable<CryptoKey>' is not assi... Remove this comment to see the full error message
           webSocket.send(await encrypt(secretEncryptionKey, newInput));
         }
       )
@@ -157,7 +171,7 @@ class App extends Component {
       `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${this.state.terminalId}`
     );
 
-    xterm.onData(async (data) => {
+    xterm.onData(async (data: any) => {
       webSocket.send(await encrypt(secretEncryptionKey, data));
     });
 
@@ -187,11 +201,12 @@ class App extends Component {
       this.setState({ num_clients: 0 });
     });
 
-    async function handleWebsocketMessage(message) {
+    async function handleWebsocketMessage(this: any, message: any) {
       const data = JSON.parse(message.data);
       if (data.event === "new_output") {
         const encryptedBase64Payload = data.payload;
         const decryptedPayload = await decrypt(
+          // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'Nullable<CryptoKey>' is not assi... Remove this comment to see the full error message
           secretEncryptionKey,
           encryptedBase64Payload
         );
@@ -212,15 +227,17 @@ class App extends Component {
   }
 }
 
-function writeInstructions(xterm) {
+function writeInstructions(xterm: any) {
   xterm.writeln("To broadcast a terminal, run");
   const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
   xterm.writeln("");
   let port = window.location.port;
   if (!window.location.port) {
     if (window.location.protocol === "https:") {
+      // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
       port = 443;
     } else {
+      // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
       port = 80;
     }
   }
@@ -245,7 +262,11 @@ function writeInstructions(xterm) {
  * @param {*} sendInputToTerminal - function to encode and send input over the websocket
  * @returns nothing
  */
-function getCustomKeyEventHandler(terminal, canType, sendInputToTerminal) {
+function getCustomKeyEventHandler(
+  terminal: any,
+  canType: any,
+  sendInputToTerminal: any
+) {
   /**
    * Custom key event handler which is run before keys are
    * processed, giving consumers of xterm.js ultimate control as to what keys
@@ -255,7 +276,7 @@ function getCustomKeyEventHandler(terminal, canType, sendInputToTerminal) {
    * propagation and/or prevent the default action. The function returns
    * whether the event should be processed by xterm.js.
    */
-  async function customKeyEventHandler(e) {
+  function customKeyEventHandler(e: any) {
     if (e.type !== "keydown") {
       return true;
     }
@@ -265,8 +286,9 @@ function getCustomKeyEventHandler(terminal, canType, sendInputToTerminal) {
         if (!canType) {
           return false;
         }
-        const toPaste = await navigator.clipboard.readText();
-        sendInputToTerminal(toPaste);
+        navigator.clipboard.readText().then((toPaste) => {
+          sendInputToTerminal(toPaste);
+        });
         return false;
       } else if (key === "c" || key === "x") {
         // 'x' is used as an alternate to 'c' because ctrl+c is taken
