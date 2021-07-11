@@ -5,6 +5,7 @@ import asyncio
 import os
 import shlex
 from urllib.parse import urlparse
+import traceback
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: ignore
 import uvicorn  # type: ignore
 from . import share, server
@@ -12,7 +13,7 @@ from . import share, server
 __version__ = "0.1.1.1"
 
 
-def main():
+def get_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="View and control remote terminals from your browser",
@@ -87,12 +88,10 @@ def main():
         "-k",
         help="Path to SSL private key .key file (commonly .key extension)",
     )
+    return p
 
-    args = p.parse_args()
-    if args.version:
-        print(__version__)
-        exit(0)
 
+def run_command(args):
     if args.command == "share":
         cmd = shlex.split(args.cmd)
 
@@ -106,9 +105,17 @@ def main():
             url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
         url = url if url.endswith("/") else f"{url}/"
         allow_browser_control = not args.no_browser_control
-        asyncio.get_event_loop().run_until_complete(
-            share.broadcast_terminal(cmd, url, allow_browser_control, args.open_browser)
-        )
+        try:
+            asyncio.get_event_loop().run_until_complete(
+                share.broadcast_terminal(
+                    cmd, url, allow_browser_control, args.open_browser
+                )
+            )
+        except ConnectionRefusedError as e:
+            print(
+                "Connection was refused. Is the TermPair server running on the host and port specified?",
+            )
+            exit(e)
 
     elif args.command == "serve":
         if args.certfile or args.keyfile:
@@ -121,6 +128,22 @@ def main():
             ssl_certfile=args.certfile,
             ssl_keyfile=args.keyfile,
         )
+
+
+def main():
+    args = get_parser().parse_args()
+    if args.version:
+        print(__version__)
+        exit(0)
+
+    try:
+        run_command(args)
+    except Exception:
+        print(
+            "TermPair encountered an error. If you think this is a bug, it can be reported at https://github.com/cs01/termpair/issues"
+        )
+        print("")
+        exit(traceback.format_exc())
 
 
 if __name__ == "__main__":
