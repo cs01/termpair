@@ -9,7 +9,13 @@
 
 **Try It**: [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair)
 
-## <a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a>
+<p align="center">
+<a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a>
+
+<a href="https://github.com/cs01/termpair/actions?query=workflow%3Atests">
+<img src="https://github.com/cs01/termpair/actions/workflows/tests.yml/badge.svg?branch=master" alt="PyPI version" height="18"></a>
+</p>
+
 
 ## What is TermPair?
 
