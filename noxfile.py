@@ -62,7 +62,7 @@ def lint(session):
     session.run("python", "setup.py", "check", "--metadata", "--strict")
 
 
-@nox.session(python=python)
+@nox.session(python=[python])
 def test(session):
     session.install(".", *test_deps)
     session.run("pytest", "tests", *session.posargs)

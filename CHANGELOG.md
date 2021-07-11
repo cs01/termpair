@@ -1,3 +1,6 @@
+## 0.1.2.0
+* Add ability to copy+paste using keystrokes
+
 ## 0.1.1.1
 * Fix server bug when using SSL certs (#44)
 
