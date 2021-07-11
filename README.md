@@ -102,16 +102,43 @@ Note: pipx caches installations for a few days. To ignore the cache and force a 
 
 ## Installation
 
-You can install using [pipx](https://github.com/pipxproject/pipx) or pip:
+You can install using [pipx](https://github.com/pipxproject/pipx):
 
 ```
 > pipx install termpair
 ```
 
-or
+or install with [pip](https://pip.pypa.io/en/stable/)
 
 ```
 > pip install termpair
+```
+
+## Serving with NGINX
+```nginx
+upstream termpair_app {
+  server 127.0.0.1:8000;
+}
+
+server {
+    server_name myserver.com;
+
+    # I recommend Certbot if you don't have SSL set up
+    listen 443 ssl;
+    ssl_certificate fullchain.pem;
+    ssl_certificate_key privkey.pem;
+
+    location /termpair/ {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+
+        proxy_pass http://termpair_app/;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
 ```
 
 ## CLI API
