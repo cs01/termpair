@@ -3,7 +3,7 @@
 
 const IV_LENGTH = 12;
 
-export async function getSecretKey() {
+export async function getSecretKey(): Promise<Nullable<CryptoKey>> {
   try {
     const b64EncodedKey = window.location.hash.substring(
       1, // skip the '#' symbol
@@ -14,7 +14,7 @@ export async function getSecretKey() {
       "raw",
       keyData,
       {
-        name: "AES-GCM"
+        name: "AES-GCM",
       },
       false, // extractable
       ["encrypt", "decrypt"]
@@ -25,7 +25,10 @@ export async function getSecretKey() {
   }
 }
 
-export async function decrypt(secretKey, encryptedPayloadB64) {
+export async function decrypt(
+  secretKey: CryptoKey,
+  encryptedPayloadB64: string
+) {
   // decode base64 data to unencrypted iv and encrypted data
   const ivAndPayload = Buffer.from(encryptedPayloadB64, "base64");
 
@@ -39,7 +42,7 @@ export async function decrypt(secretKey, encryptedPayloadB64) {
     await window.crypto.subtle.decrypt(
       {
         name: "AES-GCM",
-        iv: iv
+        iv: iv,
       },
       secretKey,
       encryptedTerminalOutput
@@ -48,13 +51,13 @@ export async function decrypt(secretKey, encryptedPayloadB64) {
   return decryptedTerminalOutput;
 }
 
-export async function encrypt(secretKey, utf8Payload) {
+export async function encrypt(secretKey: CryptoKey, utf8Payload: string) {
   // The same iv must never be reused with a given key
   const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
   const encryptedArrayBuffer = await window.crypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv: iv
+      iv: iv,
     },
     secretKey,
     new TextEncoder().encode(utf8Payload)
@@ -68,14 +71,17 @@ export async function encrypt(secretKey, utf8Payload) {
   return base64EncryptedString;
 }
 
-function _combineBuffers(buffer1, buffer2) {
+function _combineBuffers(
+  buffer1: Uint8Array,
+  buffer2: ArrayBuffer
+): ArrayBufferLike {
   const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
   tmp.set(new Uint8Array(buffer1), 0);
   tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
   return tmp.buffer;
 }
 
-function _arrayBufferToBase64(buffer) {
+function _arrayBufferToBase64(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   const len = bytes.byteLength;
