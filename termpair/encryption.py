@@ -4,7 +4,7 @@ https://cryptography.io/en/latest/hazmat/primitives/aead/#cryptography.hazmat.pr
 """
 
 import os
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM  # type: ignore
 
 IV_LENGTH = 12
 KEY_LENGTH_BITS = 128

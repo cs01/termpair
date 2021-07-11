@@ -13,6 +13,7 @@ prune tests
 exclude .flake8
 exclude Dockerfile
 exclude CHANGELOG.md
+exclude CONTRIBUTING.md
 exclude requirements.in
 exclude termpair_browser.gif
 exclude makefile
