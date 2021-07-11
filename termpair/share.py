@@ -220,9 +220,9 @@ async def broadcast_terminal(
     stdin_fd = sys.stdin.fileno()
     stdout_fd = sys.stdout.fileno()
 
-    ssl_context: Optional[ssl.SSLContext] = ssl.SSLContext(
-        ssl.PROTOCOL_TLS
-    ) if url.startswith("https") else None
+    ssl_context: Optional[ssl.SSLContext] = (
+        ssl.SSLContext(ssl.PROTOCOL_TLS) if url.startswith("https") else None
+    )
 
     ws_url = url.replace("http", "ws")
 
