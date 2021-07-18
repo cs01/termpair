@@ -9,6 +9,9 @@ export async function getSecretKey(): Promise<Nullable<CryptoKey>> {
       1, // skip the '#' symbol
       window.location.hash.length - 1
     );
+    if (!b64EncodedKey) {
+      return null;
+    }
     const keyData = Buffer.from(b64EncodedKey, "base64");
     return await window.crypto.subtle.importKey(
       "raw",
