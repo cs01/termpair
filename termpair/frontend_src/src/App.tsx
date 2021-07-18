@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, useRef, useEffect, useState } from "react";
 import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
 // import { CogIcon } from "@heroicons/react/solid";
@@ -151,6 +151,7 @@ type AppState = {
 };
 
 type AppProps = {};
+
 class App extends Component<AppProps, AppState> {
   terminalRef: any;
   xterm: Xterm;
@@ -339,7 +340,7 @@ class App extends Component<AppProps, AppState> {
   }
 }
 
-function writeInstructions(xterm: any) {
+function writeInstructions(xterm: Xterm) {
   xterm.writeln("To broadcast a terminal, run");
   const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
   xterm.writeln("");
@@ -375,9 +376,9 @@ function writeInstructions(xterm: any) {
  * @returns nothing
  */
 function getCustomKeyEventHandler(
-  terminal: any,
-  canType: any,
-  sendInputToTerminal: any
+  terminal: Xterm,
+  canType: boolean | void,
+  sendInputToTerminal: (input: string) => void
 ) {
   /**
    * Custom key event handler which is run before keys are
