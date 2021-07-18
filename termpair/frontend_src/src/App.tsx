@@ -1,77 +1,156 @@
 import React, { Component } from "react";
-import "./App.css";
 import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
-import { Terminal as Xterm } from "xterm";
+// import { CogIcon } from "@heroicons/react/solid";
+import { Terminal as Xterm, IDisposable } from "xterm";
 import moment from "moment";
 import { getSecretKey, decrypt, encrypt } from "./encryption";
-function Led(props: any) {
+
+import { atom, useRecoilState } from "recoil";
+
+const showSettings = atom({
+  key: "showSettings",
+  default: false,
+});
+
+function Settings(props: any) {
+  const [showSetting, setShowSettings] = useRecoilState(showSettings);
+  if (!showSetting) {
+    return null;
+  }
   return (
-    <div className="flexnowrap">
-      <div className={`led led-${props.color}`} />
-      <div>{props.text}</div>
+    <div
+      className="w-full h-full bg-gray-900 absolute bg-opacity-90  text-black"
+      style={{ zIndex: 2000 }}
+    >
+      <div className="w-11/12 h-5/6 m-10 p-5 bg-gray-400 flex items-center flex-col">
+        <div className="text-xl mb-10">TermPair Settings</div>
+        <div className="flex-grow">Body</div>
+        <div>
+          <button
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
+            onClick={() => setShowSettings(false)}
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 function TopBar(props: any) {
+  // const [showSetting, setShowSettings] = useRecoilState(showSettings);
+
   return (
-    <div id="top">
-      <a href="https://github.com/cs01/termpair">
-        <img height="30px" src={logo} alt="logo" />
-      </a>
+    <div className="flex bg-black h-10 items-center justify-between">
+      <div className="h-full">
+        <a href="https://github.com/cs01/termpair">
+          <img className="h-full" src={logo} alt="logo" />
+        </a>
+      </div>
+      {/* <div className="text-white m-5">
+        <div className="my-auto">
+          <button
+            className="my-auto"
+            onClick={() => setShowSettings(!showSetting)}
+          >
+            <CogIcon className="h-6 w-6 text-white" />
+          </button>
+        </div>
+      </div> */}
     </div>
   );
 }
 
-function StatusBar(props: any) {
-  return (
-    <div id="statusbar">
-      {" "}
-      <div>
-        {props.status === "connected" ? (
-          <Led color="green" text={props.status} />
-        ) : (
-          <Led color="red" text={props.status} />
-        )}
-      </div>
-      <div>
-        {props.terminalData.allow_browser_control &&
-        props.status === "connected" ? (
-          <Led color="green" text="can type" />
-        ) : (
-          <Led color="orange" text="cannot type" />
-        )}
-      </div>
-      <div>
-        {props.terminalData.num_clients ? props.terminalData.num_clients : "0"}{" "}
-        Connected Clients
-      </div>
-      <div>
-        Started at{" "}
-        {moment(props.terminalData.broadcast_start_time_iso).format(
-          "h:mm:ss a on MMM Do YYYY"
-        )}
-      </div>
+function BottomBar(props: any) {
+  const connected = props.status === "connected";
+  const hasTerminalId = props.terminalId != null;
+  const status = hasTerminalId ? <div>{props.status}</div> : null;
+  const canType = connected ? (
+    <div>
+      {props.terminalData?.allow_browser_control && props.status === "connected"
+        ? "can type"
+        : "cannot type"}
     </div>
+  ) : null;
+  const connectedClients = connected ? (
+    <div>
+      {props.terminalData?.num_clients ? props.terminalData?.num_clients : "0"}{" "}
+      Connected Clients
+    </div>
+  ) : null;
+  const startTime = connected ? (
+    <div>
+      Started at{" "}
+      {moment(props.terminalData?.broadcast_start_time_iso).format(
+        "h:mm a on MMM Do YYYY"
+      )}
+    </div>
+  ) : null;
+  return (
+    <>
+      <div
+        className={`flex ${
+          connected ? "bg-green-900" : "bg-red-900"
+        }   justify-evenly text-gray-300`}
+      >
+        {status}
+        {canType}
+        {connectedClients}
+        {startTime}
+      </div>
+      <div className="flex bg-black  justify-evenly text-gray-300">
+        <div>
+          <a href="https://chadsmith.dev">chadsmith.dev</a>
+        </div>
+        <div>
+          <a href="https://github.com/cs01"> GitHub</a>
+        </div>
+      </div>
+    </>
   );
 }
 
-function BottomBar() {
-  return (
-    <div id="bottom">
-      <div>
-        A <a href="https://chadsmith.dev">Chad Smith</a> project
-      </div>
-      <div>
-        <a href="https://github.com/cs01">GitHub</a>
-      </div>
-    </div>
-  );
+class ErrorBoundary extends React.Component<any, any> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    // You can also log the error to an error reporting service
+    // logErrorToMyService(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // You can render any custom fallback UI
+      return <h1>Something went wrong.</h1>;
+    }
+
+    return this.props.children;
+  }
 }
 
-type AppState = any;
-type AppProps = any;
+type AppState = {
+  terminalData: Nullable<{
+    terminal_id?: string;
+    allow_browser_control?: boolean;
+  }>;
+  terminalId: Nullable<string>;
+  hasCrypto: boolean;
+  status: "connection-pending" | "connected" | "disconnected";
+  num_clients: Nullable<number>;
+  secretEncryptionKey: Nullable<CryptoKey>;
+};
+
+type AppProps = {};
 class App extends Component<AppProps, AppState> {
   terminalRef: any;
   xterm: Xterm;
@@ -87,7 +166,7 @@ class App extends Component<AppProps, AppState> {
       hasCrypto,
       status: terminalId && hasCrypto ? "connection-pending" : "disconnected",
       num_clients: null,
-      secretEncryptionKey: "pending",
+      secretEncryptionKey: null,
     };
     this.xterm = new Xterm({
       cursorBlink: true,
@@ -99,21 +178,24 @@ class App extends Component<AppProps, AppState> {
     const defaultRows = 20;
     this.xterm.resize(defaultCols, defaultRows);
   }
+
   render() {
-    return (
+    const content = (
       <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <TopBar {...this.props} {...this.state} />
-        <div id="terminal" ref={this.terminalRef.current} />
-        {this.state.terminalId ? (
-          <StatusBar {...this.props} {...this.state} />
-        ) : null}
-        <BottomBar />
-      </div>
+        id="terminal"
+        className="p-3 bg-black flex-grow text-gray-400"
+        ref={this.terminalRef.current}
+      ></div>
+    );
+    return (
+      <ErrorBoundary>
+        <div className="flex flex-col h-screen">
+          <Settings />
+          <TopBar {...this.props} {...this.state} />
+          {content}
+          <BottomBar {...this.state} />
+        </div>
+      </ErrorBoundary>
     );
   }
 
@@ -124,7 +206,6 @@ class App extends Component<AppProps, AppState> {
       console.error("no xterm element found");
       return;
     }
-
     xterm.open(el);
 
     if (!this.state.hasCrypto) {
@@ -137,14 +218,17 @@ class App extends Component<AppProps, AppState> {
     }
     const secretEncryptionKey = await getSecretKey();
     this.setState({ secretEncryptionKey });
-    const terminalData = await (
-      await fetch(`terminal/${this.state.terminalId}`)
-    ).json();
+    let terminalData = null;
+    try {
+      terminalData = await (
+        await fetch(`terminal/${this.state.terminalId}`)
+      ).json();
+    } catch (e) {}
     this.setState({ terminalData });
 
     xterm.writeln(`Welcome to TermPair! https://github.com/cs01/termpair`);
     xterm.writeln("");
-    if (!terminalData.terminal_id) {
+    if (!terminalData?.terminal_id) {
       writeInstructions(xterm);
       return;
     }
@@ -162,17 +246,19 @@ class App extends Component<AppProps, AppState> {
     xterm.attachCustomKeyEventHandler(
       getCustomKeyEventHandler(
         xterm,
-        this.props?.terminalData?.allow_browser_control,
+        this.state?.terminalData?.allow_browser_control,
         async (newInput: any) => {
-          webSocket.send(await encrypt(secretEncryptionKey, newInput));
+          try {
+            webSocket.send(await encrypt(secretEncryptionKey, newInput));
+          } catch (e) {
+            // TODO display in popup to user
+            console.error("Failed to send data over websocket", e);
+          }
         }
       )
     );
 
-    xterm.onData(async (data: any) => {
-      webSocket.send(await encrypt(secretEncryptionKey, data));
-    });
-
+    let onDataDispose: Nullable<IDisposable>;
     webSocket.addEventListener("open", (event) => {
       this.setState({ status: "connected" });
       xterm.writeln("Connection established with end-to-end encryption 🔒.");
@@ -184,9 +270,23 @@ class App extends Component<AppProps, AppState> {
         "You can copy text with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v."
       );
       xterm.writeln("");
+
+      onDataDispose = xterm.onData(async (data: any) => {
+        try {
+          webSocket.send(await encrypt(secretEncryptionKey, data));
+        } catch (e) {
+          // TODO display in popup to user
+          console.error("Failed to send data over websocket", e);
+        }
+      });
     });
 
     webSocket.addEventListener("close", (event) => {
+      if (onDataDispose) {
+        // stop trying to send data since the connection is closed
+        onDataDispose.dispose();
+      }
+
       if (this.state.status === "connected") {
         xterm.writeln("Connection ended");
       } else {
@@ -195,6 +295,17 @@ class App extends Component<AppProps, AppState> {
         );
       }
       writeInstructions(xterm);
+      this.setState({ status: "disconnected" });
+      this.setState({ num_clients: 0 });
+    });
+
+    webSocket.addEventListener("error", (event) => {
+      if (onDataDispose) {
+        // stop trying to send data since the connection is closed
+        onDataDispose.dispose();
+      }
+
+      console.error(event);
       this.setState({ status: "disconnected" });
       this.setState({ num_clients: 0 });
     });
