@@ -33,7 +33,8 @@ class Terminal(NamedTuple):
     ws: WebSocket
     rows: int
     cols: int
-    web_clients: List[WebSocket]
+    browser_websockets: List[WebSocket]
+    browser_tasks: List[asyncio.Task]
     allow_browser_control: bool
     command: str
     broadcast_start_time_iso: str
@@ -82,29 +83,55 @@ async def connect_browser_to_terminal(ws: WebSocket):
         return
     await ws.accept()
 
-    terminal.web_clients.append(ws)
-    num_browsers = len(terminal.web_clients)
+    terminal.browser_websockets.append(ws)
+
+    # Need to create a task so it can be cancelled by the terminal's
+    # task if the terminal session ends. That way, browsers are notified
+    # the session ended instead of thinking the connection is still open
+    # (an exception raised while awaiting)
+    task: asyncio.Task = asyncio.create_task(
+        _task_handle_browser_websocket(terminal, ws)
+    )
+
+    def remove_task_from_terminal_list(future):
+        # task will sit in list as "done"
+        # not a big deal if it sits there, but we'll remove it
+        # immediately since it's never going to be used again
+        terminal.browser_tasks.remove(task)
+
+    task.add_done_callback(remove_task_from_terminal_list)
+    terminal.browser_tasks.append(task)
+    try:
+        # task will be cancelled when terminal session the client started ends
+        await task
+    except asyncio.exceptions.CancelledError:
+        pass
+
+
+async def _task_handle_browser_websocket(terminal: Terminal, ws: WebSocket):
     try:
         # update connected browser count in each browser
-        for browser in terminal.web_clients:
+        num_browsers = len(terminal.browser_websockets)
+        for browser in terminal.browser_websockets:
             await browser.send_json({"event": "num_clients", "payload": num_browsers})
-        # read any input from the browser that just connected
         while True:
-            encrypted_browser_input = await ws.receive_text()
             if terminal.allow_browser_control:
+                # read any input from the browser that just connected
+                encrypted_browser_input = await ws.receive_text()
                 # Got input, send it to the single terminal that's broadcasting.
                 await terminal.ws.send_json(
                     {"event": "command", "payload": encrypted_browser_input}
                 )
+            else:
+                # browser can't send input, just wait until the connection ends
+                await asyncio.sleep(10000)
     except starlette.websockets.WebSocketDisconnect:
-        # this can happen when the broadcasting terminal disconnects
-        # and the task reading data from the terminal closes
-        # all connected browser websockets
+        # browser closed the connection
         pass
     finally:
-        terminal.web_clients.remove(ws)
-        num_browsers = len(terminal.web_clients)
-        for web_client in terminal.web_clients:
+        terminal.browser_websockets.remove(ws)
+        num_browsers = len(terminal.browser_websockets)
+        for web_client in terminal.browser_websockets:
             await web_client.send_json(
                 {"event": "num_clients", "payload": num_browsers}
             )
@@ -115,15 +142,15 @@ async def _task_forward_terminal_data_to_web_clients(terminal: Terminal):
         # The task is to endlessly wait for new data from the terminal,
         # read it, and broadcast it to all connected browsers
         ws = terminal.ws
-        web_clients = terminal.web_clients
+        browser_websockets = terminal.browser_websockets
         try:
             data = await ws.receive_json()
         except starlette.websockets.WebSocketDisconnect:
-            # Terminal stopped broadcasting
-            for web_client in web_clients:
-                # close each browser connection
-                await web_client.close()
-            # task is done
+            # Terminal stopped broadcasting, close
+            # all browser websocket tasks so they are notified
+            # the connection has actually ended
+            for task in terminal.browser_tasks:
+                task.cancel()
             return
 
         if data.get("event") == "new_output":
@@ -135,30 +162,31 @@ async def _task_forward_terminal_data_to_web_clients(terminal: Terminal):
         else:
             logging.warning(f"Got unknown event {data.get('event', 'none')}")
 
-        if not terminal_data:
+        terminal_has_closed = not terminal_data
+        if terminal_has_closed:
             # terminal outputs an empty string when it closes, so it just closed
-            for web_client in web_clients:
+            for browser_ws in browser_websockets:
                 # close each browser connection since the terminal's broadcasting
                 # process stopped
-                await web_client.close()
-            # task is done
+                await browser_ws.close()
             return
 
-        clients_to_remove: List[WebSocket] = []
-        for web_client in web_clients:
+        browsers_to_remove: List[WebSocket] = []
+        for browser_ws in browser_websockets:
             try:
-                await web_client.send_json(data)
+                await browser_ws.send_json(data)
             except Exception:
-                if web_client not in clients_to_remove:
-                    clients_to_remove.append(web_client)
+                if browser_ws not in browsers_to_remove:
+                    browsers_to_remove.append(browser_ws)
 
-        if clients_to_remove:
-            for client in clients_to_remove:
-                web_clients.remove(client)
+        if browsers_to_remove:
+            for browser_ws in browsers_to_remove:
+                browser_websockets.remove(browser_ws)
 
-            for web_client in web_clients:
-                await web_client.send_json(
-                    {"event": "num_clients", "payload": len(web_clients)}
+            # let still-connected clients know the new count
+            for browser_ws in browser_websockets:
+                await browser_ws.send_json(
+                    {"event": "num_clients", "payload": len(browser_websockets)}
                 )
         # continue running task in while loop
 
@@ -177,7 +205,8 @@ async def connect_to_terminal(ws: WebSocket):
         data = await ws.receive_json()
         terminal = Terminal(
             ws=ws,
-            web_clients=[],
+            browser_websockets=[],
+            browser_tasks=[],
             rows=data["rows"],
             cols=data["cols"],
             allow_browser_control=data["allow_browser_control"],
