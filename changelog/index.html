@@ -61,7 +61,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#0111" class="md-skip">
+        <a href="#0200" class="md-skip">
           Skip to content
         </a>
       
@@ -256,6 +256,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0200" class="md-nav__link">
+    0.2.0.0
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0111" class="md-nav__link">
     0.1.1.1
   </a>
@@ -357,6 +364,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0200" class="md-nav__link">
+    0.2.0.0
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0111" class="md-nav__link">
     0.1.1.1
   </a>
@@ -445,7 +459,19 @@
                 
                   <h1>Changelog</h1>
                 
-                <h2 id="0111">0.1.1.1</h2>
+                <h2 id="0200">0.2.0.0</h2>
+<ul>
+<li>Add ability to copy+paste using keystrokes (copy with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v)</li>
+<li>Add a status bar to the bottom of the page</li>
+<li>Show terminal dimensions in bottom status bar</li>
+<li>Add toasts to notify user of various events</li>
+<li>Fix bug where connected browsers do not have their websocket connection closed when terminal closes, which makes it look like the terminal is still connected when it is not.</li>
+<li>Improve error messages, in particular if there is no server running</li>
+<li>Fixed bug where websocket connection is briefly accepted regardless of whether a valid terminal id is provided to <code>/terminal/{terminal_id}</code>. Instead of returning a JSON object with the TermPair version, a 404 error is now returned.</li>
+<li>[dev] migrate codebase to typescript</li>
+<li>[dev] use React functional component instead of class component for main application</li>
+</ul>
+<h2 id="0111">0.1.1.1</h2>
 <ul>
 <li>Fix server bug when using SSL certs (#44)</li>
 </ul>

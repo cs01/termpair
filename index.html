@@ -61,7 +61,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#_1" class="md-skip">
+        <a href="#what-is-termpair" class="md-skip">
           Skip to content
         </a>
       
@@ -226,13 +226,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#what-is-termpair" class="md-nav__link">
     What is TermPair?
   </a>
@@ -270,6 +263,13 @@
         <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serving-with-nginx" class="md-nav__link">
+    Serving with NGINX
   </a>
   
 </li>
@@ -350,13 +350,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#what-is-termpair" class="md-nav__link">
     What is TermPair?
   </a>
@@ -394,6 +387,13 @@
         <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#serving-with-nginx" class="md-nav__link">
+    Serving with NGINX
   </a>
   
 </li>
@@ -438,8 +438,14 @@
 
 <p><strong>Documentation</strong>: <a href="https://cs01.github.io/termpair">https://cs01.github.io/termpair</a></p>
 <p><strong>Source Code</strong>: <a href="https://github.com/cs01/termpair">https://github.com/cs01/termpair</a></p>
-<p><strong>Try It</strong>: <a href="https://grassfedcode.com/termpair">https://grassfedcode.com/termpair</a></p>
-<h2 id="_1"><a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a></h2>
+<p><strong>Try It</strong>: <a href="https://chadsmith.dev/termpair">https://chadsmith.dev/termpair</a></p>
+<p align="center">
+<a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a>
+
+<a href="https://github.com/cs01/termpair/actions?query=workflow%3Atests">
+<img src="https://github.com/cs01/termpair/actions/workflows/tests.yml/badge.svg?branch=master" alt="PyPI version" height="18"></a>
+</p>
+
 <h2 id="what-is-termpair">What is TermPair?</h2>
 <p>TermPair lets developers securely share and control terminals in real time.</p>
 <div style="text-align: center">
@@ -447,7 +453,8 @@
 </div>
 
 <h2 id="usage">Usage</h2>
-<p>Start the TermPair server with <code>termpair serve</code>, or use the one already running at <a href="https://grassfedcode.com/termpair">https://grassfedcode.com/termpair</a>.</p>
+<p>First start the TermPair server with <code>termpair serve</code>, or use the one already running at <a href="https://chadsmith.dev/termpair">https://chadsmith.dev/termpair</a>.</p>
+<p>The server is used to route encrypted data between terminals and connected browsers.</p>
 <div class="codehilite"><pre><span></span><code>&gt; termpair serve --port 8000
 INFO:     Started server process [25289]
 INFO:     Waiting for application startup.
@@ -456,7 +463,8 @@ INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
 INFO:     (&#39;127.0.0.1&#39;, 51924) - &quot;WebSocket /connect_to_terminal&quot; [accepted]
 </code></pre></div>
 
-<p>Then share your terminal by running <code>termpair share</code>:</p>
+<p>Then share your terminal by running <code>termpair share</code>.</p>
+<p>This connects your terminal to the server, and allows browsers to access the terminal.</p>
 <div class="codehilite"><pre><span></span><code>&gt; termpair share --port 8000
 --------------------------------------------------------------------------------
 Connection established with end-to-end encryption 🔒
@@ -468,7 +476,7 @@ Type &#39;exit&#39; or close terminal to stop sharing.
 --------------------------------------------------------------------------------
 </code></pre></div>
 
-<p>You can share that URL with whoever you want. Note that anyone that has it can view and possibly control your terminal.</p>
+<p>The URL printed contains a unique terminal ID and an encryption key. You can share that URL with whoever you want. Anyone who has it can access your terminal while the <code>termpair share</code> process is running.</p>
 <p>The server multicasts terminal output to all browsers that connect to the session.</p>
 <h2 id="security">Security</h2>
 <p>TermPair uses 128 bit end-to-end encryption for all terminal input and output.</p>
@@ -499,13 +507,43 @@ Type &#39;exit&#39; or close terminal to stop sharing.
 <div class="codehilite"><pre><span></span><code>&gt; pipx run termpair share --open-browser
 </code></pre></div>
 
+<p>Note: pipx caches installations for a few days. To ignore the cache and force a fresh installation, use <code>pipx run --no-cache termpair ...</code>.</p>
 <h2 id="installation">Installation</h2>
-<p>You can install using <a href="https://github.com/pipxproject/pipx">pipx</a> or pip:</p>
+<p>You can install using <a href="https://github.com/pipxproject/pipx">pipx</a>:</p>
 <div class="codehilite"><pre><span></span><code>&gt; pipx install termpair
 </code></pre></div>
 
-<p>or</p>
+<p>or install with <a href="https://pip.pypa.io/en/stable/">pip</a></p>
 <div class="codehilite"><pre><span></span><code>&gt; pip install termpair
+</code></pre></div>
+
+<h2 id="serving-with-nginx">Serving with NGINX</h2>
+<p>Running behind an nginx proxy can be done with the following configuration.</p>
+<p>The TermPair server must be started with <code>termpair serve</code>, and the port being run on must be specified in the <code>upstream</code> configuration.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">upstream</span> <span class="s">termpair_app</span> <span class="p">{</span>
+  <span class="c1"># Make sure the port matches the port you are running on</span>
+  <span class="kn">server</span> <span class="n">127.0.0.1</span><span class="p">:</span><span class="mi">8000</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">server</span> <span class="p">{</span>
+    <span class="kn">server_name</span> <span class="s">myserver.com</span><span class="p">;</span>
+
+    <span class="c1"># I recommend Certbot if you don&#39;t have SSL set up</span>
+    <span class="kn">listen</span> <span class="mi">443</span> <span class="s">ssl</span><span class="p">;</span>
+    <span class="kn">ssl_certificate</span> <span class="s">fullchain.pem</span><span class="p">;</span>
+    <span class="kn">ssl_certificate_key</span> <span class="s">privkey.pem</span><span class="p">;</span>
+
+    <span class="kn">location</span> <span class="s">/termpair/</span> <span class="p">{</span>
+        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-For</span> <span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$host</span><span class="p">;</span>
+
+        <span class="kn">proxy_pass</span> <span class="s">http://termpair_app/</span><span class="p">;</span>
+
+        <span class="kn">proxy_http_version</span> <span class="mi">1</span><span class="s">.1</span><span class="p">;</span>
+        <span class="kn">proxy_set_header</span> <span class="s">Upgrade</span> <span class="nv">$http_upgrade</span><span class="p">;</span>
+        <span class="kn">proxy_set_header</span> <span class="s">Connection</span> <span class="s">&quot;upgrade&quot;</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 
 <h2 id="cli-api">CLI API</h2>
