@@ -3,6 +3,7 @@
 * Add a status bar to the bottom of the page
 * Show terminal dimensions in bottom status bar
 * Add toasts to notify user of various events
+* Fix bug where connected browsers do not have their websocket connection closed when terminal closes, which makes it look like the terminal is still connected when it is not.
 * Improve error messages, in particular if there is no server running
 * Fixed bug where websocket connection is briefly accepted regardless of whether a valid terminal id is provided to `/terminal/{terminal_id}`. Instead of returning a JSON object with the TermPair version, a 404 error is now returned.
 * [dev] migrate codebase to typescript

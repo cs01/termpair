@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState, useLayoutEffect } from "react";
 import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
@@ -47,7 +48,7 @@ function TopBar(props: any) {
   return (
     <div className="flex bg-black h-10 items-center justify-between">
       <div className="h-full">
-        <a href="https://github.com/cs01/termpair">
+        <a href={window.location.pathname}>
           <img className="h-full" src={logo} alt="logo" />
         </a>
       </div>
@@ -72,7 +73,7 @@ function BottomBar(props: {
   terminalSize: TerminalSize;
   numClients: number;
 }) {
-  const connected = props.status === "connected";
+  const connected = props.status === "Connected";
   const hasTerminalId = props.terminalId != null;
   const status = hasTerminalId ? <div>{props.status}</div> : null;
 
@@ -82,7 +83,7 @@ function BottomBar(props: {
     This setting is controlled when initially sharing the terminal, and cannot be changed
     after sharing has begun."
     >
-      {props.terminalData?.allow_browser_control && props.status === "connected"
+      {props.terminalData?.allow_browser_control && props.status === "Connected"
         ? "can type"
         : "cannot type"}
     </div>
@@ -165,10 +166,14 @@ const cannotTypeMsg =
 
 type Status =
   | null
-  | "connection-pending"
-  | "connected"
-  | "disconnected"
-  | "invalid-terminal";
+  | "Connecting..."
+  | "Connected"
+  | "Disconnected"
+  | "Connection Error"
+  | "Terminal ID is invalid"
+  | "Browser is not running in a secure context"
+  | "No Terminal provided"
+  | "Invalid encryption key";
 
 type TerminalServerData = {
   terminal_id: string;
@@ -185,6 +190,92 @@ type TerminalSize = {
 const toastStatus = debounce((status: any) => {
   toast.dark(status);
 }, 500);
+
+function redXtermText(text: string): string {
+  return "\x1b[1;31m" + text + "\x1b[0m";
+}
+
+function handleStatusChange(
+  xterm: Xterm,
+  terminalId: Nullable<string>,
+  status: Status,
+  prevStatus: Status
+): void {
+  switch (status) {
+    case null:
+      break;
+    case "Connected":
+      xterm.writeln("Connection established with end-to-end encryption 🔒.");
+      xterm.writeln(
+        "The termpair server and third parties can't read transmitted data."
+      );
+      xterm.writeln("");
+      xterm.writeln(
+        "You can copy text with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v."
+      );
+      xterm.writeln("");
+      break;
+    case "Disconnected":
+      if (prevStatus === "Connected") {
+        xterm.writeln(redXtermText("Terminal session has ended"));
+        xterm.writeln("");
+        writeInstructions(xterm);
+      }
+      break;
+    case "Terminal ID is invalid":
+      xterm.writeln(
+        redXtermText(
+          `An invalid Terminal ID (${terminalId}) was provided. ` +
+            `Check that the session is still being broadcast and that the ID is entered correctly.`
+        )
+      );
+      xterm.writeln("");
+      writeInstructions(xterm);
+      break;
+    case "Invalid encryption key":
+      xterm.writeln(
+        redXtermText(
+          `Did not receive a valid secret encryption key. Confirm the full and correct url was entered.`
+        )
+      );
+      xterm.writeln("");
+      writeInstructions(xterm);
+      break;
+
+    case "Browser is not running in a secure context":
+      xterm.writeln(
+        redXtermText(
+          "Fatal Error: TermPair only works on secure connections. Ensure url starts with https. " +
+            "See https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts and `termpair serve --help` for more information."
+        )
+      );
+      xterm.writeln("");
+      writeInstructions(xterm);
+      break;
+
+    case "Connecting...":
+      break;
+
+    case "Connection Error":
+      xterm.writeln(
+        redXtermText(
+          "An error occurred in the websocket connection to the server. Connection has been closed."
+        )
+      );
+      writeInstructions(xterm);
+      break;
+
+    case "No Terminal provided":
+      writeInstructions(xterm);
+      break;
+
+    default:
+      ((_: "Unhandled switch case"): never => {
+        throw Error;
+      })(status);
+  }
+  return status as never;
+}
 
 function App() {
   const [terminalServerData, setTerminalServerData] =
@@ -212,11 +303,6 @@ function App() {
 
   const [secretEncryptionKey, setSecretEncryptionKey] =
     useState<Nullable<CryptoKey>>(null);
-  useEffect(() => {
-    (async () => {
-      setSecretEncryptionKey(await getSecretKey());
-    })();
-  }, []);
 
   useLayoutEffect(() => {
     const el = document.getElementById("terminal");
@@ -227,71 +313,46 @@ function App() {
     xterm.open(el);
     xterm.writeln(`Welcome to TermPair! https://github.com/cs01/termpair`);
     xterm.writeln("");
-  }, [xterm]);
+  }, []);
 
   useEffect(() => {
-    console.log(`Terminal connection status: ${status}`);
-    if (status) {
+    // console.log(`Terminal connection status: ${status}`);
+    const noToast = ["No Terminal provided"];
+    if (status && noToast.indexOf(status) === -1) {
       // @ts-ignore
       toastStatus(<div>Terminal status: {status}</div>);
     }
-    switch (status) {
-      case null:
-        break;
-      case "connected":
-        break;
-      case "disconnected":
-        if (prevStatus === "connected") {
-          xterm.writeln("Terminal session has ended");
-          xterm.writeln("");
-          writeInstructions(xterm);
-        }
-        break;
-      case "invalid-terminal":
-        xterm.writeln(
-          `An invalid terminal id (${terminalId}) was provided. The session has likely ended.`
-        );
-        xterm.writeln("");
-        writeInstructions(xterm);
-        break;
-      default:
-        break;
-    }
-
+    handleStatusChange(xterm, terminalId, status, prevStatus);
     setPrevStatus(status);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   useEffect(() => {
     async function getTerminalData() {
       if (!terminalId) {
         setTerminalServerData(null);
-        writeInstructions(xterm);
+        setStatus("No Terminal provided");
         return;
       }
       if (!window.isSecureContext) {
-        xterm.writeln(
-          "\x1b[1;31mFatal Error: TermPair only works on secure connections. Ensure url starts with https. See `termpair serve --help` for more information.\x1b[0m"
-        );
-        xterm.writeln("");
-        writeInstructions(xterm);
+        setStatus("Browser is not running in a secure context");
         return;
       }
+      const secretEncryptionKey = await getSecretKey();
+      setSecretEncryptionKey(secretEncryptionKey);
+      if (!secretEncryptionKey) {
+        setStatus("Invalid encryption key");
+      }
 
-      try {
-        const response = await fetch(`terminal/${terminalId}`);
-        if (response.status === 200) {
-          setTerminalServerData(await response.json());
-        } else {
-          setStatus("invalid-terminal");
-          setTerminalServerData(null);
-        }
-      } catch (e) {
+      const response = await fetch(`terminal/${terminalId}`);
+      if (response.status === 200) {
+        setTerminalServerData(await response.json());
+      } else {
+        setStatus("Terminal ID is invalid");
         setTerminalServerData(null);
       }
     }
     getTerminalData();
-  }, [terminalId, xterm]);
+  }, [terminalId]);
 
   useEffect(() => {
     if (resizeTimeout) {
@@ -302,7 +363,6 @@ function App() {
         xterm.resize(terminalSize.cols, terminalSize.rows);
       }, 500)
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminalSize, xterm]);
 
   useEffect(() => {
@@ -313,7 +373,7 @@ function App() {
       if (!(terminalServerData?.terminal_id && secretEncryptionKey)) {
         return;
       }
-      setStatus("connection-pending");
+      setStatus("Connecting...");
 
       const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const webSocket = new WebSocket(
@@ -336,17 +396,7 @@ function App() {
       );
       let onDataDispose: Nullable<IDisposable>;
       webSocket.addEventListener("open", (event) => {
-        setStatus("connected");
-        xterm.writeln("Connection established with end-to-end encryption 🔒.");
-        xterm.writeln(
-          "The termpair server and third parties can't read transmitted data."
-        );
-        xterm.writeln("");
-        xterm.writeln(
-          "You can copy text with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v."
-        );
-        xterm.writeln("");
-
+        setStatus("Connected");
         onDataDispose = xterm.onData(async (data: any) => {
           try {
             if (terminalServerData.allow_browser_control === false) {
@@ -366,7 +416,7 @@ function App() {
           onDataDispose.dispose();
         }
 
-        setStatus("disconnected");
+        setStatus("Disconnected");
         setNumClients(0);
       });
 
@@ -377,7 +427,7 @@ function App() {
         }
 
         console.error(event);
-        setStatus("disconnected");
+        setStatus("Connection Error");
         setNumClients(0);
       });
 
@@ -408,7 +458,7 @@ function App() {
       });
     }
     setupWebsocketConnection();
-  }, [terminalServerData, secretEncryptionKey, status, xterm]);
+  }, [terminalServerData, status]);
 
   const content = (
     <div id="terminal" className="p-3 bg-black flex-grow text-gray-400"></div>
