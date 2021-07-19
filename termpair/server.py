@@ -18,7 +18,7 @@ from starlette.staticfiles import StaticFiles  # type: ignore
 from starlette.websockets import WebSocket  # type: ignore
 
 from .utils import get_random_string
-from fastapi.exceptions import HTTPException
+from fastapi.exceptions import HTTPException  # type: ignore
 
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "frontend_build")
