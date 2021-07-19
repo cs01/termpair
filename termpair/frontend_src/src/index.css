@@ -1,3 +1,7 @@
+.Toastify__progress-bar--dark {
+  background: gray;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;

@@ -10,11 +10,13 @@
     "@types/react": "^17.0.14",
     "@types/react-dom": "^17.0.9",
     "autoprefixer": "^9",
+    "debounce": "^1.2.1",
     "moment": "^2.24.0",
     "postcss": "^7",
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "react-scripts": "^4.0.3",
+    "react-toastify": "^7.0.4",
     "recoil": "^0.3.1",
     "tailwindcss": "npm:@tailwindcss/postcss7-compat",
     "typescript": "^4.3.5",
@@ -37,5 +39,8 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "devDependencies": {
+    "@types/debounce": "^1.2.0"
+  }
 }

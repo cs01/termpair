@@ -18,6 +18,7 @@ from starlette.staticfiles import StaticFiles  # type: ignore
 from starlette.websockets import WebSocket  # type: ignore
 
 from .utils import get_random_string
+from fastapi.exceptions import HTTPException  # type: ignore
 
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "frontend_build")
@@ -53,33 +54,33 @@ async def index(terminal_id: Optional[TerminalId] = None):
 
     data: Dict[str, Any]
 
-    if terminal:
-        rows = terminal.rows
-        cols = terminal.cols
-        allow_browser_control = terminal.allow_browser_control
-        data = dict(
-            terminal_id=terminal_id,
-            cols=cols,
-            rows=rows,
-            allow_browser_control=allow_browser_control,
-            command=terminal.command,
-            broadcast_start_time_iso=terminal.broadcast_start_time_iso,
-            termpair_version=__version__,
-        )
-    else:
-        data = dict(termpair_version=__version__)
+    if not terminal:
+        raise HTTPException(status_code=404, detail="Terminal not found")
+
+    rows = terminal.rows
+    cols = terminal.cols
+    allow_browser_control = terminal.allow_browser_control
+    data = dict(
+        terminal_id=terminal_id,
+        cols=cols,
+        rows=rows,
+        allow_browser_control=allow_browser_control,
+        command=terminal.command,
+        broadcast_start_time_iso=terminal.broadcast_start_time_iso,
+        termpair_version=__version__,
+    )
     return data
 
 
 @app.websocket("/connect_browser_to_terminal")
 async def connect_browser_to_terminal(ws: WebSocket):
-    await ws.accept()
     terminal_id = ws.query_params.get("terminal_id", None)
     terminal = terminals.get(terminal_id)
     if not terminal:
         print(f"terminal id {terminal_id} not found")
         await ws.close()
         return
+    await ws.accept()
 
     terminal.web_clients.append(ws)
     num_browsers = len(terminal.web_clients)

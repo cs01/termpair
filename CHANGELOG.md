@@ -1,7 +1,12 @@
-## 0.1.2.0
+## 0.2.0.0
 * Add ability to copy+paste using keystrokes
+* Add a status bar to the bottom of the page
+* Show terminal dimensions in bottom status bar
+* Add toasts to notify user of various events
 * Improve error messages, in particular if there is no server running
+* Fixed bug where websocket connection is briefly accepted regardless of whether a valid terminal id is provided to `/terminal/{terminal_id}`. Instead of returning a JSON object with the TermPair version, a 404 error is now returned.
 * [dev] migrate codebase to typescript
+* [dev] use React functional component instead of class component for main application
 
 ## 0.1.1.1
 * Fix server bug when using SSL certs (#44)
