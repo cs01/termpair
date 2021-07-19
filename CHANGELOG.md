@@ -1,5 +1,5 @@
 ## 0.2.0.0
-* Add ability to copy+paste using keystrokes
+* Add ability to copy+paste using keystrokes (copy with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v)
 * Add a status bar to the bottom of the page
 * Show terminal dimensions in bottom status bar
 * Add toasts to notify user of various events

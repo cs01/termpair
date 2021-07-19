@@ -27,7 +27,9 @@ TermPair lets developers securely share and control terminals in real time.
 
 ## Usage
 
-Start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
+First start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
+
+The server is used to route encrypted data between terminals and connected browsers.
 
 ```
 > termpair serve --port 8000
@@ -38,7 +40,9 @@ INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
 INFO:     ('127.0.0.1', 51924) - "WebSocket /connect_to_terminal" [accepted]
 ```
 
-Then share your terminal by running `termpair share`:
+Then share your terminal by running `termpair share`.
+
+This connects your terminal to the server, and allows browsers to access the terminal.
 
 ```
 > termpair share --port 8000
@@ -52,7 +56,7 @@ Type 'exit' or close terminal to stop sharing.
 --------------------------------------------------------------------------------
 ```
 
-You can share that URL with whoever you want. Note that anyone that has it can view and possibly control your terminal.
+The URL printed contains a unique terminal ID and an encryption key. You can share that URL with whoever you want. Anyone who has it can access your terminal while the `termpair share` process is running.
 
 The server multicasts terminal output to all browsers that connect to the session.
 
@@ -117,10 +121,11 @@ or install with [pip](https://pip.pypa.io/en/stable/)
 ## Serving with NGINX
 Running behind an nginx proxy can be done with the following configuration.
 
-TermPair must be started with `termpair serve`, and the port being run on must be specified in the `upstream` configuration.
+The TermPair server must be started with `termpair serve`, and the port being run on must be specified in the `upstream` configuration.
 
 ```nginx
 upstream termpair_app {
+  # Make sure the port matches the port you are running on
   server 127.0.0.1:8000;
 }
 
