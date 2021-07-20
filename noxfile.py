@@ -10,7 +10,11 @@ nox.options.reuse_existing_virtualenvs = True
 doc_deps = [".", "jinja2", "mkdocs", "mkdocs-material"]
 dev_deps = ["mypy", "black"]
 lint_deps = ["black", "flake8", "flake8-bugbear", "mypy", "check-manifest"]
-test_deps = ["pytest"]
+test_deps = [
+    "pytest",
+    # required by FastAPI's test code
+    "requests",
+]
 
 
 @nox.session(python=python)
@@ -65,4 +69,5 @@ def lint(session):
 @nox.session(python=[python])
 def test(session):
     session.install(".", *test_deps)
-    session.run("pytest", "tests", *session.posargs)
+    # can't use default capture method because termpair requires stdin to have a fileno()
+    session.run("pytest", "tests", "--capture", "tee-sys", *session.posargs)
