@@ -36,6 +36,7 @@ jobs:
         node-version: [12.x]
         include:
           - os: macos-latest
+            python-version: 3.8
 
     steps:
       - uses: actions/checkout@v2
