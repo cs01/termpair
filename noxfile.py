@@ -71,4 +71,4 @@ def lint(session):
 def test(session):
     session.install(".", *test_deps)
     # can't use default capture method because termpair requires stdin to have a fileno()
-    session.run("pytest", "tests", "--capture", "tee-sys", *session.posargs)
+    session.run("pytest", "tests", "--capture", "no", *session.posargs)
