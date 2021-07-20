@@ -5,6 +5,8 @@ import tty
 import sys
 import signal
 import psutil  # type: ignore
+from os import getenv
+import pytest
 
 
 def get_open_port() -> int:
@@ -25,6 +27,11 @@ def test_server():
 
 
 def test_e2e():
+    if getenv("CI") is not None:
+        pytest.skip(
+            "On CI we get: termios.error: (25, 'Inappropriate ioctl for device')"
+        )
+
     sys.stdin.fileno()
     mode = tty.tcgetattr(sys.stdin.fileno())
     try:
