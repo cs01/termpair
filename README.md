@@ -223,5 +223,5 @@ Python: 3.6+
 Operating System:
 
 - To view/control from the browser: All operating systems are supported.
-- To run the server, `termpair serve`: Tested on Linux. Should work on macOS. Might work on Windows.
-- To share your terminal, `termpair share`: Tested on Linux. Should work on macOS. Probably doesn't work on Windows.
+- To run the server, `termpair serve`: Tested on Linux and macOS. Likely works on Windows.
+- To share your terminal, `termpair share`: Tested on Linux and macOS. Likely does not work on Windows.
