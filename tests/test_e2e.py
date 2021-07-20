@@ -6,7 +6,7 @@ import sys
 import signal
 import psutil  # type: ignore
 from os import getenv
-import pytest
+import pytest  # type:ignore
 
 
 def get_open_port() -> int:
