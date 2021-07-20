@@ -1,15 +1,10 @@
-from fastapi.testclient import TestClient
-from termpair import server, utils
 import subprocess
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from time import sleep
 import socket
 import tty
 import sys
 import signal
-import psutil
-
-client = TestClient(server.app)
+import psutil  # type: ignore
 
 
 def get_open_port() -> int:
@@ -25,7 +20,7 @@ def test_server():
     open_port = str(get_open_port())
     server = subprocess.Popen(["termpair", "serve", "--port", open_port])
     sleep(0.1)
-    assert server.poll() == None
+    assert server.poll() is None
     server.kill()
 
 
@@ -46,8 +41,8 @@ def test_e2e():
             stderr=subprocess.PIPE,
         )
         sleep(0.5)
-        assert server.poll() == None
-        assert broadcast.poll() == None
+        assert server.poll() is None
+        assert broadcast.poll() is None
         server.kill()
         kill_child_processes(broadcast.pid)
         broadcast.kill()

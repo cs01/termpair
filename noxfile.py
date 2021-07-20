@@ -14,6 +14,7 @@ test_deps = [
     "pytest",
     # required by FastAPI's test code
     "requests",
+    "psutil",
 ]
 
 
