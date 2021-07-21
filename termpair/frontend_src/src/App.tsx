@@ -10,6 +10,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { atom, useRecoilState } from "recoil";
 import { debounce } from "debounce";
+import { requestTerminalDimensions, sendCommandToTerminal } from "./events";
 
 const showSettings = atom({
   key: "showSettings",
@@ -395,15 +396,22 @@ function App() {
         )
       );
       let onDataDispose: Nullable<IDisposable>;
-      webSocket.addEventListener("open", (event) => {
+      webSocket.addEventListener("open", async (event) => {
         setStatus("Connected");
+        webSocket.send(requestTerminalDimensions());
+
+        /**
+         * Process user input when user types in terminal
+         */
         onDataDispose = xterm.onData(async (data: any) => {
           try {
             if (terminalServerData.allow_browser_control === false) {
               toastStatus(cannotTypeMsg);
               return;
             }
-            webSocket.send(await encrypt(secretEncryptionKey, data));
+            webSocket.send(
+              await sendCommandToTerminal(secretEncryptionKey, data)
+            );
           } catch (e) {
             // TODO display in popup to user
             console.error("Failed to send data over websocket", e);
@@ -452,6 +460,8 @@ function App() {
           const num_clients = data.payload;
           // @ts-ignore
           setNumClients(num_clients);
+        } else if (data.event === "error") {
+          console.error(data);
         } else {
           console.error("unknown event type", data);
         }

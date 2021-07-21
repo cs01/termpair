@@ -93,7 +93,7 @@ def _handle_new_pty_output(
 async def _receive_data_from_websocket(ws):
     data = await ws.recv()
     parsed = json.loads(data)
-    return parsed["event"], parsed["payload"]
+    return parsed["event"], parsed.get("payload")
 
 
 async def _initialize_broadcast(
@@ -125,6 +125,14 @@ async def _initialize_broadcast(
     return ws_id
 
 
+def emit_terminal_dimensions(stdin_fd, pty_fd):
+    utils.copy_terminal_dimensions(stdin_fd, pty_fd)
+    rows, cols = utils.get_terminal_size(stdin_fd)
+    ws_queue.put_nowait(
+        json.dumps({"event": "resize", "payload": {"rows": rows, "cols": cols}})
+    )
+
+
 async def _do_broadcast(
     pty_fd: int,
     stdin_fd: int,
@@ -137,14 +145,10 @@ async def _do_broadcast(
 ):
     """forward pty i/o to/from file descriptors and websockets"""
 
-    def _on_resize(signum, frame):
-        utils.copy_terminal_dimensions(stdin_fd, pty_fd)
-        rows, cols = utils.get_terminal_size(stdin_fd)
-        ws_queue.put_nowait(
-            json.dumps({"event": "resize", "payload": {"rows": rows, "cols": cols}})
-        )
+    def on_terminal_resize(signum, frame):
+        emit_terminal_dimensions(stdin_fd, pty_fd)
 
-    signal.signal(signal.SIGWINCH, _on_resize)
+    signal.signal(signal.SIGWINCH, on_terminal_resize)
     if open_browser:
         webbrowser.open(share_url)
 
@@ -154,7 +158,7 @@ async def _do_broadcast(
     if allow_browser_control:
         tasks.append(
             asyncio.ensure_future(
-                _task_receive_server_pty_input(pty_fd, ws, secret_key)
+                _task_receive_browser_input(pty_fd, ws, secret_key, stdin_fd)
             )
         )
 
@@ -180,21 +184,27 @@ async def _do_broadcast(
         task.cancel()
 
 
-async def _task_receive_server_pty_input(fd, ws, secret_key: bytes):
-    """receives commands from websocket and writes them to associated fd"""
+async def _task_receive_browser_input(
+    pty_fd: int, ws, secret_key: bytes, stdin_fd: int
+):
+    """receives events+payloads from browser websocket connection"""
     try:
         while True:
-            event, b64_encrypted_payload_str = await _receive_data_from_websocket(ws)
-            # TODO receive binary
-            encrypted_payload = base64.b64decode(b64_encrypted_payload_str)
+            event, payload = await _receive_data_from_websocket(ws)
+
             if event == "command":
                 try:
-                    payload = encryption.decrypt(secret_key, encrypted_payload)
-                    os.write(fd, payload.encode())
-                except Exception as e:
-                    print("failed to decrypt", e)
+                    encrypted_payload = base64.b64decode(payload)
+                    data_to_write = encryption.decrypt(secret_key, encrypted_payload)
+                    os.write(pty_fd, data_to_write.encode())
+                except Exception:
+                    # TODO log error to a file
+                    pass
+            elif event == "request_terminal_dimensions":
+                emit_terminal_dimensions(stdin_fd, pty_fd)
             else:
-                print(f"Got unhandled event {event}")
+                # TODO log to a file
+                pass
     except websockets.exceptions.ConnectionClosed:
         return
 

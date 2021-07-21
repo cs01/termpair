@@ -115,16 +115,27 @@ async def _task_handle_browser_websocket(terminal: Terminal, ws: WebSocket):
         for browser in terminal.browser_websockets:
             await browser.send_json({"event": "num_clients", "payload": num_browsers})
         while True:
-            if terminal.allow_browser_control:
-                # read any input from the browser that just connected
-                encrypted_browser_input = await ws.receive_text()
-                # Got input, send it to the single terminal that's broadcasting.
-                await terminal.ws.send_json(
-                    {"event": "command", "payload": encrypted_browser_input}
-                )
+            # read input from the browser
+            try:
+                text = await ws.receive_text()
+                browser_input = json.loads(text)
+            except json.decoder.JSONDecodeError:
+                # previous protocol only accepted commands from the browser, so
+                # we assume this is from a client running an older version and handle
+                # it as it used to be handled
+                # TODO delete this branch of code after deprecation period
+                browser_input = {"event": "command", "payload": text}
+            event = browser_input.get("event")
+            if event == "command":
+                if terminal.allow_browser_control:
+                    # Got input, send it to the single terminal that's broadcasting.
+                    await terminal.ws.send_json(browser_input)
+            elif event == "request_terminal_dimensions":
+                await terminal.ws.send_json(browser_input)
             else:
-                # browser can't send input, just wait until the connection ends
-                await asyncio.sleep(10000)
+                await ws.send_json(
+                    {"event": "error", "payload": f"Event {event} is invalid"}
+                )
     except starlette.websockets.WebSocketDisconnect:
         # browser closed the connection
         pass
