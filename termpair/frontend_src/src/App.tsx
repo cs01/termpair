@@ -3,6 +3,7 @@ import React, { useEffect, useState, useLayoutEffect } from "react";
 import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
 // import { CogIcon } from "@heroicons/react/solid";
+import { DuplicateIcon } from "@heroicons/react/solid";
 import { Terminal as Xterm, IDisposable } from "xterm";
 import moment from "moment";
 import { getSecretKey, decrypt, encrypt } from "./encryption";
@@ -11,6 +12,17 @@ import "react-toastify/dist/ReactToastify.css";
 import { atom, useRecoilState } from "recoil";
 import { debounce } from "debounce";
 import { requestTerminalDimensions, sendCommandToTerminal } from "./events";
+import { CopyToClipboard } from "react-copy-to-clipboard";
+
+const githubLogo = (
+  <svg width="24" height="24" fill="currentColor" className="text-white mr-3 ">
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M12 2C6.477 2 2 6.463 2 11.97c0 4.404 2.865 8.14 6.839 9.458.5.092.682-.216.682-.48 0-.236-.008-.864-.013-1.695-2.782.602-3.369-1.337-3.369-1.337-.454-1.151-1.11-1.458-1.11-1.458-.908-.618.069-.606.069-.606 1.003.07 1.531 1.027 1.531 1.027.892 1.524 2.341 1.084 2.91.828.092-.643.35-1.083.636-1.332-2.22-.251-4.555-1.107-4.555-4.927 0-1.088.39-1.979 1.029-2.675-.103-.252-.446-1.266.098-2.638 0 0 .84-.268 2.75 1.022A9.606 9.606 0 0112 6.82c.85.004 1.705.114 2.504.336 1.909-1.29 2.747-1.022 2.747-1.022.546 1.372.202 2.386.1 2.638.64.696 1.028 1.587 1.028 2.675 0 3.83-2.339 4.673-4.566 4.92.359.307.678.915.678 1.846 0 1.332-.012 2.407-.012 2.734 0 .267.18.577.688.48C19.137 20.107 22 16.373 22 11.969 22 6.463 17.522 2 12 2z"
+    ></path>
+  </svg>
+);
 
 const showSettings = atom({
   key: "showSettings",
@@ -53,6 +65,7 @@ function TopBar(props: any) {
           <img className="h-full" src={logo} alt="logo" />
         </a>
       </div>
+      <a href="https://github.com/cs01/termpair">{githubLogo}</a>
       {/* <div className="text-white m-5">
         <div className="my-auto">
           <button
@@ -126,10 +139,8 @@ function BottomBar(props: {
       </div>
       <div className="flex bg-black  justify-evenly text-gray-300">
         <div>
-          <a href="https://chadsmith.dev">chadsmith.dev</a>
-        </div>
-        <div>
-          <a href="https://github.com/cs01"> GitHub</a>
+          <a href="https://chadsmith.dev">chadsmith.dev</a> |{" "}
+          <a href="https://github.com/cs01">GitHub</a>
         </div>
       </div>
     </>
@@ -165,6 +176,88 @@ class ErrorBoundary extends React.Component<any, any> {
 const cannotTypeMsg =
   "Terminal was shared in read only mode. Unable to send data to terminal's input.";
 
+const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
+let port = window.location.port;
+if (!window.location.port) {
+  if (window.location.protocol === "https:") {
+    // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
+    port = 443;
+  } else {
+    // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
+    port = 80;
+  }
+}
+const termpairShareCommand = `termpair share --host "${host}" --port ${port}`;
+const pipxTermpairShareCommand = `pipx run ${termpairShareCommand}`;
+
+function CopyCommand(props: { command: string }) {
+  const [clicked, setClicked] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  return (
+    <div className="flex">
+      <code
+        className={`${
+          hovering || clicked ? "bg-yellow-200" : "bg-gray-200"
+        } text-black px-2 py-1 m-2`}
+      >
+        {props.command}
+      </code>
+      <CopyToClipboard text={props.command}>
+        <button
+          className="px-2"
+          title="Copy command to clipboard"
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
+          onClick={() => {
+            setClicked(true);
+            setTimeout(() => setClicked(false), 1500);
+          }}
+        >
+          <DuplicateIcon className="h-6 w-6 text-white" />
+        </button>
+      </CopyToClipboard>
+      <span className="py-1 m-2">{clicked ? "Copied!" : ""}</span>
+    </div>
+  );
+}
+
+function LandingPageContent() {
+  return (
+    <div className="text-gray-300">
+      <div className="py-2">
+        <div className="text-2xl ">Welcome to TermPair!</div>
+        Easily share terminals with end-to-end encryption 🔒. Terminal data is
+        always encrypted before being routed through the server.{" "}
+        <a href="https://github.com/cs01/termpair">Learn more.</a>
+      </div>
+      <div className="py-2">
+        <div className="text-xl  py-2">Quick Start</div>
+        <div>
+          If you have TermPair installed, share a terminal with this host:
+        </div>
+        <CopyCommand command={termpairShareCommand} />
+        <div>Or if you have pipx, you can run TermPair via pipx:</div>
+        <CopyCommand command={pipxTermpairShareCommand} />
+      </div>
+      <div className="py-2">
+        <div className="text-xl  py-2">Install TermPair</div>
+        <div>Install with pipx</div>
+        <CopyCommand command="pipx install termpair" />
+        <div>Or install with pip</div>
+        <CopyCommand command="pip install termpair --user" />
+      </div>
+      <div className="py-2">
+        <div className="text-xl  py-2">TermPair Demo</div>
+        <div>
+          <img
+            alt="Screencast of TermPair"
+            src="https://raw.githubusercontent.com/cs01/termpair/master/termpair_browser.gif"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 type Status =
   | null
   | "Connecting..."
@@ -220,7 +313,6 @@ function handleStatusChange(
       if (prevStatus === "Connected") {
         xterm.writeln(redXtermText("Terminal session has ended"));
         xterm.writeln("");
-        writeInstructions(xterm);
       }
       break;
     case "Terminal ID is invalid":
@@ -231,7 +323,6 @@ function handleStatusChange(
         )
       );
       xterm.writeln("");
-      writeInstructions(xterm);
       break;
     case "Invalid encryption key":
       xterm.writeln(
@@ -240,7 +331,6 @@ function handleStatusChange(
         )
       );
       xterm.writeln("");
-      writeInstructions(xterm);
       break;
 
     case "Browser is not running in a secure context":
@@ -251,7 +341,6 @@ function handleStatusChange(
         )
       );
       xterm.writeln("");
-      writeInstructions(xterm);
       break;
 
     case "Connecting...":
@@ -263,11 +352,9 @@ function handleStatusChange(
           "An error occurred in the websocket connection to the server. Connection has been closed."
         )
       );
-      writeInstructions(xterm);
       break;
 
     case "No Terminal provided":
-      writeInstructions(xterm);
       break;
 
     default:
@@ -282,6 +369,7 @@ function App() {
   const [terminalServerData, setTerminalServerData] =
     useState<Nullable<TerminalServerData>>(null);
   const [numClients, setNumClients] = useState(0);
+  const [xtermWasOpened, setXtermWasOpened] = useState(false);
   const [terminalSize, setTerminalSize] = useState<TerminalSize>({
     rows: 20,
     cols: 81,
@@ -306,15 +394,18 @@ function App() {
     useState<Nullable<CryptoKey>>(null);
 
   useLayoutEffect(() => {
+    if (xtermWasOpened) {
+      return;
+    }
     const el = document.getElementById("terminal");
     if (!el) {
-      console.error("no terminal element, aborting");
       return;
     }
     xterm.open(el);
     xterm.writeln(`Welcome to TermPair! https://github.com/cs01/termpair`);
     xterm.writeln("");
-  }, []);
+    setXtermWasOpened(true);
+  }, [status]);
 
   useEffect(() => {
     // console.log(`Terminal connection status: ${status}`);
@@ -471,7 +562,16 @@ function App() {
   }, [terminalServerData, status]);
 
   const content = (
-    <div id="terminal" className="p-3 bg-black flex-grow text-gray-400"></div>
+    <div className="p-5 text-white flex-grow">
+      {[null, "No Terminal provided"].indexOf(status) > -1 ? (
+        <LandingPageContent />
+      ) : (
+        <div
+          id="terminal"
+          className={` p-3 bg-black flex-grow text-gray-400`}
+        ></div>
+      )}
+    </div>
   );
   return (
     <ErrorBoundary>
@@ -503,30 +603,21 @@ function App() {
   );
 }
 
-function writeInstructions(xterm: Xterm) {
-  xterm.writeln("To broadcast a terminal, run");
-  const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
-  xterm.writeln("");
-  let port = window.location.port;
-  if (!window.location.port) {
-    if (window.location.protocol === "https:") {
-      // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
-      port = 443;
-    } else {
-      // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
-      port = 80;
-    }
-  }
-  xterm.writeln(`    pipx run termpair share --host "${host}" --port ${port}`);
-  xterm.writeln("");
-  xterm.writeln("Then open or share the url printed to the terminal.");
-  xterm.writeln("");
-  xterm.writeln("To install pipx, see https://pipxproject.github.io/pipx/");
-  xterm.writeln("All terminal data is end-to-end encrypted 🔒.");
-  xterm.writeln(
-    "The termpair server and third parties can't read transmitted data."
-  );
-}
+// const instructions = [
+//   "To broadcast a terminal, run",
+//   "",
+//   `    ${pipxTermpairShareCommand}`,
+//   "",
+//   "Then open or share the url printed to the terminal.",
+//   "",
+//   "To install pipx, see https://pipxproject.github.io/pipx/",
+//   "All terminal data is end-to-end encrypted 🔒.",
+//   "The termpair server and third parties can't read transmitted data.",
+// ];
+
+// function writeInstructionsToXterm(xterm: Xterm) {
+//   instructions.forEach((line) => xterm.writeln(line));
+// }
 
 /**
  * The API to xterm.attachCustomKeyEventHandler is hardcoded. This function
