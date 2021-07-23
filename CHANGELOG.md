@@ -1,3 +1,6 @@
+## 0.3.0.0
+* [bugfix] Terminal dimensions in browser match upon initial connection, instead of after resizing
+
 ## 0.2.0.0
 * Add ability to copy+paste using keystrokes (copy with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v)
 * Add a status bar to the bottom of the page

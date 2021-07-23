@@ -10,14 +10,20 @@ import logging
 import os
 import time
 from hashlib import md5
-from typing import Any, Dict, List, NamedTuple, NewType, Optional
+from typing import Any, Dict, List, Optional
 
 import starlette  # type: ignore
 from fastapi import FastAPI  # type: ignore
 from starlette.staticfiles import StaticFiles  # type: ignore
 from starlette.websockets import WebSocket  # type: ignore
 
+from .Terminal import Terminal, TerminalId
 from .utils import get_random_string
+from .constants import TERMPAIR_VERSION
+from .server_websocket_subprotocol_handlers import (
+    handle_ws_message_subprotocol_v1,
+    handle_ws_message_subprotocol_v2,
+)
 from fastapi.exceptions import HTTPException  # type: ignore
 
 
@@ -28,19 +34,6 @@ STATIC_DIR = os.path.join(
 
 app = FastAPI()
 
-
-class Terminal(NamedTuple):
-    ws: WebSocket
-    rows: int
-    cols: int
-    browser_websockets: List[WebSocket]
-    browser_tasks: List[asyncio.Task]
-    allow_browser_control: bool
-    command: str
-    broadcast_start_time_iso: str
-
-
-TerminalId = NewType("TerminalId", str)
 
 terminals: Dict[TerminalId, Terminal] = {}
 
@@ -115,16 +108,16 @@ async def _task_handle_browser_websocket(terminal: Terminal, ws: WebSocket):
         for browser in terminal.browser_websockets:
             await browser.send_json({"event": "num_clients", "payload": num_browsers})
         while True:
-            if terminal.allow_browser_control:
-                # read any input from the browser that just connected
-                encrypted_browser_input = await ws.receive_text()
-                # Got input, send it to the single terminal that's broadcasting.
-                await terminal.ws.send_json(
-                    {"event": "command", "payload": encrypted_browser_input}
-                )
+            # If the subprotocol version is incremented again, it will be
+            # rejected immediately during initialization, so we won't have to
+            # handle multiple here.
+            if terminal.subprotocol_version is None:
+                await handle_ws_message_subprotocol_v1(ws, terminal)
+            elif terminal.subprotocol_version == "2":
+                await handle_ws_message_subprotocol_v2(ws, terminal)
             else:
-                # browser can't send input, just wait until the connection ends
-                await asyncio.sleep(10000)
+                pass
+
     except starlette.websockets.WebSocketDisconnect:
         # browser closed the connection
         pass
@@ -137,7 +130,7 @@ async def _task_handle_browser_websocket(terminal: Terminal, ws: WebSocket):
             )
 
 
-async def _task_forward_terminal_data_to_web_clients(terminal: Terminal):
+async def forward_terminal_data_to_web_clients(terminal: Terminal):
     while True:
         # The task is to endlessly wait for new data from the terminal,
         # read it, and broadcast it to all connected browsers
@@ -200,38 +193,45 @@ def _gen_terminal_id(ws: WebSocket) -> TerminalId:
 @app.websocket("/connect_to_terminal")
 async def connect_to_terminal(ws: WebSocket):
     await ws.accept()
-    try:
-        terminal_id = _gen_terminal_id(ws)
-        data = await ws.receive_json()
-        terminal = Terminal(
-            ws=ws,
-            browser_websockets=[],
-            browser_tasks=[],
-            rows=data["rows"],
-            cols=data["cols"],
-            allow_browser_control=data["allow_browser_control"],
-            command=data["command"],
-            broadcast_start_time_iso=data["broadcast_start_time_iso"],
-        )
-        terminals[terminal_id] = terminal
-
-        # send back to the terminal that the broadcast is starting under
-        # this id
+    data = await ws.receive_json()
+    subprotocol_version = data.get("subprotocol_version")
+    valid_subprotocols = [None, "2"]
+    if subprotocol_version not in valid_subprotocols:
         await ws.send_text(
-            json.dumps({"event": "start_broadcast", "payload": terminal_id})
+            json.dumps(
+                {
+                    "event": "fatal_error",
+                    "payload": "Client and server are running incompatible versions. "
+                    + f"Server is running v{TERMPAIR_VERSION}. "
+                    + "Ensure you are using a version of TermPair compatible with the server. ",
+                }
+            )
         )
+        await ws.close()
+        return
 
-        # start a task that forwards all data from the terminal to browsers
-        task = asyncio.ensure_future(
-            _task_forward_terminal_data_to_web_clients(terminal)
-        )
-        done, pending = await (
-            asyncio.wait([task], return_when=asyncio.FIRST_COMPLETED)
-        )
-        for task in pending:
-            task.cancel()
-    finally:
-        terminals.pop(terminal_id, None)
+    terminal_id = _gen_terminal_id(ws)
+    terminal = Terminal(
+        ws=ws,
+        browser_websockets=[],
+        browser_tasks=[],
+        rows=data["rows"],
+        cols=data["cols"],
+        allow_browser_control=data["allow_browser_control"],
+        command=data["command"],
+        broadcast_start_time_iso=data["broadcast_start_time_iso"],
+        subprotocol_version=subprotocol_version,
+    )
+    terminals[terminal_id] = terminal
+
+    # send back to the terminal that the broadcast is starting under
+    # this id
+    await ws.send_text(json.dumps({"event": "start_broadcast", "payload": terminal_id}))
+
+    # forwards all data from the terminal to browsers for as long as the
+    # client is connected
+    await asyncio.ensure_future(forward_terminal_data_to_web_clients(terminal))
+    terminals.pop(terminal_id, None)
 
 
 app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True))

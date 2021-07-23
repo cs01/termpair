@@ -20,6 +20,8 @@ from typing import List, Optional, Callable
 
 import websockets  # type: ignore
 
+from .Terminal import TerminalId
+from .constants import subprotocol_version, TermPairError
 from . import utils
 from . import encryption
 
@@ -93,12 +95,12 @@ def _handle_new_pty_output(
 async def _receive_data_from_websocket(ws):
     data = await ws.recv()
     parsed = json.loads(data)
-    return parsed["event"], parsed["payload"]
+    return parsed["event"], parsed.get("payload")
 
 
 async def _initialize_broadcast(
     cmd, url, ws, stdin_fd, pty_fd, allow_browser_control, secret_key: bytes
-) -> str:
+) -> TerminalId:
     """Prepare server to store i/o about this terminal"""
     # copy our terminal dimensions to the pty so its row/col count
     # matches and we don't get unexpected line breaks/misalignments
@@ -116,13 +118,32 @@ async def _initialize_broadcast(
                 "allow_browser_control": allow_browser_control,
                 "command": cmd_str,
                 "broadcast_start_time_iso": broadcast_start_time_iso,
+                "subprotocol_version": subprotocol_version,
             }
         )
     )
-    _, ws_id = await _receive_data_from_websocket(ws)
-    share_url = _get_share_url(url, ws_id, secret_key)
-    _print_broadcast_init_message(share_url, cmd)
-    return ws_id
+    event, payload = await _receive_data_from_websocket(ws)
+    if event == "start_broadcast":
+        terminal_id = payload
+        share_url = _get_share_url(url, terminal_id, secret_key)
+        _print_broadcast_init_message(share_url, cmd)
+        return terminal_id
+    elif event == "fatal_error":
+        raise TermPairError(fatal_server_error_msg(payload))
+    else:
+        raise TermPairError(
+            "Unexpected event type received when starting broadcast. "
+            + "Ensure you are using a compatible version with the server.",
+            event,
+        )
+
+
+def emit_terminal_dimensions(stdin_fd, pty_fd):
+    utils.copy_terminal_dimensions(stdin_fd, pty_fd)
+    rows, cols = utils.get_terminal_size(stdin_fd)
+    ws_queue.put_nowait(
+        json.dumps({"event": "resize", "payload": {"rows": rows, "cols": cols}})
+    )
 
 
 async def _do_broadcast(
@@ -137,26 +158,23 @@ async def _do_broadcast(
 ):
     """forward pty i/o to/from file descriptors and websockets"""
 
-    def _on_resize(signum, frame):
-        utils.copy_terminal_dimensions(stdin_fd, pty_fd)
-        rows, cols = utils.get_terminal_size(stdin_fd)
-        ws_queue.put_nowait(
-            json.dumps({"event": "resize", "payload": {"rows": rows, "cols": cols}})
-        )
+    def on_terminal_resize(signum, frame):
+        emit_terminal_dimensions(stdin_fd, pty_fd)
 
-    signal.signal(signal.SIGWINCH, _on_resize)
+    signal.signal(signal.SIGWINCH, on_terminal_resize)
     if open_browser:
         webbrowser.open(share_url)
 
     tasks = [
         asyncio.ensure_future(_task_send_ws_queue_to_server(ws)),
     ]
-    if allow_browser_control:
-        tasks.append(
-            asyncio.ensure_future(
-                _task_receive_server_pty_input(pty_fd, ws, secret_key)
+    tasks.append(
+        asyncio.ensure_future(
+            _task_receive_websocket_messages(
+                pty_fd, ws, secret_key, stdin_fd, allow_browser_control
             )
         )
+    )
 
     loop = asyncio.get_event_loop()
 
@@ -180,21 +198,36 @@ async def _do_broadcast(
         task.cancel()
 
 
-async def _task_receive_server_pty_input(fd, ws, secret_key: bytes):
-    """receives commands from websocket and writes them to associated fd"""
+def fatal_server_error_msg(error_msg: str):
+    raise TermPairError("Connection was terminated with a fatal error: " + error_msg)
+
+
+async def _task_receive_websocket_messages(
+    pty_fd: int, ws, secret_key: bytes, stdin_fd: int, allow_browser_control: bool
+):
+    """receives events+payloads from browser websocket connection"""
     try:
         while True:
-            event, b64_encrypted_payload_str = await _receive_data_from_websocket(ws)
-            # TODO receive binary
-            encrypted_payload = base64.b64decode(b64_encrypted_payload_str)
+            event, payload = await _receive_data_from_websocket(ws)
+
             if event == "command":
-                try:
-                    payload = encryption.decrypt(secret_key, encrypted_payload)
-                    os.write(fd, payload.encode())
-                except Exception as e:
-                    print("failed to decrypt", e)
+                if allow_browser_control:
+                    try:
+                        encrypted_payload = base64.b64decode(payload)
+                        data_to_write = encryption.decrypt(
+                            secret_key, encrypted_payload
+                        )
+                        os.write(pty_fd, data_to_write.encode())
+                    except Exception:
+                        # TODO log error to a file
+                        pass
+            elif event == "request_terminal_dimensions":
+                emit_terminal_dimensions(stdin_fd, pty_fd)
+            elif event == "fatal_error":
+                raise fatal_server_error_msg(payload)
             else:
-                print(f"Got unhandled event {event}")
+                # TODO log to a file
+                pass
     except websockets.exceptions.ConnectionClosed:
         return
 
@@ -226,21 +259,29 @@ async def broadcast_terminal(
 
     ws_url = url.replace("http", "ws")
 
-    ws_endpoint = urljoin(ws_url, "connect_to_terminal")
-    async with websockets.connect(ws_endpoint, ssl=ssl_context) as ws:
-        secret_key = encryption.gen_key()
-        ws_id = await _initialize_broadcast(
-            cmd, url, ws, stdin_fd, pty_fd, allow_browser_control, secret_key
-        )
-        with utils.make_raw(stdin_fd):
-            await _do_broadcast(
-                pty_fd,
-                stdin_fd,
-                stdout_fd,
-                ws,
-                _get_share_url(url, ws_id, secret_key),
-                open_browser,
-                allow_browser_control,
-                secret_key,
+    ws_endpoint = urljoin(
+        ws_url, f"connect_to_terminal?subprotocol_version={subprotocol_version}"
+    )
+    try:
+        async with websockets.connect(ws_endpoint, ssl=ssl_context) as ws:
+            secret_key = encryption.gen_key()
+            terminal_id = await _initialize_broadcast(
+                cmd, url, ws, stdin_fd, pty_fd, allow_browser_control, secret_key
             )
-        print(f"You are no longer broadcasting session id {session_id}")
+            with utils.make_raw(stdin_fd):
+                await _do_broadcast(
+                    pty_fd,
+                    stdin_fd,
+                    stdout_fd,
+                    ws,
+                    _get_share_url(url, terminal_id, secret_key),
+                    open_browser,
+                    allow_browser_control,
+                    secret_key,
+                )
+            print(f"You are no longer broadcasting session id {session_id}")
+    except ConnectionRefusedError as e:
+        raise TermPairError(
+            "Connection was refused. Is the TermPair server running on the host and port specified? "
+            + str(e),
+        )
