@@ -10,7 +10,9 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: 
 import uvicorn  # type: ignore
 from . import share, server
 
-__version__ = "0.2.0.0"
+from .constants import TermPairError, TERMPAIR_VERSION
+
+__version__ = TERMPAIR_VERSION
 
 
 def get_parser():
@@ -111,10 +113,7 @@ def run_command(args):
                     cmd, url, allow_browser_control, args.open_browser
                 )
             )
-        except ConnectionRefusedError as e:
-            print(
-                "Connection was refused. Is the TermPair server running on the host and port specified?",
-            )
+        except TermPairError as e:
             exit(e)
 
     elif args.command == "serve":
