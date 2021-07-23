@@ -201,7 +201,7 @@ async def connect_to_terminal(ws: WebSocket):
             json.dumps(
                 {
                     "event": "fatal_error",
-                    "payload": f"Client and server are running incompatible versions. "
+                    "payload": "Client and server are running incompatible versions. "
                     + f"Server is running v{TERMPAIR_VERSION}. "
                     + "Ensure you are using a version of TermPair compatible with the server. ",
                 }
