@@ -3,9 +3,6 @@
     <p>View and control remote terminals from your browser with end-to-end encryption</p>
 </div>
 
-**Documentation**: [https://cs01.github.io/termpair](https://cs01.github.io/termpair)
-
-**Source Code**: [https://github.com/cs01/termpair](https://github.com/cs01/termpair)
 
 **Try It**: [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair)
 
