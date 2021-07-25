@@ -47,19 +47,19 @@ This connects your terminal to the server, and allows browsers to access the ter
 Connection established with end-to-end encryption 🔒
 Sharing '/bin/bash' at
 
-http://localhost:8000/?terminal_id=fd96c0f84adc6be776872950e19caecc#GyMlK2LLTqvoyTNzJ+qwLg==
+http://localhost:8000/?terminal_id=fd96c0f84adc6be776872950e19caecc
 
 Type 'exit' or close terminal to stop sharing.
 --------------------------------------------------------------------------------
 ```
 
-The URL printed contains a unique terminal ID and an encryption key. You can share that URL with whoever you want. Anyone who has it can access your terminal while the `termpair share` process is running.
+The URL printed contains a unique terminal ID. You can share the URL with whoever you like. **Anyone who has it can access your terminal while the `termpair share` process is running.**
 
 The server multicasts terminal output to all browsers that connect to the session.
 
 ## Security
 
-TermPair uses 128 bit end-to-end encryption for all terminal input and output.
+TermPair uses end-to-end encryption for all terminal input and output.
 
 The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running on localhost, or with secure http traffic (https).
 
@@ -76,13 +76,15 @@ TermPair consists of three pieces:
 2. server
 3. browser client(s)
 
-First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers.
+First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The serve listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
 
-It listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
+Before the TermPair client sends terminal output to the server, it creates two AES encryption keys and uses one of them to encrypt the output so the server cannot read it. The other is used by the browser to encrypt user input.
 
-Before the TermPair client sends terminal output to the server, it encrypts it using a secret key so the server cannot read it. The server forwards that data to connected browsers. When the browsers receive the data, they use the secret key to decrypt and display the terminal output. The browser obtains the secret key via a [part of the url](https://developer.mozilla.org/en-US/docs/Web/API/HTMLHyperlinkElementUtils/hash) that is not sent to the server.
+The server then forwards that data to connected browsers. When the browsers receive the data, they use the secret key to decrypt and display the terminal output.
 
-Likewise, when a browser sends input to the terminal, it is encrypted in the browser, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the terminal's input.
+The browser obtains the secret AES keys by requesting them from the broadcasting terminal along with a public RSA key generated in the browser at runtime. The broadcasting terminal responds with AES keys encrypted with the public key. The AES keys are rotated periodically.
+
+When a browser sends input to the terminal, it is encrypted in the browser, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the terminal's input.
 
 
 ## Run With Latest Version

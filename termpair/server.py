@@ -122,7 +122,8 @@ async def _task_handle_browser_websocket(terminal: Terminal, ws: WebSocket):
         # browser closed the connection
         pass
     finally:
-        terminal.browser_websockets.remove(ws)
+        if ws in terminal.browser_websockets:
+            terminal.browser_websockets.remove(ws)
         num_browsers = len(terminal.browser_websockets)
         for web_client in terminal.browser_websockets:
             await web_client.send_json(
@@ -146,16 +147,20 @@ async def forward_terminal_data_to_web_clients(terminal: Terminal):
                 task.cancel()
             return
 
-        if data.get("event") == "new_output":
+        terminal_has_closed = False
+        event = data.get("event")
+        if event == "new_output":
             terminal_data = data.get("payload")
-        elif data.get("event") == "resize":
+            terminal_has_closed = not terminal_data
+        elif event == "resize":
             # namedtuples require you to replace fields
             terminal._replace(rows=data["payload"]["rows"])
             terminal._replace(cols=data["payload"]["cols"])
+        elif event in ["aes_keys", "aes_key_rotation"]:
+            pass
         else:
             logging.warning(f"Got unknown event {data.get('event', 'none')}")
 
-        terminal_has_closed = not terminal_data
         if terminal_has_closed:
             # terminal outputs an empty string when it closes, so it just closed
             for browser_ws in browser_websockets:
