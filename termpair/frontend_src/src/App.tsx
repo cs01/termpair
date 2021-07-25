@@ -293,8 +293,17 @@ function handleStatusChange(
   xterm: Xterm,
   terminalId: Nullable<string>,
   status: Status,
-  prevStatus: Status
+  prevStatus: Status,
+  setPrevStatus: (prevStatus: Status) => void
 ): void {
+  // console.log(`Terminal connection status: ${status}`);
+  const noToast = ["No Terminal provided"];
+  if (status && noToast.indexOf(status) === -1) {
+    // @ts-ignore
+    toastStatus(<div>Terminal status: {status}</div>);
+  }
+  setPrevStatus(status);
+
   switch (status) {
     case null:
       break;
@@ -407,39 +416,33 @@ function App() {
     setXtermWasOpened(true);
   }, [status]);
 
-  useEffect(() => {
-    // console.log(`Terminal connection status: ${status}`);
-    const noToast = ["No Terminal provided"];
-    if (status && noToast.indexOf(status) === -1) {
-      // @ts-ignore
-      toastStatus(<div>Terminal status: {status}</div>);
-    }
-    handleStatusChange(xterm, terminalId, status, prevStatus);
-    setPrevStatus(status);
-  }, [status]);
+  const changeStatus = (newStatus: Status) => {
+    setStatus(newStatus);
+    handleStatusChange(xterm, terminalId, newStatus, prevStatus, setPrevStatus);
+  };
 
   useEffect(() => {
     async function getTerminalData() {
       if (!terminalId) {
         setTerminalServerData(null);
-        setStatus("No Terminal provided");
+        changeStatus("No Terminal provided");
         return;
       }
       if (!window.isSecureContext) {
-        setStatus("Browser is not running in a secure context");
+        changeStatus("Browser is not running in a secure context");
         return;
       }
       const secretEncryptionKey = await getSecretKey();
       setSecretEncryptionKey(secretEncryptionKey);
       if (!secretEncryptionKey) {
-        setStatus("Invalid encryption key");
+        changeStatus("Invalid encryption key");
       }
 
       const response = await fetch(`terminal/${terminalId}`);
       if (response.status === 200) {
         setTerminalServerData(await response.json());
       } else {
-        setStatus("Terminal ID is invalid");
+        changeStatus("Terminal ID is invalid");
         setTerminalServerData(null);
       }
     }
@@ -465,7 +468,7 @@ function App() {
       if (!(terminalServerData?.terminal_id && secretEncryptionKey)) {
         return;
       }
-      setStatus("Connecting...");
+      changeStatus("Connecting...");
 
       const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const webSocket = new WebSocket(
@@ -488,7 +491,7 @@ function App() {
       );
       let onDataDispose: Nullable<IDisposable>;
       webSocket.addEventListener("open", async (event) => {
-        setStatus("Connected");
+        changeStatus("Connected");
         webSocket.send(requestTerminalDimensions());
 
         /**
@@ -515,7 +518,7 @@ function App() {
           onDataDispose.dispose();
         }
 
-        setStatus("Disconnected");
+        changeStatus("Disconnected");
         setNumClients(0);
       });
 
@@ -526,7 +529,7 @@ function App() {
         }
 
         console.error(event);
-        setStatus("Connection Error");
+        changeStatus("Connection Error");
         setNumClients(0);
       });
 
