@@ -11,6 +11,7 @@ import {
   generateRSAKeyPair,
   decryptRSAMessage,
   getAESKey,
+  isIvExhausted,
 } from "./encryption";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -18,6 +19,7 @@ import { atom, useRecoilState } from "recoil";
 import { debounce } from "debounce";
 import {
   newBrowserConnected,
+  requestKeyRotation,
   requestTerminalDimensions,
   sendCommandToTerminal,
 } from "./events";
@@ -344,7 +346,7 @@ function handleStatusChange(
     case "Failed to obtain encryption keys":
       xterm.writeln(
         redXtermText(
-          `Failed to decrypt symmetric encryption keys from the broadcasting terminal.`
+          `Failed to obtain symmetric encryption keys from the broadcasting terminal.`
         )
       );
       xterm.writeln("");
@@ -407,11 +409,14 @@ function App() {
   const aesKeys = useRef<{
     browser: Nullable<CryptoKey>;
     unix: Nullable<CryptoKey>;
+    ivCount: Nullable<number>;
+    maxIvCount: Nullable<number>;
   }>({
     browser: null,
     unix: null,
+    ivCount: null,
+    maxIvCount: null,
   });
-
   const [xtermWasOpened, setXtermWasOpened] = useState(false);
   const [terminalSize, setTerminalSize] = useState<TerminalSize>({
     rows: 20,
@@ -511,10 +516,29 @@ function App() {
           terminalServerData?.allow_browser_control,
           async (newInput: any) => {
             try {
-              if (aesKeys.current.browser) {
+              if (
+                aesKeys.current.browser &&
+                aesKeys.current.ivCount &&
+                aesKeys.current.maxIvCount
+              ) {
                 webSocket.send(
-                  await sendCommandToTerminal(aesKeys.current.browser, newInput)
+                  await sendCommandToTerminal(
+                    aesKeys.current.browser,
+                    newInput,
+                    aesKeys.current.ivCount++
+                  )
                 );
+                if (
+                  isIvExhausted(
+                    aesKeys.current.ivCount,
+                    aesKeys.current.maxIvCount
+                  )
+                ) {
+                  webSocket.send(requestKeyRotation());
+                  // don't want to request a new one
+                  // while the current request is being processed
+                  aesKeys.current.maxIvCount += 1000;
+                }
               } else {
                 toast.dark(
                   `Can't send ${newInput} since encryption key was not obtained. Wait and try again or refresh the page.`
@@ -544,19 +568,36 @@ function App() {
         /**
          * Process user input when user types in terminal
          */
-        onDataDispose = xterm.onData(async (data: any) => {
+        onDataDispose = xterm.onData(async (newInput: any) => {
           try {
             if (terminalServerData.allow_browser_control === false) {
               toastStatus(cannotTypeMsg);
               return;
             }
-            if (aesKeys.current.browser) {
+            if (
+              aesKeys.current.browser != null &&
+              aesKeys.current.ivCount != null &&
+              aesKeys.current.maxIvCount != null
+            ) {
               webSocket.send(
-                await sendCommandToTerminal(aesKeys.current.browser, data)
+                await sendCommandToTerminal(
+                  aesKeys.current.browser,
+                  newInput,
+                  aesKeys.current.ivCount++
+                )
               );
+              if (
+                isIvExhausted(
+                  aesKeys.current.ivCount,
+                  aesKeys.current.maxIvCount
+                )
+              ) {
+                webSocket.send(requestKeyRotation());
+                aesKeys.current.maxIvCount += 1000;
+              }
             } else {
               toast.dark(
-                `cannot send ${data} because encryption key is missing`
+                `cannot send ${newInput} because encryption key is missing`
               );
             }
           } catch (e) {
@@ -629,8 +670,42 @@ function App() {
             aesKeys.current.browser = await getAESKey(browserAesKeyData, [
               "encrypt",
             ]);
+            if (
+              data.payload.iv_count == null ||
+              data.payload.max_iv_count == null
+            ) {
+              console.error("missing required iv parameters");
+              throw Error("missing required iv parameters");
+            }
+            const startIvCount = (aesKeys.current.ivCount = parseInt(
+              data.payload.iv_count,
+              10
+            ));
+
+            const maxIvCount = (aesKeys.current.maxIvCount = parseInt(
+              data.payload.max_iv_count,
+              10
+            ));
+            if (maxIvCount < startIvCount) {
+              console.error(
+                `Initialized IV counter is below max value ${startIvCount} vs ${maxIvCount}`
+              );
+              aesKeys.current = {
+                browser: null,
+                maxIvCount: null,
+                ivCount: null,
+                unix: null,
+              };
+              throw Error;
+            }
           } catch (e) {
-            if (!aesKeys.current.browser || !aesKeys.current.unix) {
+            if (
+              aesKeys.current.browser == null ||
+              aesKeys.current.unix == null ||
+              aesKeys.current.ivCount == null ||
+              aesKeys.current.maxIvCount == null
+            ) {
+              console.error(e);
               changeStatus("Failed to obtain encryption keys");
             }
           }

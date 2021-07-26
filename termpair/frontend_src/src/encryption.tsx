@@ -114,12 +114,31 @@ export async function aesDecrypt(
   return decryptedTerminalOutput;
 }
 
+// https://stackoverflow.com/a/65227338/2893090
+function ivFromInteger(ivCount: number) {
+  const iv = new Uint8Array(IV_LENGTH);
+  const a = [];
+  a.unshift(ivCount & 255);
+  // while some other byte still has data
+  while (ivCount >= 256) {
+    // shift 8 bits over (consume next byte)
+    ivCount = ivCount >>> 8;
+    // prepend current byte value to front of the array
+    a.unshift(ivCount & 255);
+  }
+  // set the 12 byte array with the array we just
+  // computed
+  iv.set(a);
+  return iv;
+}
+
 export async function aesEncrypt(
   browserSecretAESKey: CryptoKey,
-  utf8Payload: string
+  utf8Payload: string,
+  ivCount: number
 ) {
   // The same iv must never be reused with a given key
-  const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const iv = ivFromInteger(ivCount);
   const encryptedArrayBuffer = await window.crypto.subtle.encrypt(
     {
       name: "AES-GCM",
@@ -131,10 +150,12 @@ export async function aesEncrypt(
   // prepend unencrypted iv to encrypted payload
   const ivAndEncryptedPayload = _combineBuffers(iv, encryptedArrayBuffer);
 
-  // send as ascii
-  // TODO send as binary
   const base64EncryptedString = _arrayBufferToBase64(ivAndEncryptedPayload);
   return base64EncryptedString;
+}
+
+export function isIvExhausted(ivCount: number, maxIvCount: number): boolean {
+  return ivCount >= maxIvCount;
 }
 
 function _combineBuffers(

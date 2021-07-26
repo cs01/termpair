@@ -19,10 +19,17 @@ export async function newBrowserConnected(
 
 export async function sendCommandToTerminal(
   secretEncryptionKey: CryptoKey,
-  data: string
+  data: string,
+  messageCount: number
 ) {
   return JSON.stringify({
     event: "command",
-    payload: await aesEncrypt(secretEncryptionKey, data),
+    payload: await aesEncrypt(secretEncryptionKey, data, messageCount),
+  });
+}
+
+export function requestKeyRotation() {
+  return JSON.stringify({
+    event: "request_key_rotation",
   });
 }

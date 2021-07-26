@@ -18,7 +18,7 @@ import textwrap
 import webbrowser
 from typing import List, Optional, Callable
 import websockets  # type: ignore
-
+from math import floor
 from .Terminal import TerminalId
 from .constants import subprotocol_version, TermPairError
 from . import utils
@@ -26,12 +26,7 @@ from . import encryption
 
 max_read_bytes = 1024 * 2
 ws_queue: asyncio.Queue = asyncio.Queue()
-
-
-class Browser:
-    def __init__(self, browser_id: str):
-        self.browser_id = browser_id
-        self.public_key = None
+JS_MAX_SAFE_INTEGER = 2 ** 53 - 1
 
 
 class AesKeys:
@@ -40,6 +35,7 @@ class AesKeys:
     def __init__(self):
         self.message_count = 0
         self.message_count_rotation_required = 2 ** 20
+        self.browser_rotation_buffer_count = self.message_count_rotation_required * 0.1
         self.secret_unix_key = encryption.aes_generate_secret_key()
         self.secret_browser_key = encryption.aes_generate_secret_key()
 
@@ -51,10 +47,25 @@ class AesKeys:
         )
 
     def decrypt(self, ciphertext: bytes) -> str:
-        self.message_count += 1
         # decrypt with browser's AES key
         plaintext = encryption.aes_decrypt(self.secret_browser_key, ciphertext)
         return plaintext
+
+    def get_max_iv_count(self, start_iv_count: int) -> int:
+        max_iv_count = floor(
+            start_iv_count
+            + self.message_count_rotation_required
+            - self.browser_rotation_buffer_count
+        )
+        if max_iv_count > JS_MAX_SAFE_INTEGER or max_iv_count < start_iv_count:
+            raise TermPairError("Cannot create safe AES nonce")
+        return max_iv_count
+
+    def get_start_iv_count(self, browser_number: int) -> int:
+        start_iv_count = (browser_number - 1) * self.message_count_rotation_required
+        if start_iv_count > JS_MAX_SAFE_INTEGER:
+            raise TermPairError("Cannot create safe AES nonce")
+        return start_iv_count
 
     @property
     def need_rotation(self) -> bool:
@@ -86,6 +97,7 @@ class AesKeys:
 
 class SharingSession:
     stdout_fd: int
+    num_browsers: int
 
     def __init__(
         self,
@@ -107,8 +119,8 @@ class SharingSession:
         self.open_browser = open_browser
         self.allow_browser_control = allow_browser_control
         self.aes_keys = AesKeys()
-        self.browsers: List[Browser] = []
         self.terminal_id = None
+        self.num_browsers = 0
 
     async def register_broadcast_with_server(self) -> TerminalId:
         """Prepare server to store i/o about this terminal"""
@@ -220,8 +232,12 @@ class SharingSession:
                             pass
                 elif event == "request_terminal_dimensions":
                     self.emit_terminal_dimensions()
+                elif event == "request_key_rotation":
+                    self.aes_keys.rotate_keys()
                 elif event == "new_browser_connected":
                     pem_public_key = payload.get("browser_public_key_pem")
+                    self.num_browsers += 1
+
                     if pem_public_key:
                         # TODO emit error back to browser if pem not found
                         try:
@@ -240,6 +256,9 @@ class SharingSession:
                                 )
                             ).decode()
 
+                            iv_count = self.aes_keys.get_start_iv_count(
+                                self.num_browsers
+                            )
                             ws_queue.put_nowait(
                                 json.dumps(
                                     {
@@ -249,6 +268,10 @@ class SharingSession:
                                             "b64_pk_unix_aes_key": b64_pk_unix_aes_key,
                                             "b64_pk_browser_aes_key": b64_pk_browser_aes_key,
                                             "encoding": "browser_public_key",
+                                            "iv_count": iv_count,
+                                            "max_iv_count": self.aes_keys.get_max_iv_count(
+                                                iv_count
+                                            ),
                                             "salt": base64.b64encode(
                                                 os.urandom(12)
                                             ).decode(),
