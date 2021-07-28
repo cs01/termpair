@@ -3,7 +3,66 @@
 
 const IV_LENGTH = 12;
 
-export async function getSecretKey(): Promise<Nullable<CryptoKey>> {
+// https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey
+export async function generateRSAKeyPair(): Promise<CryptoKeyPair> {
+  return window.crypto.subtle.generateKey(
+    {
+      name: "RSA-OAEP",
+      modulusLength: 4096,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+export async function decryptRSAMessage(
+  privateKey: CryptoKey,
+  ciphertext: Buffer
+): Promise<Buffer> {
+  return Buffer.from(
+    await window.crypto.subtle.decrypt(
+      {
+        name: "RSA-OAEP",
+      },
+      privateKey,
+      ciphertext
+    )
+  );
+}
+function ab2str(buf: ArrayBuffer): string {
+  // @ts-ignore
+  return String.fromCharCode.apply(null, new Uint8Array(buf));
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/exportKey#pkcs_8_export
+export async function exportCryptoKey(key: CryptoKey) {
+  const exported = await window.crypto.subtle.exportKey("spki", key);
+  const exportedAsString = ab2str(exported);
+  const exportedAsBase64 = window.btoa(exportedAsString);
+  const pemExported = `-----BEGIN PUBLIC KEY-----\n${exportedAsBase64}\n-----END PUBLIC KEY-----`;
+  return pemExported;
+}
+
+export async function getAESKey(
+  rawKeyData: Buffer,
+  usages: Array<"encrypt" | "decrypt">
+): Promise<CryptoKey> {
+  return await window.crypto.subtle.importKey(
+    "raw",
+    rawKeyData,
+    {
+      name: "AES-GCM",
+    },
+    false, // extractable
+    usages
+  );
+}
+
+export async function DEPRECATED_getSecretAESKey(): Promise<
+  Nullable<CryptoKey>
+> {
   try {
     const b64EncodedKey = window.location.hash.substring(
       1, // skip the '#' symbol
@@ -13,6 +72,7 @@ export async function getSecretKey(): Promise<Nullable<CryptoKey>> {
       return null;
     }
     const keyData = Buffer.from(b64EncodedKey, "base64");
+    console.log("good known raw data", keyData);
     return await window.crypto.subtle.importKey(
       "raw",
       keyData,
@@ -28,10 +88,10 @@ export async function getSecretKey(): Promise<Nullable<CryptoKey>> {
   }
 }
 
-export async function decrypt(
-  secretKey: CryptoKey,
+export async function aesDecrypt(
+  unixSecretAESKey: CryptoKey,
   encryptedPayloadB64: string
-) {
+): Promise<Buffer> {
   // decode base64 data to unencrypted iv and encrypted data
   const ivAndPayload = Buffer.from(encryptedPayloadB64, "base64");
 
@@ -47,31 +107,55 @@ export async function decrypt(
         name: "AES-GCM",
         iv: iv,
       },
-      secretKey,
+      unixSecretAESKey,
       encryptedTerminalOutput
     )
-  ).toString("utf-8");
+  );
   return decryptedTerminalOutput;
 }
 
-export async function encrypt(secretKey: CryptoKey, utf8Payload: string) {
+// https://stackoverflow.com/a/65227338/2893090
+function ivFromInteger(ivCount: number) {
+  const iv = new Uint8Array(IV_LENGTH);
+  const a = [];
+  a.unshift(ivCount & 255);
+  // while some other byte still has data
+  while (ivCount >= 256) {
+    // shift 8 bits over (consume next byte)
+    ivCount = ivCount >>> 8;
+    // prepend current byte value to front of the array
+    a.unshift(ivCount & 255);
+  }
+  // set the 12 byte array with the array we just
+  // computed
+  iv.set(a);
+  return iv;
+}
+
+export async function aesEncrypt(
+  browserSecretAESKey: CryptoKey,
+  utf8Payload: string,
+  ivCount: number
+) {
   // The same iv must never be reused with a given key
-  const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const iv = ivFromInteger(ivCount);
   const encryptedArrayBuffer = await window.crypto.subtle.encrypt(
     {
       name: "AES-GCM",
       iv: iv,
     },
-    secretKey,
+    browserSecretAESKey,
     new TextEncoder().encode(utf8Payload)
   );
   // prepend unencrypted iv to encrypted payload
   const ivAndEncryptedPayload = _combineBuffers(iv, encryptedArrayBuffer);
 
-  // send as ascii
-  // TODO send as binary
   const base64EncryptedString = _arrayBufferToBase64(ivAndEncryptedPayload);
   return base64EncryptedString;
+}
+
+export function isIvExhausted(ivCount: number, maxIvCount: number): boolean {
+  return ivCount >= maxIvCount;
 }
 
 function _combineBuffers(

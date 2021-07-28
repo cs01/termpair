@@ -1,4 +1,5 @@
 ## 0.3.0.0
+* Use new key sharing scheme: Different keys used in different directions; keys rotated; secret keys retrieved via RSA public key rather than embedding in the URL
 * [bugfix] Terminal dimensions in browser match upon initial connection, instead of after resizing
 
 ## 0.2.0.0

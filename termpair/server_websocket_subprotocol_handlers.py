@@ -20,7 +20,5 @@ async def handle_ws_message_subprotocol_v2(ws: WebSocket, terminal: Terminal):
     if event == "command":
         if terminal.allow_browser_control:
             await terminal.ws.send_json(browser_input)
-    elif event == "request_terminal_dimensions":
-        await terminal.ws.send_json(browser_input)
     else:
-        await ws.send_json({"event": "error", "payload": f"Event {event} is invalid"})
+        await terminal.ws.send_json(browser_input)

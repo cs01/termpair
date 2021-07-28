@@ -1,17 +1,28 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useState, useLayoutEffect } from "react";
+import React, { useEffect, useState, useLayoutEffect, useRef } from "react";
 import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
 // import { CogIcon } from "@heroicons/react/solid";
 import { DuplicateIcon } from "@heroicons/react/solid";
 import { Terminal as Xterm, IDisposable } from "xterm";
 import moment from "moment";
-import { getSecretKey, decrypt, encrypt } from "./encryption";
+import {
+  aesDecrypt,
+  generateRSAKeyPair,
+  decryptRSAMessage,
+  getAESKey,
+  isIvExhausted,
+} from "./encryption";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { atom, useRecoilState } from "recoil";
 import { debounce } from "debounce";
-import { requestTerminalDimensions, sendCommandToTerminal } from "./events";
+import {
+  newBrowserConnected,
+  requestKeyRotation,
+  requestTerminalDimensions,
+  sendCommandToTerminal,
+} from "./events";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 
 const githubLogo = (
@@ -180,11 +191,9 @@ const host = `${window.location.protocol}//${window.location.hostname}${window.l
 let port = window.location.port;
 if (!window.location.port) {
   if (window.location.protocol === "https:") {
-    // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
-    port = 443;
+    port = "443";
   } else {
-    // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
-    port = 80;
+    port = "80";
   }
 }
 const termpairShareCommand = `termpair share --host "${host}" --port ${port}`;
@@ -267,7 +276,8 @@ type Status =
   | "Terminal ID is invalid"
   | "Browser is not running in a secure context"
   | "No Terminal provided"
-  | "Invalid encryption key";
+  | "Failed to obtain encryption keys"
+  | "Developer Error: RSA key not ready";
 
 type TerminalServerData = {
   terminal_id: string;
@@ -299,7 +309,6 @@ function handleStatusChange(
   // console.log(`Terminal connection status: ${status}`);
   const noToast = ["No Terminal provided"];
   if (status && noToast.indexOf(status) === -1) {
-    // @ts-ignore
     toastStatus(<div>Terminal status: {status}</div>);
   }
   setPrevStatus(status);
@@ -333,13 +342,29 @@ function handleStatusChange(
       );
       xterm.writeln("");
       break;
-    case "Invalid encryption key":
+
+    case "Failed to obtain encryption keys":
       xterm.writeln(
         redXtermText(
-          `Did not receive a valid secret encryption key. Confirm the full and correct url was entered.`
+          `Failed to obtain symmetric encryption keys from the broadcasting terminal.`
         )
       );
       xterm.writeln("");
+      break;
+
+    case "Developer Error: RSA key not ready":
+      toast.dark(
+        <>
+          <div>
+            Unexpected error: RSA Public key is not ready at time of websocket
+            connection. Please file an issue.
+          </div>
+          <a href="https://github.com/cs01/termpair/issues">
+            https://github.com/cs01/termpair/issues
+          </a>
+        </>,
+        { autoClose: false }
+      );
       break;
 
     case "Browser is not running in a secure context":
@@ -378,6 +403,20 @@ function App() {
   const [terminalServerData, setTerminalServerData] =
     useState<Nullable<TerminalServerData>>(null);
   const [numClients, setNumClients] = useState(0);
+
+  const rsaKeyPair = useRef<Nullable<CryptoKeyPair>>(null);
+
+  const aesKeys = useRef<{
+    browser: Nullable<CryptoKey>;
+    unix: Nullable<CryptoKey>;
+    ivCount: Nullable<number>;
+    maxIvCount: Nullable<number>;
+  }>({
+    browser: null,
+    unix: null,
+    ivCount: null,
+    maxIvCount: null,
+  });
   const [xtermWasOpened, setXtermWasOpened] = useState(false);
   const [terminalSize, setTerminalSize] = useState<TerminalSize>({
     rows: 20,
@@ -398,9 +437,6 @@ function App() {
   const [terminalId] = useState(
     new URLSearchParams(window.location.search).get("terminal_id")
   );
-
-  const [secretEncryptionKey, setSecretEncryptionKey] =
-    useState<Nullable<CryptoKey>>(null);
 
   useLayoutEffect(() => {
     if (xtermWasOpened) {
@@ -432,11 +468,8 @@ function App() {
         changeStatus("Browser is not running in a secure context");
         return;
       }
-      const secretEncryptionKey = await getSecretKey();
-      setSecretEncryptionKey(secretEncryptionKey);
-      if (!secretEncryptionKey) {
-        changeStatus("Invalid encryption key");
-      }
+
+      rsaKeyPair.current = await generateRSAKeyPair();
 
       const response = await fetch(`terminal/${terminalId}`);
       if (response.status === 200) {
@@ -465,7 +498,9 @@ function App() {
       if (status !== null) {
         return;
       }
-      if (!(terminalServerData?.terminal_id && secretEncryptionKey)) {
+      if (
+        !(terminalServerData?.terminal_id && rsaKeyPair.current?.privateKey)
+      ) {
         return;
       }
       changeStatus("Connecting...");
@@ -481,34 +516,92 @@ function App() {
           terminalServerData?.allow_browser_control,
           async (newInput: any) => {
             try {
-              webSocket.send(await encrypt(secretEncryptionKey, newInput));
+              if (
+                aesKeys.current.browser &&
+                aesKeys.current.ivCount &&
+                aesKeys.current.maxIvCount
+              ) {
+                webSocket.send(
+                  await sendCommandToTerminal(
+                    aesKeys.current.browser,
+                    newInput,
+                    aesKeys.current.ivCount++
+                  )
+                );
+                if (
+                  isIvExhausted(
+                    aesKeys.current.ivCount,
+                    aesKeys.current.maxIvCount
+                  )
+                ) {
+                  webSocket.send(requestKeyRotation());
+                  // don't want to request a new one
+                  // while the current request is being processed
+                  aesKeys.current.maxIvCount += 1000;
+                }
+              } else {
+                toast.dark(
+                  `Can't send ${newInput} since encryption key was not obtained. Wait and try again or refresh the page.`
+                );
+                return;
+              }
             } catch (e) {
-              // TODO display in popup to user
-              console.error("Failed to send data over websocket", e);
+              toast.dark(`Failed to send data to terminal ${e}`);
             }
           }
         )
       );
       let onDataDispose: Nullable<IDisposable>;
       webSocket.addEventListener("open", async (event) => {
+        if (rsaKeyPair.current?.publicKey == null) {
+          changeStatus("Developer Error: RSA key not ready");
+          return;
+        }
+
         changeStatus("Connected");
         webSocket.send(requestTerminalDimensions());
+        const newBrowserMessage = await newBrowserConnected(
+          rsaKeyPair.current.publicKey
+        );
+        webSocket.send(newBrowserMessage);
 
         /**
          * Process user input when user types in terminal
          */
-        onDataDispose = xterm.onData(async (data: any) => {
+        onDataDispose = xterm.onData(async (newInput: any) => {
           try {
             if (terminalServerData.allow_browser_control === false) {
               toastStatus(cannotTypeMsg);
               return;
             }
-            webSocket.send(
-              await sendCommandToTerminal(secretEncryptionKey, data)
-            );
+            if (
+              aesKeys.current.browser != null &&
+              aesKeys.current.ivCount != null &&
+              aesKeys.current.maxIvCount != null
+            ) {
+              webSocket.send(
+                await sendCommandToTerminal(
+                  aesKeys.current.browser,
+                  newInput,
+                  aesKeys.current.ivCount++
+                )
+              );
+              if (
+                isIvExhausted(
+                  aesKeys.current.ivCount,
+                  aesKeys.current.maxIvCount
+                )
+              ) {
+                webSocket.send(requestKeyRotation());
+                aesKeys.current.maxIvCount += 1000;
+              }
+            } else {
+              toast.dark(
+                `cannot send ${newInput} because encryption key is missing`
+              );
+            }
           } catch (e) {
-            // TODO display in popup to user
-            console.error("Failed to send data over websocket", e);
+            toast.dark(`Failed to send data to terminal ${e}`);
           }
         });
       });
@@ -528,6 +621,7 @@ function App() {
           onDataDispose.dispose();
         }
 
+        toast.dark(`Websocket Error: ${event}`);
         console.error(event);
         changeStatus("Connection Error");
         setNumClients(0);
@@ -536,9 +630,15 @@ function App() {
       webSocket.addEventListener("message", async (message: any) => {
         const data = JSON.parse(message.data);
         if (data.event === "new_output") {
+          if (!aesKeys.current.unix) {
+            console.error(
+              "Missing AES CryptoKey for unix terminal. Cannot decrypt message."
+            );
+            return;
+          }
           const encryptedBase64Payload = data.payload;
-          const decryptedPayload = await decrypt(
-            secretEncryptionKey,
+          const decryptedPayload = await aesDecrypt(
+            aesKeys.current.unix,
             encryptedBase64Payload
           );
           xterm.write(decryptedPayload);
@@ -550,13 +650,95 @@ function App() {
             });
           }
         } else if (data.event === "num_clients") {
-          // @ts-ignore
           const num_clients = data.payload;
-          // @ts-ignore
           setNumClients(num_clients);
+        } else if (data.event === "aes_keys") {
+          if (!rsaKeyPair?.current?.privateKey) {
+            return;
+          }
+          try {
+            const unixAesKeyData = await decryptRSAMessage(
+              rsaKeyPair.current.privateKey,
+              Buffer.from(data.payload.b64_pk_unix_aes_key, "base64")
+            );
+            aesKeys.current.unix = await getAESKey(unixAesKeyData, ["decrypt"]);
+
+            const browserAesKeyData = await decryptRSAMessage(
+              rsaKeyPair.current.privateKey,
+              Buffer.from(data.payload.b64_pk_browser_aes_key, "base64")
+            );
+            aesKeys.current.browser = await getAESKey(browserAesKeyData, [
+              "encrypt",
+            ]);
+            if (
+              data.payload.iv_count == null ||
+              data.payload.max_iv_count == null
+            ) {
+              console.error("missing required iv parameters");
+              throw Error("missing required iv parameters");
+            }
+            const startIvCount = (aesKeys.current.ivCount = parseInt(
+              data.payload.iv_count,
+              10
+            ));
+
+            const maxIvCount = (aesKeys.current.maxIvCount = parseInt(
+              data.payload.max_iv_count,
+              10
+            ));
+            if (maxIvCount < startIvCount) {
+              console.error(
+                `Initialized IV counter is below max value ${startIvCount} vs ${maxIvCount}`
+              );
+              aesKeys.current = {
+                browser: null,
+                maxIvCount: null,
+                ivCount: null,
+                unix: null,
+              };
+              throw Error;
+            }
+          } catch (e) {
+            if (
+              aesKeys.current.browser == null ||
+              aesKeys.current.unix == null ||
+              aesKeys.current.ivCount == null ||
+              aesKeys.current.maxIvCount == null
+            ) {
+              console.error(e);
+              changeStatus("Failed to obtain encryption keys");
+            }
+          }
+        } else if (data.event === "aes_key_rotation") {
+          if (!aesKeys.current.unix) {
+            console.error("Cannot decrypt new AES keys");
+            return;
+          }
+          try {
+            const newUnixAesKeyData = await aesDecrypt(
+              aesKeys.current.unix,
+              data.payload.b64_aes_secret_unix_key
+            );
+            const newBrowserAesKeyData = await aesDecrypt(
+              aesKeys.current.unix,
+              data.payload.b64_aes_secret_browser_key
+            );
+            aesKeys.current.browser = await getAESKey(newBrowserAesKeyData, [
+              "encrypt",
+            ]);
+            aesKeys.current.unix = await getAESKey(newUnixAesKeyData, [
+              "decrypt",
+            ]);
+            // toast.dark("AES keys have been rotated");
+          } catch (e) {
+            console.error(e);
+            toast.dark(`AES key rotation failed: ${e}`);
+          }
         } else if (data.event === "error") {
+          toast.dark(`Error: ${data.payload}`);
           console.error(data);
         } else {
+          toast.dark(`Unknown event received: ${data.event}`);
           console.error("unknown event type", data);
         }
       });
