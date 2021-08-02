@@ -9,12 +9,10 @@ import datetime
 import json
 import os
 import pty
-import shlex
 import signal
 import ssl
 import sys
 from urllib.parse import urljoin, urlencode
-import textwrap
 import webbrowser
 from typing import List, Optional, Callable
 import websockets  # type: ignore
@@ -299,14 +297,13 @@ class SharingSession:
         return parsed["event"], parsed.get("payload")
 
     def print_broadcast_init_message(self):
-        cmd_str = " ".join(shlex.quote(c) for c in self.cmd)
         _, cols = utils.get_terminal_size(sys.stdin)
 
         msg = [
             "\033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒",
             f"Terminal ID: {self.terminal_id}",
             f"Host: {self.url}",
-            f"Sharable link (expires when this process ends):",
+            "Sharable link (expires when this process ends):",
             "  " + self.get_share_url(self.url, self.terminal_id),
             "",
             "Type 'exit' or close terminal to stop sharing.",

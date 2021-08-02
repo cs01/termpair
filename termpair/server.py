@@ -16,7 +16,7 @@ import starlette  # type: ignore
 from fastapi import FastAPI  # type: ignore
 from starlette.staticfiles import StaticFiles  # type: ignore
 from starlette.websockets import WebSocket  # type: ignore
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware  # type:ignore
 
 from .Terminal import Terminal, TerminalId
 from .utils import get_random_string
