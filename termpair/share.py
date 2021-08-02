@@ -13,7 +13,7 @@ import shlex
 import signal
 import ssl
 import sys
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
 import textwrap
 import webbrowser
 from typing import List, Optional, Callable
@@ -148,8 +148,7 @@ class SharingSession:
         )
         event, payload = await self.receive_data_from_websocket()
         if event == "start_broadcast":
-            terminal_id = payload
-            return terminal_id
+            return payload
         elif event == "fatal_error":
             raise TermPairError(fatal_server_error_msg(payload))
         else:
@@ -161,7 +160,6 @@ class SharingSession:
 
     async def run(self):
         self.terminal_id = await self.register_broadcast_with_server()
-        self.share_url = self.get_share_url(self.url, self.terminal_id)
 
         self.print_broadcast_init_message()
 
@@ -303,26 +301,37 @@ class SharingSession:
     def print_broadcast_init_message(self):
         cmd_str = " ".join(shlex.quote(c) for c in self.cmd)
         _, cols = utils.get_terminal_size(sys.stdin)
+
+        msg = [
+            "\033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒",
+            f"Terminal ID: {self.terminal_id}",
+            f"Host: {self.url}",
+            f"Sharable link (expires when this process ends):",
+            "  " + self.get_share_url(self.url, self.terminal_id),
+            "",
+            "Type 'exit' or close terminal to stop sharing.",
+        ]
+
         dashes = "-" * cols
-        print(
-            textwrap.dedent(
-                f"""        {dashes}
-        \033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒
-        Sharing {cmd_str!r} at
-
-        {self.share_url}
-
-        Type 'exit' or close terminal to stop sharing.
-        {dashes}"""
-            )
-        )
+        print(dashes)
+        for m in msg:
+            print(m)
+        print(dashes)
 
     def get_share_url(
-        self,
-        url,
-        ws_id,
+        self, url: str, terminal_id: str, static_url: Optional[str] = None
     ):
-        return urljoin(url, f"?terminal_id={ws_id}")
+        if static_url:
+            qp = {
+                "terminal_id": terminal_id,
+                "termpair_server_url": url,
+            }
+            return urljoin(static_url, f"?{urlencode(qp)}")
+        else:
+            qp = {
+                "terminal_id": terminal_id,
+            }
+            return urljoin(url, f"?{urlencode(qp)}")
 
     def handle_new_pty_output(self, cleanup: Callable):
         """forwards pty's output to local stdout AND to websocket"""

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState, useLayoutEffect, useRef } from "react";
 import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
@@ -15,7 +14,7 @@ import {
 } from "./encryption";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { atom, useRecoilState } from "recoil";
+// import { atom, useRecoilState } from "recoil";
 import { debounce } from "debounce";
 import {
   newBrowserConnected,
@@ -35,40 +34,38 @@ const githubLogo = (
   </svg>
 );
 
-const showSettings = atom({
-  key: "showSettings",
-  default: false,
-});
+// const showSettings = atom({
+//   key: "showSettings",
+//   default: false,
+// });
 
-function Settings(props: any) {
-  const [showSetting, setShowSettings] = useRecoilState(showSettings);
-  if (!showSetting) {
-    return null;
-  }
-  return (
-    <div
-      className="w-full h-full bg-gray-900 absolute bg-opacity-90  text-black"
-      style={{ zIndex: 2000 }}
-    >
-      <div className="w-11/12 h-5/6 m-10 p-5 bg-gray-400 flex items-center flex-col">
-        <div className="text-xl mb-10">TermPair Settings</div>
-        <div className="flex-grow">Body</div>
-        <div>
-          <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
-            onClick={() => setShowSettings(false)}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// function Settings(props: any) {
+//   const [showSetting, setShowSettings] = useRecoilState(showSettings);
+//   if (!showSetting) {
+//     return null;
+//   }
+//   return (
+//     <div
+//       className="w-full h-full bg-gray-900 absolute bg-opacity-90  text-black"
+//       style={{ zIndex: 2000 }}
+//     >
+//       <div className="w-11/12 h-5/6 m-10 p-5 bg-gray-400 flex items-center flex-col">
+//         <div className="text-xl mb-10">TermPair Settings</div>
+//         <div className="flex-grow">Body</div>
+//         <div>
+//           <button
+//             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
+//             onClick={() => setShowSettings(false)}
+//           >
+//             Close
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
 
 function TopBar(props: any) {
-  // const [showSetting, setShowSettings] = useRecoilState(showSettings);
-
   return (
     <div className="flex bg-black h-10 items-center justify-between">
       <div className="h-full">
@@ -172,12 +169,14 @@ class ErrorBoundary extends React.Component<any, any> {
   componentDidCatch(error: any, errorInfo: any) {
     // You can also log the error to an error reporting service
     // logErrorToMyService(error, errorInfo);
+    console.error(error);
+    console.error(errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       // You can render any custom fallback UI
-      return <h1>Something went wrong.</h1>;
+      return <h1 className="text-white">Something went wrong.</h1>;
     }
 
     return this.props.children;
@@ -230,7 +229,32 @@ function CopyCommand(props: { command: string }) {
   );
 }
 
-function LandingPageContent() {
+function LandingPageContent(props: {
+  isStaticallyHosted: Nullable<boolean>;
+  setCustomTermpairServer: (customServer: string) => void;
+  setTerminalId: (newTerminalId: string) => void;
+}) {
+  const [terminalIdInput, setTerminalIdInput] = React.useState("");
+  const [customHostInput, setCustomHostInput] = React.useState("");
+  const connectToUserTerminal = () => {
+    if (!customHostInput) {
+      toast.dark("Host name cannot be empty");
+      return;
+    }
+    if (!terminalIdInput) {
+      toast.dark("Terminal ID cannot be empty");
+      return;
+    }
+    try {
+      new URL(customHostInput);
+    } catch (e) {
+      toast.dark(`${customHostInput} is not a valid url`);
+      return;
+    }
+    props.setCustomTermpairServer(customHostInput);
+    props.setTerminalId(terminalIdInput);
+  };
+
   return (
     <div className="text-gray-300">
       <div className="py-2">
@@ -239,22 +263,90 @@ function LandingPageContent() {
         always encrypted before being routed through the server.{" "}
         <a href="https://github.com/cs01/termpair">Learn more.</a>
       </div>
-      <div className="py-2">
-        <div className="text-xl  py-2">Quick Start</div>
-        <div>
-          If you have TermPair installed, share a terminal with this host:
+      {props.isStaticallyHosted === true ? (
+        <div className="py-2">
+          <div className="text-xl  py-2">This page is statically hosted</div>
+          <div>
+            This is a static page serving the TermPair JavaScript app. This is
+            done to facilitate easily building and self-serving to be certain
+            the JavaScript app has not been tampered with by an untrusted
+            server.
+          </div>
+          <div className="mt-5">
+            Enter the Terminal ID and TermPair server below to select the
+            terminal to connect to, and the server the broadcasting terminal is
+            using.
+          </div>
+          <div className="flex items-center">
+            <span className="py-2 m-2 whitespace-nowrap text-xl">
+              Terminal ID
+            </span>
+            <input
+              type="text"
+              name="name"
+              className="text-black px-2 py-4 m-2 w-full"
+              onChange={(event) => {
+                setTerminalIdInput(event.target.value);
+              }}
+              value={terminalIdInput}
+              placeholder="ce79d9ffaba66d3f1aaa7912700565cc"
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  connectToUserTerminal();
+                }
+              }}
+            />
+          </div>
+          <div className="flex items-center">
+            <span className="py-2 m-2 whitespace-nowrap text-xl">
+              TermPair Server URL
+            </span>
+            <input
+              type="text"
+              name="name"
+              className="text-black px-2 py-4 m-2 w-full"
+              placeholder="https://chadsmith.dev/termpair"
+              onChange={(event) => {
+                setCustomHostInput(event.target.value);
+              }}
+              value={customHostInput}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  connectToUserTerminal();
+                }
+              }}
+            />
+          </div>
+          <button
+            className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full ${
+              !terminalIdInput || !customHostInput ? "cursor-not-allowed" : ""
+            }`}
+            onClick={connectToUserTerminal}
+          >
+            Connect
+          </button>
         </div>
-        <CopyCommand command={termpairShareCommand} />
-        <div>Or if you have pipx, you can run TermPair via pipx:</div>
-        <CopyCommand command={pipxTermpairShareCommand} />
-      </div>
-      <div className="py-2">
-        <div className="text-xl  py-2">Install TermPair</div>
-        <div>Install with pipx</div>
-        <CopyCommand command="pipx install termpair" />
-        <div>Or install with pip</div>
-        <CopyCommand command="pip install termpair --user" />
-      </div>
+      ) : (
+        <>
+          <div className="py-2">
+            <div className="text-xl  py-2">Quick Start</div>
+            <div>
+              If you have TermPair installed, share a terminal with this host:
+            </div>
+            <CopyCommand command={termpairShareCommand} />
+            <div>Or if you have pipx, you can run TermPair via pipx:</div>
+            <CopyCommand command={pipxTermpairShareCommand} />
+          </div>
+          <div className="py-2">
+            <div className="text-xl  py-2">Install TermPair</div>
+            <div>Install with pipx</div>
+            <CopyCommand command="pipx install termpair" />
+            <div>Or install with pip</div>
+            <CopyCommand command="pip install termpair --user" />
+          </div>
+        </>
+      )}
+
       <div className="py-2">
         <div className="text-xl  py-2">TermPair Demo</div>
         <div>
@@ -277,7 +369,9 @@ type Status =
   | "Browser is not running in a secure context"
   | "No Terminal provided"
   | "Failed to obtain encryption keys"
-  | "Developer Error: RSA key not ready";
+  | "Ready for websocket connection"
+  | "Developer Error: RSA key not ready"
+  | "Failed to fetch terminal data";
 
 type TerminalServerData = {
   terminal_id: string;
@@ -306,7 +400,6 @@ function handleStatusChange(
   prevStatus: Status,
   setPrevStatus: (prevStatus: Status) => void
 ): void {
-  // console.log(`Terminal connection status: ${status}`);
   const noToast = ["No Terminal provided"];
   if (status && noToast.indexOf(status) === -1) {
     toastStatus(<div>Terminal status: {status}</div>);
@@ -389,6 +482,8 @@ function handleStatusChange(
       break;
 
     case "No Terminal provided":
+    case "Failed to fetch terminal data":
+    case "Ready for websocket connection":
       break;
 
     default:
@@ -400,6 +495,8 @@ function handleStatusChange(
 }
 
 function App() {
+  const [isStaticallyHosted, setIsStaticallyHosted] =
+    useState<Nullable<boolean>>(null);
   const [terminalServerData, setTerminalServerData] =
     useState<Nullable<TerminalServerData>>(null);
   const [numClients, setNumClients] = useState(0);
@@ -427,6 +524,45 @@ function App() {
   const [status, setStatus] = useState<Status>(null);
   const [prevStatus, setPrevStatus] = useState<Status>(null);
 
+  const defaultTermpairServer = new URL(
+    `${window.location.protocol}//${window.location.hostname}:${window.location.port}${window.location.pathname}`
+  );
+  const [customTermpairServer, setCustomTermpairServer] = useState(
+    new URLSearchParams(window.location.search).get("termpair_server_url")
+  );
+  const termpairHttpServer =
+    isStaticallyHosted === true ? customTermpairServer : defaultTermpairServer;
+
+  useEffect(() => {
+    if (isStaticallyHosted === true && customTermpairServer) {
+      toast.dark(
+        `Terminal data is being routed through ${customTermpairServer.toString()}`
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customTermpairServer]);
+
+  useEffect(() => {
+    const fetchIsStaticallyHosted = async () => {
+      try {
+        const ret = await fetch(defaultTermpairServer.toString() + "ping", {
+          mode: "same-origin",
+        });
+        const text = await ret.json();
+        const pong = text === "pong";
+        const isTermpairServer = ret.status === 200 && pong;
+        setIsStaticallyHosted(!isTermpairServer);
+      } catch (e) {
+        setIsStaticallyHosted(true);
+      }
+    };
+    fetchIsStaticallyHosted();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const termpairWebsocketServer = termpairHttpServer
+    ? new URL(termpairHttpServer.toString().replace(/^http/, "ws"))
+    : null;
   const [xterm] = useState(
     new Xterm({
       cursorBlink: true,
@@ -434,7 +570,7 @@ function App() {
       scrollback: 1000,
     })
   );
-  const [terminalId] = useState(
+  const [terminalId, setTerminalId] = useState(
     new URLSearchParams(window.location.search).get("terminal_id")
   );
 
@@ -450,6 +586,7 @@ function App() {
     xterm.writeln(`Welcome to TermPair! https://github.com/cs01/termpair`);
     xterm.writeln("");
     setXtermWasOpened(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   const changeStatus = (newStatus: Status) => {
@@ -468,18 +605,43 @@ function App() {
         changeStatus("Browser is not running in a secure context");
         return;
       }
-
+      if (isStaticallyHosted && !customTermpairServer) {
+        toast.dark(
+          "Page is statically hosted but no custom server was provided"
+        );
+        return;
+      }
+      if (!termpairHttpServer) {
+        console.error("no termpair server");
+        return;
+      }
       rsaKeyPair.current = await generateRSAKeyPair();
 
-      const response = await fetch(`terminal/${terminalId}`);
-      if (response.status === 200) {
-        setTerminalServerData(await response.json());
-      } else {
-        changeStatus("Terminal ID is invalid");
+      try {
+        const response = await fetch(
+          new URL(`terminal/${terminalId}`, termpairHttpServer).toString()
+        );
+        if (response.status === 200) {
+          setTerminalServerData(await response.json());
+          setStatus("Ready for websocket connection");
+        } else {
+          changeStatus("Terminal ID is invalid");
+          setTerminalServerData(null);
+        }
+      } catch (e) {
+        changeStatus(`Failed to fetch terminal data`);
+        toast.dark(
+          `Error fetching terminal data from ${termpairHttpServer.toString()}. Is the URL correct? Error message: ${String(
+            e.message
+          )}`,
+
+          { autoClose: false }
+        );
         setTerminalServerData(null);
       }
     }
     getTerminalData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminalId]);
 
   useEffect(() => {
@@ -491,11 +653,12 @@ function App() {
         xterm.resize(terminalSize.cols, terminalSize.rows);
       }, 500)
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminalSize, xterm]);
 
   useEffect(() => {
     function setupWebsocketConnection() {
-      if (status !== null) {
+      if (status !== "Ready for websocket connection") {
         return;
       }
       if (
@@ -503,12 +666,15 @@ function App() {
       ) {
         return;
       }
+      if (!termpairWebsocketServer) {
+        return;
+      }
       changeStatus("Connecting...");
-
-      const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const webSocket = new WebSocket(
-        `${ws_protocol}://${window.location.hostname}:${window.location.port}${window.location.pathname}connect_browser_to_terminal?terminal_id=${terminalServerData.terminal_id}`
+      const connectWebsocketUrl = new URL(
+        `connect_browser_to_terminal?terminal_id=${terminalId}`,
+        termpairWebsocketServer
       );
+      const webSocket = new WebSocket(connectWebsocketUrl.toString());
 
       xterm.attachCustomKeyEventHandler(
         getCustomKeyEventHandler(
@@ -706,7 +872,9 @@ function App() {
               aesKeys.current.maxIvCount == null
             ) {
               console.error(e);
+              console.error(data);
               changeStatus("Failed to obtain encryption keys");
+              return;
             }
           }
         } else if (data.event === "aes_key_rotation") {
@@ -744,12 +912,22 @@ function App() {
       });
     }
     setupWebsocketConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminalServerData, status]);
+
+  const showLandingPage =
+    [null, "No Terminal provided", "Failed to fetch terminal data"].indexOf(
+      status
+    ) > -1 || isStaticallyHosted === null;
 
   const content = (
     <div className="p-5 text-white flex-grow">
-      {[null, "No Terminal provided"].indexOf(status) > -1 ? (
-        <LandingPageContent />
+      {showLandingPage ? (
+        <LandingPageContent
+          isStaticallyHosted={isStaticallyHosted}
+          setCustomTermpairServer={setCustomTermpairServer}
+          setTerminalId={setTerminalId}
+        />
       ) : (
         <div
           id="terminal"
@@ -773,7 +951,6 @@ function App() {
           draggable
           pauseOnHover
         />
-        <Settings />
         <TopBar />
         {content}
         <BottomBar

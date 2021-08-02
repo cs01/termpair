@@ -16,6 +16,7 @@ import starlette  # type: ignore
 from fastapi import FastAPI  # type: ignore
 from starlette.staticfiles import StaticFiles  # type: ignore
 from starlette.websockets import WebSocket  # type: ignore
+from fastapi.middleware.cors import CORSMiddleware
 
 from .Terminal import Terminal, TerminalId
 from .utils import get_random_string
@@ -34,8 +35,22 @@ STATIC_DIR = os.path.join(
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "*",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 terminals: Dict[TerminalId, Terminal] = {}
+
+
+@app.get("/ping")
+async def ping():
+    return "pong"
 
 
 @app.get("/terminal/{terminal_id}")
