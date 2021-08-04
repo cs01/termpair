@@ -154,13 +154,14 @@ As an optional additional security measure, TermPair supports staticallly servin
 
 Then, you can connect to it and specify the Terminal ID and TermPair server that routes the encrypted data.
 
-To build the web app, see [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md).
+To build the web app, see [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md). You can try the one being served at [https://cs01.github.io/termpair/site/connect/](https://cs01.github.io/termpair/site/connect/).
 
 Then you can deploy to GitHub pages, Vercel, etc. or self-serve with
 ```shell
 $ cd termpair/termpair/frontend_build
 $ python3 -m http.server 7999 --bind 127.0.0.1
 ```
+
 
 ## CLI API
 
