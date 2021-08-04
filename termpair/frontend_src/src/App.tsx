@@ -145,10 +145,11 @@ function BottomBar(props: {
         {connectedClients}
         {startTime}
       </div>
-      <div className="flex bg-black  justify-evenly text-gray-300">
+      <div className="flex bg-black  justify-evenly text-gray-300 py-5">
         <div>
           <a href="https://chadsmith.dev">chadsmith.dev</a> |{" "}
-          <a href="https://github.com/cs01">GitHub</a>
+          <a href="https://github.com/cs01/termpair">GitHub</a> |{" "}
+          <a href="https://github.com/cs01">Other Projects</a>
         </div>
       </div>
     </>
@@ -205,7 +206,7 @@ function CopyCommand(props: { command: string }) {
     <div className="flex">
       <code
         className={`${
-          hovering || clicked ? "bg-yellow-200" : "bg-gray-200"
+          hovering || clicked ? "bg-yellow-200" : "bg-gray-400"
         } text-black px-2 py-1 m-2`}
       >
         {props.command}
@@ -237,12 +238,15 @@ function LandingPageContent(props: {
   const [terminalIdInput, setTerminalIdInput] = React.useState("");
   const [customHostInput, setCustomHostInput] = React.useState("");
   const connectToUserTerminal = () => {
-    if (!customHostInput) {
-      toast.dark("Host name cannot be empty");
-      return;
-    }
     if (!terminalIdInput) {
       toast.dark("Terminal ID cannot be empty");
+      return;
+    }
+    if (!props.isStaticallyHosted) {
+      props.setTerminalId(terminalIdInput);
+    }
+    if (!customHostInput) {
+      toast.dark("Host name cannot be empty");
       return;
     }
     try {
@@ -254,107 +258,149 @@ function LandingPageContent(props: {
     props.setCustomTermpairServer(customHostInput);
     props.setTerminalId(terminalIdInput);
   };
+  const inputClass = "text-black px-2 py-3 m-2 w-full font-mono";
+
+  const terminalIdInputEl = (
+    <div
+      className="flex items-center"
+      title="The unique Terminal ID the broadcasting terminal was provided when the sharing session began."
+    >
+      <span className="py-2 m-2 whitespace-nowrap text-xl">Terminal ID</span>
+      <input
+        type="text"
+        className={inputClass}
+        onChange={(event) => {
+          setTerminalIdInput(event.target.value);
+        }}
+        value={terminalIdInput}
+        placeholder="abcdef123456789abcded123456789"
+        onKeyPress={(e) => {
+          if (e.key === "Enter") {
+            connectToUserTerminal();
+          }
+        }}
+      />
+    </div>
+  );
+  const terminalServerUrlEl = (
+    <div
+      className="flex items-center"
+      title="The URL of an actual TermPair server that the terminal is broadcasting through."
+    >
+      <span className="py-2 m-2 whitespace-nowrap text-xl">
+        TermPair Server URL
+      </span>
+      <input
+        type="text"
+        className={inputClass}
+        placeholder="http://localhost:8000"
+        onChange={(event) => {
+          setCustomHostInput(event.target.value);
+        }}
+        value={customHostInput}
+        onKeyPress={(e) => {
+          if (e.key === "Enter") {
+            connectToUserTerminal();
+          }
+        }}
+      />
+    </div>
+  );
+
+  const canConnect = props.isStaticallyHosted
+    ? terminalIdInput.length !== 0
+    : terminalIdInput.length !== 0 && customHostInput.length !== 0;
+
+  const connectButton = (
+    <div className="flex justify-end">
+      <button
+        title="Connect to the specified Terminal"
+        className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full ${
+          canConnect ? "" : "cursor-not-allowed"
+        }`}
+        onClick={connectToUserTerminal}
+      >
+        Connect
+      </button>
+    </div>
+  );
+  const staticLandingContent = (
+    <div className="py-2">
+      <div className="text-2xl py-2">This page is statically hosted</div>
+      <div>
+        This is a static page serving the TermPair JavaScript app. It is
+        optional to use a statically served TermPair webapp, but it facilitates
+        easily building and self-serving to be certain the JavaScript app has
+        not been tampered with by an untrusted server.
+      </div>
+      <div className="mt-5">
+        Connect to a broadcasting terminal by entering the fields below and
+        clicking Connect.
+      </div>
+
+      {terminalIdInputEl}
+      {terminalServerUrlEl}
+      {connectButton}
+    </div>
+  );
+
+  const regularServerContent = (
+    <>
+      <div className="py-2">
+        <div className="text-xl  py-2">Quick Start</div>
+        <div>
+          If you have TermPair installed, share a terminal with this host:
+        </div>
+        <CopyCommand command={termpairShareCommand} />
+        <div>Or if you have pipx, you can run TermPair via pipx:</div>
+        <CopyCommand command={pipxTermpairShareCommand} />
+      </div>
+      <div className="py-2">
+        <div className="text-xl  py-2">Install TermPair</div>
+        <div>Install with pipx</div>
+        <CopyCommand command="pipx install termpair" />
+        <div>Or install with pip</div>
+        <CopyCommand command="pip install termpair --user" />
+      </div>
+      <div className="py-2">
+        <div className="text-xl  py-2">Connecting to a Terminal?</div>
+        If a terminal is already broadcasting and you'd like to connect to it,
+        you don't need to install or run anything. Just enter the Terminal ID
+        below and click Connect.
+        {terminalIdInputEl}
+        {connectButton}
+      </div>
+    </>
+  );
+
+  const termpairDemoContent = (
+    <div className="py-2">
+      <div className="text-xl  py-2">TermPair Demo</div>
+      <div>
+        <img
+          alt="Screencast of TermPair"
+          src="https://raw.githubusercontent.com/cs01/termpair/master/termpair_browser.gif"
+        />
+      </div>
+    </div>
+  );
 
   return (
-    <div className="text-gray-300">
-      <div className="py-2">
-        <div className="text-2xl ">Welcome to TermPair!</div>
-        Easily share terminals with end-to-end encryption 🔒. Terminal data is
-        always encrypted before being routed through the server.{" "}
-        <a href="https://github.com/cs01/termpair">Learn more.</a>
-      </div>
-      {props.isStaticallyHosted === true ? (
+    <div className="flex justify-center">
+      <div className="text-gray-300 max-w-3xl">
         <div className="py-2">
-          <div className="text-xl  py-2">This page is statically hosted</div>
-          <div>
-            This is a static page serving the TermPair JavaScript app. This is
-            done to facilitate easily building and self-serving to be certain
-            the JavaScript app has not been tampered with by an untrusted
-            server.
-          </div>
-          <div className="mt-5">
-            Enter the Terminal ID and TermPair server below to select the
-            terminal to connect to, and the server the broadcasting terminal is
-            using.
-          </div>
-          <div className="flex items-center">
-            <span className="py-2 m-2 whitespace-nowrap text-xl">
-              Terminal ID
-            </span>
-            <input
-              type="text"
-              name="name"
-              className="text-black px-2 py-4 m-2 w-full"
-              onChange={(event) => {
-                setTerminalIdInput(event.target.value);
-              }}
-              value={terminalIdInput}
-              placeholder="ce79d9ffaba66d3f1aaa7912700565cc"
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                  connectToUserTerminal();
-                }
-              }}
-            />
-          </div>
-          <div className="flex items-center">
-            <span className="py-2 m-2 whitespace-nowrap text-xl">
-              TermPair Server URL
-            </span>
-            <input
-              type="text"
-              name="name"
-              className="text-black px-2 py-4 m-2 w-full"
-              placeholder="https://chadsmith.dev/termpair"
-              onChange={(event) => {
-                setCustomHostInput(event.target.value);
-              }}
-              value={customHostInput}
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                  connectToUserTerminal();
-                }
-              }}
-            />
-          </div>
-          <button
-            className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full ${
-              !terminalIdInput || !customHostInput ? "cursor-not-allowed" : ""
-            }`}
-            onClick={connectToUserTerminal}
-          >
-            Connect
-          </button>
+          <div className="text-3xl ">Welcome to TermPair!</div>
+          Easily share terminals with end-to-end encryption 🔒. Terminal data is
+          always encrypted before being routed through the server.{" "}
+          <a href="https://github.com/cs01/termpair">Learn more.</a>
         </div>
-      ) : (
-        <>
-          <div className="py-2">
-            <div className="text-xl  py-2">Quick Start</div>
-            <div>
-              If you have TermPair installed, share a terminal with this host:
-            </div>
-            <CopyCommand command={termpairShareCommand} />
-            <div>Or if you have pipx, you can run TermPair via pipx:</div>
-            <CopyCommand command={pipxTermpairShareCommand} />
-          </div>
-          <div className="py-2">
-            <div className="text-xl  py-2">Install TermPair</div>
-            <div>Install with pipx</div>
-            <CopyCommand command="pipx install termpair" />
-            <div>Or install with pip</div>
-            <CopyCommand command="pip install termpair --user" />
-          </div>
-        </>
-      )}
+        {props.isStaticallyHosted === null
+          ? null
+          : props.isStaticallyHosted === true
+          ? staticLandingContent
+          : regularServerContent}
 
-      <div className="py-2">
-        <div className="text-xl  py-2">TermPair Demo</div>
-        <div>
-          <img
-            alt="Screencast of TermPair"
-            src="https://raw.githubusercontent.com/cs01/termpair/master/termpair_browser.gif"
-          />
-        </div>
+        {termpairDemoContent}
       </div>
     </div>
   );
@@ -938,7 +984,7 @@ function App() {
   );
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-screen align-middle">
         <ToastContainer
           position="bottom-right"
           limit={3}

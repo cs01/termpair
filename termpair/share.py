@@ -302,10 +302,9 @@ class SharingSession:
         msg = [
             "\033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒",
             f"Terminal ID: {self.terminal_id}",
-            f"Host: {self.url}",
+            f"TermPair Server URL: {self.url}",
             "Sharable link (expires when this process ends):",
             "  " + self.get_share_url(self.url, self.terminal_id),
-            "",
             "Type 'exit' or close terminal to stop sharing.",
         ]
 

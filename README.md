@@ -26,7 +26,7 @@ TermPair lets developers securely share and control terminals in real time.
 
 First start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
 
-The server is used to route encrypted data between terminals and connected browsers.
+The server is used to route encrypted data between terminals and connected browsers -- it doen't actually start sharing any terminals just by running it.
 
 ```
 > termpair serve --port 8000
@@ -42,15 +42,15 @@ Then share your terminal by running `termpair share`.
 This connects your terminal to the server, and allows browsers to access the terminal.
 
 ```
-> termpair share --port 8000
---------------------------------------------------------------------------------
+> termpair share
+---------------------------------------------------------------------------------------------------------------------------------
 Connection established with end-to-end encryption 🔒
-Sharing '/bin/bash' at
-
-http://localhost:8000/?terminal_id=fd96c0f84adc6be776872950e19caecc
-
+Terminal ID: e8add1d61a63599b91c0f5ba8779319d
+TermPair Server URL: http://localhost:8000/
+Sharable link (expires when this process ends):
+  http://localhost:8000/?terminal_id=e8add1d61a63599b91c0f5ba8779319d
 Type 'exit' or close terminal to stop sharing.
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------
 ```
 
 The URL printed contains a unique terminal ID. You can share the URL with whoever you like. **Anyone who has it can access your terminal while the `termpair share` process is running.**
@@ -76,13 +76,13 @@ TermPair consists of three pieces:
 2. server
 3. browser client(s)
 
-First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The serve listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
+First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The server listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
 
-Before the TermPair client sends terminal output to the server, it creates two AES encryption keys and uses one of them to encrypt the output so the server cannot read it. The other is used by the browser to encrypt user input.
+Before the TermPair client sends terminal output to the server, it creates two AES encryption keys. One is used to encrypt the terminals output to the browsers so the server cannot read it. The other is used by the browser when sending input from the browser to the terminal.
 
 The server then forwards that data to connected browsers. When the browsers receive the data, they use the secret key to decrypt and display the terminal output.
 
-The browser obtains the secret AES keys by requesting them from the broadcasting terminal along with a public RSA key generated in the browser at runtime. The broadcasting terminal responds with AES keys encrypted with the public key. The AES keys are rotated periodically.
+The browser obtains the secret AES keys without the server seeing them by using public key encryption. The browser generates an RSA key pair at runtime, then sends the public key to the broadcasting terminal. The broadcasting terminal responds with the AES keys encrypted with the public key. The AES keys are rotated periodically.
 
 When a browser sends input to the terminal, it is encrypted in the browser, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the terminal's input.
 
@@ -147,6 +147,19 @@ server {
         proxy_set_header Connection "upgrade";
     }
 }
+```
+
+## Static Hosting
+As an optional additional security measure, TermPair supports staticallly serving the JavaScript web app. In this arrangement, you can build the webapp yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app.
+
+Then, you can connect to it and specify the Terminal ID and TermPair server that routes the encrypted data.
+
+To build the web app, see [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md).
+
+Then you can deploy to GitHub pages, Vercel, etc. or self-serve with
+```shell
+$ cd termpair/termpair/frontend_build
+$ python3 -m http.server 7999 --bind 127.0.0.1
 ```
 
 ## CLI API
