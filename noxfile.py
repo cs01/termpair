@@ -39,9 +39,26 @@ def watch_docs(session):
 
 
 @nox.session(python=python)
+def build_frontend(session):
+    session.run("yarn", "--cwd", "termpair/frontend_src", "build", external=True)
+
+
+@nox.session(python=python)
 def publish_docs(session):
     session.install(*doc_deps)
     session.run("mkdocs", "gh-deploy")
+
+
+@nox.session(python=python)
+def publish_static_webapp(session):
+    build_frontend(session)
+    session.run("git", "checkout", "gh-pages", external=True)
+    session.run("rm", "-rf", "connect/", external=True)
+    session.run("mkdir", "connect", external=True)
+    session.run("cp", "-rT", "termpair/frontend_build/", "connect/", external=True)
+    session.run("git", "add", "connect", external=True)
+    session.run("git", "commit", "-m", "commit built frontend", external=True)
+    session.run("git", "push", "origin", "gh-pages", external=True)
 
 
 @nox.session(python=python)
@@ -54,6 +71,7 @@ def publish(session):
     session.run("python", "setup.py", "--quiet", "sdist", "bdist_wheel")
     session.run("python", "-m", "twine", "upload", "dist/*")
     publish_docs(session)
+    publish_static_webapp(session)
 
 
 @nox.session(python=python)
