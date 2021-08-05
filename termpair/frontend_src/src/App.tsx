@@ -267,6 +267,7 @@ function LandingPageContent(props: {
     >
       <span className="py-2 m-2 whitespace-nowrap text-xl">Terminal ID</span>
       <input
+        name="terminalIdInput"
         type="text"
         className={inputClass}
         onChange={(event) => {
@@ -291,6 +292,7 @@ function LandingPageContent(props: {
         TermPair Server URL
       </span>
       <input
+        name="customHostInput"
         type="text"
         className={inputClass}
         placeholder="http://localhost:8000"
@@ -314,11 +316,11 @@ function LandingPageContent(props: {
   const connectButton = (
     <div className="flex justify-end">
       <button
+        type="submit"
         title="Connect to the specified Terminal"
         className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full ${
           canConnect ? "" : "cursor-not-allowed"
         }`}
-        onClick={connectToUserTerminal}
       >
         Connect
       </button>
@@ -337,10 +339,16 @@ function LandingPageContent(props: {
         Connect to a broadcasting terminal by entering the fields below and
         clicking Connect.
       </div>
-
-      {terminalIdInputEl}
-      {terminalServerUrlEl}
-      {connectButton}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          connectToUserTerminal();
+        }}
+      >
+        {terminalIdInputEl}
+        {terminalServerUrlEl}
+        {connectButton}
+      </form>
     </div>
   );
 
@@ -367,8 +375,15 @@ function LandingPageContent(props: {
         If a terminal is already broadcasting and you'd like to connect to it,
         you don't need to install or run anything. Just enter the Terminal ID
         below and click Connect.
-        {terminalIdInputEl}
-        {connectButton}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            connectToUserTerminal();
+          }}
+        >
+          {terminalIdInputEl}
+          {connectButton}
+        </form>
       </div>
     </>
   );
