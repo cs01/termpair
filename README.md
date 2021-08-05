@@ -26,7 +26,7 @@ TermPair lets developers securely share and control terminals in real time.
 
 First start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
 
-The server is used to route encrypted data between terminals and connected browsers -- it doen't actually start sharing any terminals just by running it.
+The server is used to route encrypted data between terminals and connected browsers — it doesn't actually start sharing any terminals just by running it.
 
 ```
 > termpair serve --port 8000
@@ -78,11 +78,11 @@ TermPair consists of three pieces:
 
 First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The server listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
 
-Before the TermPair client sends terminal output to the server, it creates two AES encryption keys. One is used to encrypt the terminals output to the browsers so the server cannot read it. The other is used by the browser when sending input from the browser to the terminal.
+Before the TermPair client sends terminal output to the server, it creates two 128 bit AES encryption keys. One is used to encrypt the terminal's output to the browsers so the server cannot read it. The other is used by the browser when sending input from the browser to the terminal.
 
 The server then forwards that data to connected browsers. When the browsers receive the data, they use the secret key to decrypt and display the terminal output.
 
-The browser obtains the secret AES keys without the server seeing them by using public key encryption. The browser generates an RSA key pair at runtime, then sends the public key to the broadcasting terminal. The broadcasting terminal responds with the AES keys encrypted with the public key. The AES keys are rotated periodically.
+The browser obtains the secret AES keys without the server seeing them by using public key encryption. The browser generates an RSA key pair at runtime, then sends the public key to the broadcasting terminal. The broadcasting terminal responds with the AES keys encrypted with the public key. Both AES keys get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
 
 When a browser sends input to the terminal, it is encrypted in the browser, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the terminal's input.
 

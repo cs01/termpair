@@ -49,7 +49,10 @@ class AesKeys:
         plaintext = encryption.aes_decrypt(self.secret_browser_key, ciphertext)
         return plaintext
 
-    def get_max_iv_count(self, start_iv_count: int) -> int:
+    def get_max_iv_for_browser(self, start_iv_count: int) -> int:
+        # each browser for this session encrypts using the same AES key.
+        # To avoid re-using an IV, we assign each a window to operate within.
+        # If the end of the window is hit, a new key is requested.
         max_iv_count = floor(
             start_iv_count
             + self.message_count_rotation_required
@@ -265,7 +268,7 @@ class SharingSession:
                                             "b64_pk_browser_aes_key": b64_pk_browser_aes_key,
                                             "encoding": "browser_public_key",
                                             "iv_count": iv_count,
-                                            "max_iv_count": self.aes_keys.get_max_iv_count(
+                                            "max_iv_count": self.aes_keys.get_max_iv_for_browser(
                                                 iv_count
                                             ),
                                             "salt": base64.b64encode(
