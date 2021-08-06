@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useLayoutEffect, useRef } from "react";
 import "xterm/css/xterm.css";
 import logo from "./logo.png"; // logomakr.com/4N54oK
+import { TERMPAIR_VERSION } from "./constants";
 // import { CogIcon } from "@heroicons/react/solid";
 import { DuplicateIcon } from "@heroicons/react/solid";
 import { Terminal as Xterm, IDisposable } from "xterm";
@@ -25,7 +26,12 @@ import {
 import { CopyToClipboard } from "react-copy-to-clipboard";
 
 const githubLogo = (
-  <svg width="24" height="24" fill="currentColor" className="text-white mr-3 ">
+  <svg
+    width="24"
+    height="24"
+    fill="currentColor"
+    className="text-gray-300 mr-3 "
+  >
     <path
       fillRule="evenodd"
       clipRule="evenodd"
@@ -73,7 +79,10 @@ function TopBar(props: any) {
           <img className="h-full" src={logo} alt="logo" />
         </a>
       </div>
-      <a href="https://github.com/cs01/termpair">{githubLogo}</a>
+      <div className="flex">
+        <span className="text-gray-300 mx-3">v{TERMPAIR_VERSION}</span>
+        <a href="https://github.com/cs01/termpair">{githubLogo}</a>
+      </div>
       {/* <div className="text-white m-5">
         <div className="my-auto">
           <button
@@ -148,8 +157,7 @@ function BottomBar(props: {
       <div className="flex bg-black  justify-evenly text-gray-300 py-5">
         <div>
           <a href="https://chadsmith.dev">chadsmith.dev</a> |{" "}
-          <a href="https://github.com/cs01/termpair">GitHub</a> |{" "}
-          <a href="https://github.com/cs01">Other Projects</a>
+          <a href="https://github.com/cs01/termpair">GitHub</a>
         </div>
       </div>
     </>
@@ -206,7 +214,7 @@ function CopyCommand(props: { command: string }) {
     <div className="flex">
       <code
         className={`${
-          hovering || clicked ? "bg-yellow-200" : "bg-gray-400"
+          hovering || clicked ? "bg-yellow-200" : "bg-gray-300"
         } text-black px-2 py-1 m-2`}
       >
         {props.command}
@@ -402,7 +410,7 @@ function LandingPageContent(props: {
 
   return (
     <div className="flex justify-center">
-      <div className="text-gray-300 max-w-3xl">
+      <div className="text-gray-200 max-w-3xl">
         <div className="py-2">
           <div className="text-3xl ">Welcome to TermPair!</div>
           Easily share terminals with end-to-end encryption 🔒. Terminal data is
@@ -415,6 +423,17 @@ function LandingPageContent(props: {
           ? staticLandingContent
           : regularServerContent}
 
+        <div className="py-2">
+          <div className="text-2xl py-2">Troubleshooting</div>
+          <div className="text-xl ">
+            Initial connection fails or is rejected
+          </div>
+          <div>
+            Ensure you are using a TermPair client compatible with{" "}
+            <span className="font-bold">v{TERMPAIR_VERSION}</span> (the version
+            of this webpage)
+          </div>
+        </div>
         {termpairDemoContent}
       </div>
     </div>

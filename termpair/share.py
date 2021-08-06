@@ -386,9 +386,7 @@ async def broadcast_terminal(
 
     ws_url = url.replace("http", "ws")
 
-    ws_endpoint = urljoin(
-        ws_url, f"connect_to_terminal?subprotocol_version={subprotocol_version}"
-    )
+    ws_endpoint = urljoin(ws_url, "connect_to_terminal")
     try:
         async with websockets.connect(ws_endpoint, ssl=ssl_context) as ws:
             sharing_session = SharingSession(

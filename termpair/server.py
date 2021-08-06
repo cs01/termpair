@@ -22,8 +22,7 @@ from .Terminal import Terminal, TerminalId
 from .utils import get_random_string
 from .constants import TERMPAIR_VERSION
 from .server_websocket_subprotocol_handlers import (
-    handle_ws_message_subprotocol_v1,
-    handle_ws_message_subprotocol_v2,
+    handle_ws_message_subprotocol_v3,
 )
 from fastapi.exceptions import HTTPException  # type: ignore
 
@@ -123,15 +122,7 @@ async def _task_handle_browser_websocket(terminal: Terminal, ws: WebSocket):
         for browser in terminal.browser_websockets:
             await browser.send_json({"event": "num_clients", "payload": num_browsers})
         while True:
-            # If the subprotocol version is incremented again, it will be
-            # rejected immediately during initialization, so we won't have to
-            # handle multiple here.
-            if terminal.subprotocol_version is None:
-                await handle_ws_message_subprotocol_v1(ws, terminal)
-            elif terminal.subprotocol_version == "2":
-                await handle_ws_message_subprotocol_v2(ws, terminal)
-            else:
-                pass
+            await handle_ws_message_subprotocol_v3(ws, terminal)
 
     except starlette.websockets.WebSocketDisconnect:
         # browser closed the connection
@@ -215,7 +206,7 @@ async def connect_to_terminal(ws: WebSocket):
     await ws.accept()
     data = await ws.receive_json()
     subprotocol_version = data.get("subprotocol_version")
-    valid_subprotocols = [None, "2"]
+    valid_subprotocols = ["3"]
     if subprotocol_version not in valid_subprotocols:
         await ws.send_text(
             json.dumps(
@@ -223,7 +214,7 @@ async def connect_to_terminal(ws: WebSocket):
                     "event": "fatal_error",
                     "payload": "Client and server are running incompatible versions. "
                     + f"Server is running v{TERMPAIR_VERSION}. "
-                    + "Ensure you are using a version of TermPair compatible with the server. ",
+                    + "Ensure you are using a version of the TermPair client compatible with the server. ",
                 }
             )
         )
