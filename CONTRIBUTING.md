@@ -33,18 +33,28 @@ yarn install
 ```
 to install dependencies.
 
-You'll then be able to build the frontend app using:
+You'll then be able to view and hot reload changes to the frontend app using:
 
 ```bash
-yarn build
+yarn start
 ```
 
 The TermPair server does not need to be reloaded, so you can just refresh the webpage to view changes.
 
-Changes that don't require an actively connected terminal can be tested much more easily with hot reloading by running:
+If you want to connect a terminal to the frontend, in a new terminal run
+```
+nox -s serve
+```
+then share a terminal with
+```
+nox -s broadcast
+```
+open the browser at `http://localhost:3000` and enter the terminal id and url (`http://localhost:8000`).
+
+If you are testing something that needs a full build, you can build and statically serve the frontend with
 
 ```bash
-yarn start
+yarn build
 ```
 
 ## Releasing new versions to PyPI

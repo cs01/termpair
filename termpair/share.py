@@ -9,12 +9,10 @@ import datetime
 import json
 import os
 import pty
-import shlex
 import signal
 import ssl
 import sys
-from urllib.parse import urljoin
-import textwrap
+from urllib.parse import urljoin, urlencode
 import webbrowser
 from typing import List, Optional, Callable
 import websockets  # type: ignore
@@ -51,7 +49,10 @@ class AesKeys:
         plaintext = encryption.aes_decrypt(self.secret_browser_key, ciphertext)
         return plaintext
 
-    def get_max_iv_count(self, start_iv_count: int) -> int:
+    def get_max_iv_for_browser(self, start_iv_count: int) -> int:
+        # each browser for this session encrypts using the same AES key.
+        # To avoid re-using an IV, we assign each a window to operate within.
+        # If the end of the window is hit, a new key is requested.
         max_iv_count = floor(
             start_iv_count
             + self.message_count_rotation_required
@@ -148,8 +149,7 @@ class SharingSession:
         )
         event, payload = await self.receive_data_from_websocket()
         if event == "start_broadcast":
-            terminal_id = payload
-            return terminal_id
+            return payload
         elif event == "fatal_error":
             raise TermPairError(fatal_server_error_msg(payload))
         else:
@@ -161,7 +161,6 @@ class SharingSession:
 
     async def run(self):
         self.terminal_id = await self.register_broadcast_with_server()
-        self.share_url = self.get_share_url(self.url, self.terminal_id)
 
         self.print_broadcast_init_message()
 
@@ -269,7 +268,7 @@ class SharingSession:
                                             "b64_pk_browser_aes_key": b64_pk_browser_aes_key,
                                             "encoding": "browser_public_key",
                                             "iv_count": iv_count,
-                                            "max_iv_count": self.aes_keys.get_max_iv_count(
+                                            "max_iv_count": self.aes_keys.get_max_iv_for_browser(
                                                 iv_count
                                             ),
                                             "salt": base64.b64encode(
@@ -301,28 +300,37 @@ class SharingSession:
         return parsed["event"], parsed.get("payload")
 
     def print_broadcast_init_message(self):
-        cmd_str = " ".join(shlex.quote(c) for c in self.cmd)
         _, cols = utils.get_terminal_size(sys.stdin)
+
+        msg = [
+            "\033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒",
+            f"Terminal ID: {self.terminal_id}",
+            f"TermPair Server URL: {self.url}",
+            "Sharable link (expires when this process ends):",
+            "  " + self.get_share_url(self.url, self.terminal_id),
+            "Type 'exit' or close terminal to stop sharing.",
+        ]
+
         dashes = "-" * cols
-        print(
-            textwrap.dedent(
-                f"""        {dashes}
-        \033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒
-        Sharing {cmd_str!r} at
-
-        {self.share_url}
-
-        Type 'exit' or close terminal to stop sharing.
-        {dashes}"""
-            )
-        )
+        print(dashes)
+        for m in msg:
+            print(m)
+        print(dashes)
 
     def get_share_url(
-        self,
-        url,
-        ws_id,
+        self, url: str, terminal_id: str, static_url: Optional[str] = None
     ):
-        return urljoin(url, f"?terminal_id={ws_id}")
+        if static_url:
+            qp = {
+                "terminal_id": terminal_id,
+                "termpair_server_url": url,
+            }
+            return urljoin(static_url, f"?{urlencode(qp)}")
+        else:
+            qp = {
+                "terminal_id": terminal_id,
+            }
+            return urljoin(url, f"?{urlencode(qp)}")
 
     def handle_new_pty_output(self, cleanup: Callable):
         """forwards pty's output to local stdout AND to websocket"""
