@@ -1,8 +1,9 @@
-subprotocol_version = "2"
+subprotocol_version = "3"
 
 
 class TermPairError(Exception):
     pass
 
 
-TERMPAIR_VERSION = "0.2.0.0"
+# this must match constants.ts
+TERMPAIR_VERSION = "0.3.0.0"

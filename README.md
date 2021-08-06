@@ -37,9 +37,9 @@ INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
 INFO:     ('127.0.0.1', 51924) - "WebSocket /connect_to_terminal" [accepted]
 ```
 
-Then share your terminal by running `termpair share`.
+Now that you have the server running, you can share your terminal by running `termpair share`.
 
-This connects your terminal to the server, and allows browsers to access the terminal.
+This connects your terminal to the server, and allows browsers to access the terminal through the server.
 
 ```
 > termpair share
@@ -59,9 +59,9 @@ The server multicasts terminal output to all browsers that connect to the sessio
 
 ## Security
 
-TermPair uses end-to-end encryption for all terminal input and output.
+TermPair uses end-to-end encryption for all terminal input and output, meaning the server *never* has access to the raw input or output of the terminal.
 
-The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running on localhost, or with secure http traffic (https).
+The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running with secure http traffic (https) or on localhost.
 
 ## How it Works
 
@@ -80,9 +80,11 @@ First, the termpair server is started (`termpair serve`). The server acts as a r
 
 Before the TermPair client sends terminal output to the server, it creates two 128 bit AES encryption keys. One is used to encrypt the terminal's output to the browsers so the server cannot read it. The other is used by the browser when sending input from the browser to the terminal.
 
-The server then forwards that data to connected browsers. When the browsers receive the data, they use the secret key to decrypt and display the terminal output.
+The server then forwards that terminal data to connected browsers. When the browsers receive the data, they use the secret key to decrypt and display the terminal output.
 
-The browser obtains the secret AES keys without the server seeing them by using public key encryption. The browser generates an RSA key pair at runtime, then sends the public key to the broadcasting terminal. The broadcasting terminal responds with the AES keys encrypted with the public key. Both AES keys get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
+The browser obtains the secret AES keys without the server seeing them by using public key encryption. The browser generates an RSA key pair at runtime, then sends the public key to the broadcasting terminal. The broadcasting terminal responds with the AES keys encrypted with the public key.
+
+Both AES keys get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
 
 When a browser sends input to the terminal, it is encrypted in the browser, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the terminal's input.
 
