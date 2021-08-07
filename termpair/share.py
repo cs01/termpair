@@ -31,11 +31,20 @@ class AesKeys:
     message_count: int
 
     def __init__(self):
+        self.bootstrap_message_count = 0
         self.message_count = 0
         self.message_count_rotation_required = 2 ** 20
         self.browser_rotation_buffer_count = self.message_count_rotation_required * 0.1
+        self.secret_bootstrap_key = encryption.aes_generate_secret_key()
         self.secret_unix_key = encryption.aes_generate_secret_key()
         self.secret_browser_key = encryption.aes_generate_secret_key()
+
+    def encrypt_bootstrap(self, plaintext: bytes):
+        self.bootstrap_message_count += 1
+        return encryption.aes_encrypt(
+            self.message_count, self.secret_bootstrap_key, plaintext
+        )
+        return encryption.aes_encrypt_with_random(self.secret_bootstrap_key, plaintext)
 
     def encrypt(self, plaintext: bytes):
         self.message_count += 1
@@ -234,52 +243,46 @@ class SharingSession:
                 elif event == "request_key_rotation":
                     self.aes_keys.rotate_keys()
                 elif event == "new_browser_connected":
-                    pem_public_key = payload.get("browser_public_key_pem")
+                    # no payload required, just the event.
+                    # the browser must already have
+                    # the bootstrap AES key to decrypt the
+                    # message we're about to
                     self.num_browsers += 1
+                    try:
+                        # use the bootstrap AES key to encrypt the two AES keys
+                        # used for terminal input/output
+                        b64_bootstrap_unix_aes_key = base64.b64encode(
+                            self.aes_keys.encrypt_bootstrap(
+                                self.aes_keys.secret_unix_key
+                            )
+                        ).decode()
+                        b64_bootstrap_browser_aes_key = base64.b64encode(
+                            self.aes_keys.encrypt_bootstrap(
+                                self.aes_keys.secret_browser_key
+                            )
+                        ).decode()
 
-                    if pem_public_key:
-                        # TODO emit error back to browser if pem not found
-                        try:
-                            browser_public_key = encryption.import_rsa_key(
-                                pem_public_key
+                        iv_count = self.aes_keys.get_start_iv_count(self.num_browsers)
+                        ws_queue.put_nowait(
+                            json.dumps(
+                                {
+                                    "event": "aes_keys",
+                                    "payload": {
+                                        "b64_bootstrap_unix_aes_key": b64_bootstrap_unix_aes_key,
+                                        "b64_bootstrap_browser_aes_key": b64_bootstrap_browser_aes_key,
+                                        "iv_count": iv_count,
+                                        "max_iv_count": self.aes_keys.get_max_iv_for_browser(
+                                            iv_count
+                                        ),
+                                        "salt": base64.b64encode(
+                                            os.urandom(12)
+                                        ).decode(),
+                                    },
+                                }
                             )
-                            b64_pk_unix_aes_key = base64.b64encode(
-                                encryption.rsa_encrypt(
-                                    browser_public_key, self.aes_keys.secret_unix_key
-                                )
-                            ).decode()
-                            b64_pk_browser_aes_key = base64.b64encode(
-                                encryption.rsa_encrypt(
-                                    browser_public_key,
-                                    self.aes_keys.secret_browser_key,
-                                )
-                            ).decode()
-
-                            iv_count = self.aes_keys.get_start_iv_count(
-                                self.num_browsers
-                            )
-                            ws_queue.put_nowait(
-                                json.dumps(
-                                    {
-                                        "event": "aes_keys",
-                                        "payload": {
-                                            "echoed_payload": payload,
-                                            "b64_pk_unix_aes_key": b64_pk_unix_aes_key,
-                                            "b64_pk_browser_aes_key": b64_pk_browser_aes_key,
-                                            "encoding": "browser_public_key",
-                                            "iv_count": iv_count,
-                                            "max_iv_count": self.aes_keys.get_max_iv_for_browser(
-                                                iv_count
-                                            ),
-                                            "salt": base64.b64encode(
-                                                os.urandom(12)
-                                            ).decode(),
-                                        },
-                                    }
-                                )
-                            )
-                        except Exception as e:
-                            print(e)
+                        )
+                    except Exception as e:
+                        print(e)
                 elif event == "fatal_error":
                     raise fatal_server_error_msg(payload)
                 else:
@@ -301,13 +304,17 @@ class SharingSession:
 
     def print_broadcast_init_message(self):
         _, cols = utils.get_terminal_size(sys.stdin)
-
+        secret_key_b64 = base64.b64encode(self.aes_keys.secret_bootstrap_key).decode()
         msg = [
             "\033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒",
+            "",
+            "Shareable link: "
+            + self.get_share_url(self.url, self.terminal_id, secret_key_b64),
+            "",
             f"Terminal ID: {self.terminal_id}",
+            f"Secret encryption key: {secret_key_b64}",
             f"TermPair Server URL: {self.url}",
-            "Sharable link (expires when this process ends):",
-            "  " + self.get_share_url(self.url, self.terminal_id),
+            "",
             "Type 'exit' or close terminal to stop sharing.",
         ]
 
@@ -318,19 +325,23 @@ class SharingSession:
         print(dashes)
 
     def get_share_url(
-        self, url: str, terminal_id: str, static_url: Optional[str] = None
+        self,
+        url: str,
+        terminal_id: str,
+        secret_key_b64: str,
     ):
-        if static_url:
-            qp = {
-                "terminal_id": terminal_id,
-                "termpair_server_url": url,
-            }
-            return urljoin(static_url, f"?{urlencode(qp)}")
-        else:
-            qp = {
-                "terminal_id": terminal_id,
-            }
-            return urljoin(url, f"?{urlencode(qp)}")
+        # if static_url:
+        #     qp = {
+        #         "terminal_id": terminal_id,
+        #         "termpair_server_url": url,
+        #     }
+        #     return urljoin(static_url, f"?{urlencode(qp)}")
+        # else:
+
+        qp = {
+            "terminal_id": terminal_id,
+        }
+        return urljoin(url, f"?{urlencode(qp)}#{secret_key_b64}")
 
     def handle_new_pty_output(self, cleanup: Callable):
         """forwards pty's output to local stdout AND to websocket"""

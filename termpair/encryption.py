@@ -10,7 +10,6 @@ from cryptography.hazmat.primitives.serialization import (  # type:ignore
     load_pem_public_key,
 )
 
-
 IV_LENGTH = 12
 KEY_LENGTH_BITS = 128
 

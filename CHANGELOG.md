@@ -2,10 +2,10 @@
 **Breaking API Changes**
 In this version, TermPair clients from previous versions cannot connect to this TermPair server
 
-* Use new key sharing scheme: Different keys used in different directions; keys rotated; secret keys retrieved via RSA public key rather than embedding in the URL
+* Use new key sharing scheme: Different keys used in different directions; keys rotated
 * [bugfix] Terminal dimensions in browser match upon initial connection, instead of after resizing
 * Allow static site to route terminal traffic through other server. If static site is detected, user can enter the terminal id and server url in the browser UI.
-* Allow Terminal ID to be entered on landing page
+* Allow Terminal ID and initial encryption key to be entered on landing page
 * Display version in webpage
 * Add troubleshooting instructions to webpage
 

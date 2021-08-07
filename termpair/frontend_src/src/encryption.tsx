@@ -3,46 +3,10 @@
 
 const IV_LENGTH = 12;
 
-// https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey
-export async function generateRSAKeyPair(): Promise<CryptoKeyPair> {
-  return window.crypto.subtle.generateKey(
-    {
-      name: "RSA-OAEP",
-      modulusLength: 4096,
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: "SHA-256",
-    },
-    true,
-    ["encrypt", "decrypt"]
-  );
-}
-
-export async function decryptRSAMessage(
-  privateKey: CryptoKey,
-  ciphertext: Buffer
-): Promise<Buffer> {
-  return Buffer.from(
-    await window.crypto.subtle.decrypt(
-      {
-        name: "RSA-OAEP",
-      },
-      privateKey,
-      ciphertext
-    )
-  );
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ab2str(buf: ArrayBuffer): string {
   // @ts-ignore
   return String.fromCharCode.apply(null, new Uint8Array(buf));
-}
-
-// https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/exportKey#pkcs_8_export
-export async function exportCryptoKey(key: CryptoKey) {
-  const exported = await window.crypto.subtle.exportKey("spki", key);
-  const exportedAsString = ab2str(exported);
-  const exportedAsBase64 = window.btoa(exportedAsString);
-  const pemExported = `-----BEGIN PUBLIC KEY-----\n${exportedAsBase64}\n-----END PUBLIC KEY-----`;
-  return pemExported;
 }
 
 export async function getAESKey(
@@ -60,9 +24,7 @@ export async function getAESKey(
   );
 }
 
-export async function DEPRECATED_getSecretAESKey(): Promise<
-  Nullable<CryptoKey>
-> {
+export async function getBootstrapAESKey(): Promise<Nullable<CryptoKey>> {
   try {
     const b64EncodedKey = window.location.hash.substring(
       1, // skip the '#' symbol
@@ -72,16 +34,7 @@ export async function DEPRECATED_getSecretAESKey(): Promise<
       return null;
     }
     const keyData = Buffer.from(b64EncodedKey, "base64");
-    console.log("good known raw data", keyData);
-    return await window.crypto.subtle.importKey(
-      "raw",
-      keyData,
-      {
-        name: "AES-GCM",
-      },
-      false, // extractable
-      ["encrypt", "decrypt"]
-    );
+    return await getAESKey(keyData, ["decrypt"]);
   } catch (e) {
     console.error(e);
     return null;
@@ -89,17 +42,14 @@ export async function DEPRECATED_getSecretAESKey(): Promise<
 }
 
 export async function aesDecrypt(
-  unixSecretAESKey: CryptoKey,
-  encryptedPayloadB64: string
+  secretcryptoKey: CryptoKey,
+  encryptedPayload: Buffer
 ): Promise<Buffer> {
-  // decode base64 data to unencrypted iv and encrypted data
-  const ivAndPayload = Buffer.from(encryptedPayloadB64, "base64");
-
   // iv is prepended to encrypted payload
-  const iv = ivAndPayload.subarray(0, IV_LENGTH);
+  const iv = encryptedPayload.subarray(0, IV_LENGTH);
 
   // remaining bytes are encrypted utf-8 output of terminal
-  const encryptedTerminalOutput = ivAndPayload.subarray(IV_LENGTH);
+  const encryptedTerminalOutput = encryptedPayload.subarray(IV_LENGTH);
 
   const decryptedTerminalOutput = Buffer.from(
     await window.crypto.subtle.decrypt(
@@ -107,7 +57,7 @@ export async function aesDecrypt(
         name: "AES-GCM",
         iv: iv,
       },
-      unixSecretAESKey,
+      secretcryptoKey,
       encryptedTerminalOutput
     )
   );
