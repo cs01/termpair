@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import hashes  # type:ignore
 from cryptography.hazmat.primitives.serialization import (  # type:ignore
     load_pem_public_key,
 )
-
+import os
 
 IV_LENGTH = 12
 KEY_LENGTH_BITS = 128
@@ -35,9 +35,16 @@ def aes_generate_secret_key() -> bytes:
     return AESGCM.generate_key(bit_length=KEY_LENGTH_BITS)
 
 
-def aes_encrypt(message_count: int, key: bytes, data: bytes) -> bytes:
+def aes_encrypt_with_counter(message_count: int, key: bytes, data: bytes) -> bytes:
     # the same iv must never be reused with a given key
     iv = message_count.to_bytes(IV_LENGTH, "little")
+    # prepend unencrypted iv to the encrypted payload
+    return iv + AESGCM(key).encrypt(iv, data, None)
+
+
+def aes_encrypt_with_random(key: bytes, data: bytes) -> bytes:
+    # the same iv must never be reused with a given key
+    iv = os.urandom(IV_LENGTH)
     # prepend unencrypted iv to the encrypted payload
     return iv + AESGCM(key).encrypt(iv, data, None)
 

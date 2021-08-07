@@ -8,9 +8,8 @@ import { Terminal as Xterm, IDisposable } from "xterm";
 import moment from "moment";
 import {
   aesDecrypt,
-  generateRSAKeyPair,
-  decryptRSAMessage,
   getAESKey,
+  getBootstrapAESKey,
   isIvExhausted,
 } from "./encryption";
 import { ToastContainer, toast } from "react-toastify";
@@ -581,14 +580,14 @@ function App() {
     useState<Nullable<TerminalServerData>>(null);
   const [numClients, setNumClients] = useState(0);
 
-  const rsaKeyPair = useRef<Nullable<CryptoKeyPair>>(null);
-
   const aesKeys = useRef<{
+    bootstrap: Nullable<CryptoKey>;
     browser: Nullable<CryptoKey>;
     unix: Nullable<CryptoKey>;
     ivCount: Nullable<number>;
     maxIvCount: Nullable<number>;
   }>({
+    bootstrap: null,
     browser: null,
     unix: null,
     ivCount: null,
@@ -695,7 +694,7 @@ function App() {
         console.error("no termpair server");
         return;
       }
-      rsaKeyPair.current = await generateRSAKeyPair();
+      aesKeys.current.bootstrap = await getBootstrapAESKey();
 
       try {
         const response = await fetch(
@@ -741,9 +740,7 @@ function App() {
       if (status !== "Ready for websocket connection") {
         return;
       }
-      if (
-        !(terminalServerData?.terminal_id && rsaKeyPair.current?.privateKey)
-      ) {
+      if (!(terminalServerData?.terminal_id && aesKeys.current.bootstrap)) {
         return;
       }
       if (!termpairWebsocketServer) {
@@ -799,16 +796,14 @@ function App() {
       );
       let onDataDispose: Nullable<IDisposable>;
       webSocket.addEventListener("open", async (event) => {
-        if (rsaKeyPair.current?.publicKey == null) {
+        if (aesKeys.current.bootstrap == null) {
           changeStatus("Developer Error: RSA key not ready");
           return;
         }
 
         changeStatus("Connected");
         webSocket.send(requestTerminalDimensions());
-        const newBrowserMessage = await newBrowserConnected(
-          rsaKeyPair.current.publicKey
-        );
+        const newBrowserMessage = await newBrowserConnected();
         webSocket.send(newBrowserMessage);
 
         /**
@@ -882,10 +877,9 @@ function App() {
             );
             return;
           }
-          const encryptedBase64Payload = data.payload;
           const decryptedPayload = await aesDecrypt(
             aesKeys.current.unix,
-            encryptedBase64Payload
+            Buffer.from(data.payload, "base64")
           );
           xterm.write(decryptedPayload);
         } else if (data.event === "resize") {
@@ -899,19 +893,19 @@ function App() {
           const num_clients = data.payload;
           setNumClients(num_clients);
         } else if (data.event === "aes_keys") {
-          if (!rsaKeyPair?.current?.privateKey) {
+          if (!aesKeys.current.bootstrap) {
             return;
           }
           try {
-            const unixAesKeyData = await decryptRSAMessage(
-              rsaKeyPair.current.privateKey,
-              Buffer.from(data.payload.b64_pk_unix_aes_key, "base64")
+            const unixAesKeyData = await aesDecrypt(
+              aesKeys.current.bootstrap,
+              Buffer.from(data.payload.b64_bootstrap_unix_aes_key, "base64")
             );
             aesKeys.current.unix = await getAESKey(unixAesKeyData, ["decrypt"]);
 
-            const browserAesKeyData = await decryptRSAMessage(
-              rsaKeyPair.current.privateKey,
-              Buffer.from(data.payload.b64_pk_browser_aes_key, "base64")
+            const browserAesKeyData = await aesDecrypt(
+              aesKeys.current.bootstrap,
+              Buffer.from(data.payload.b64_bootstrap_browser_aes_key, "base64")
             );
             aesKeys.current.browser = await getAESKey(browserAesKeyData, [
               "encrypt",
@@ -937,6 +931,7 @@ function App() {
                 `Initialized IV counter is below max value ${startIvCount} vs ${maxIvCount}`
               );
               aesKeys.current = {
+                ...aesKeys.current,
                 browser: null,
                 maxIvCount: null,
                 ivCount: null,
@@ -969,7 +964,7 @@ function App() {
             );
             const newBrowserAesKeyData = await aesDecrypt(
               aesKeys.current.unix,
-              data.payload.b64_aes_secret_browser_key
+              Buffer.from(data.payload.b64_aes_secret_browser_key, "base64")
             );
             aesKeys.current.browser = await getAESKey(newBrowserAesKeyData, [
               "encrypt",
