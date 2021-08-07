@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useLayoutEffect, useRef } from "react";
 import "xterm/css/xterm.css";
 import { Terminal as Xterm, IDisposable } from "xterm";
-import moment from "moment";
 import {
   aesDecrypt,
   getAESKey,
@@ -18,132 +17,13 @@ import {
   sendCommandToTerminal,
 } from "./events";
 import { LandingPageContent } from "./LandingPageContent";
-import { AesKeysRef } from "./types";
+import { AesKeysRef, Status, TerminalServerData, TerminalSize } from "./types";
 import { TopBar } from "./TopBar";
-
-function BottomBar(props: {
-  status: Status;
-  terminalData: Nullable<TerminalServerData>;
-  terminalId: Nullable<string>;
-  terminalSize: TerminalSize;
-  numClients: number;
-}) {
-  const connected = props.status === "Connected";
-  const hasTerminalId = props.terminalId != null;
-  const status = hasTerminalId ? <div>{props.status}</div> : null;
-
-  const canType = connected ? (
-    <div
-      title="Whether you are allowed to send data to the terminal's input.
-    This setting is controlled when initially sharing the terminal, and cannot be changed
-    after sharing has begun."
-    >
-      {props.terminalData?.allow_browser_control && props.status === "Connected"
-        ? "can type"
-        : "cannot type"}
-    </div>
-  ) : null;
-
-  const connectedClients = connected ? (
-    <div title="Number of other browsers connected to this terminal">
-      {props.numClients ? props.numClients : "0"} Connected Client(s)
-    </div>
-  ) : null;
-
-  const startTime = connected ? (
-    <div>
-      Started at{" "}
-      {moment(props.terminalData?.broadcast_start_time_iso).format(
-        "h:mm a on MMM Do, YYYY"
-      )}
-    </div>
-  ) : null;
-
-  const terminalDimensions = connected ? (
-    <span title="Dimensions of terminal, rows x cols">
-      {props.terminalSize.rows}x{props.terminalSize.cols}
-    </span>
-  ) : null;
-
-  return (
-    <>
-      <div
-        className={`flex ${
-          connected ? "bg-green-900" : "bg-red-900"
-        }   justify-evenly text-gray-300`}
-      >
-        {status}
-        {terminalDimensions}
-        {canType}
-        {connectedClients}
-        {startTime}
-      </div>
-      <div className="flex bg-black  justify-evenly text-gray-300 py-5">
-        <div>
-          <a href="https://chadsmith.dev">chadsmith.dev</a> |{" "}
-          <a href="https://github.com/cs01/termpair">GitHub</a>
-        </div>
-      </div>
-    </>
-  );
-}
-
-class ErrorBoundary extends React.Component<any, any> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: any) {
-    // Update state so the next render will show the fallback UI.
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: any, errorInfo: any) {
-    // You can also log the error to an error reporting service
-    // logErrorToMyService(error, errorInfo);
-    console.error(error);
-    console.error(errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      // You can render any custom fallback UI
-      return <h1 className="text-white">Something went wrong.</h1>;
-    }
-
-    return this.props.children;
-  }
-}
+import { ErrorBoundary } from "./ErrorBoundary";
+import { BottomBar } from "./BottomBar";
 
 const cannotTypeMsg =
   "Terminal was shared in read only mode. Unable to send data to terminal's input.";
-
-type Status =
-  | null
-  | "Connecting..."
-  | "Connected"
-  | "Disconnected"
-  | "Connection Error"
-  | "Terminal ID is invalid"
-  | "Browser is not running in a secure context"
-  | "No Terminal provided"
-  | "Failed to obtain encryption keys"
-  | "Ready for websocket connection"
-  | "Invalid encryption key"
-  | "Failed to fetch terminal data";
-
-type TerminalServerData = {
-  terminal_id: string;
-  allow_browser_control: boolean;
-  num_clients: number;
-  broadcast_start_time_iso: string;
-};
-
-type TerminalSize = {
-  rows: number;
-  cols: number;
-};
 
 const toastStatus = debounce((status: any) => {
   toast.dark(status);
@@ -730,22 +610,6 @@ function App() {
     </ErrorBoundary>
   );
 }
-
-// const instructions = [
-//   "To broadcast a terminal, run",
-//   "",
-//   `    ${pipxTermpairShareCommand}`,
-//   "",
-//   "Then open or share the url printed to the terminal.",
-//   "",
-//   "To install pipx, see https://pipxproject.github.io/pipx/",
-//   "All terminal data is end-to-end encrypted 🔒.",
-//   "The termpair server and third parties can't read transmitted data.",
-// ];
-
-// function writeInstructionsToXterm(xterm: Xterm) {
-//   instructions.forEach((line) => xterm.writeln(line));
-// }
 
 /**
  * The API to xterm.attachCustomKeyEventHandler is hardcoded. This function
