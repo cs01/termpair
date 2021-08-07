@@ -78,16 +78,18 @@ TermPair consists of three pieces:
 
 First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The server listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
 
-Before the TermPair client sends terminal output to the server, it creates two 128 bit AES encryption keys. One is used to encrypt the terminal's output to the browsers so the server cannot read it. The other is used by the browser when sending input from the browser to the terminal.
+Before the TermPair client sends terminal output to the server, it creates three 128 bit AES encryption keys:
+* The first is used to encrypt the terminal's output to the browsers so the server cannot read it.
+* The second is used by the browser when sending input from the browser to the terminal.
+* The third is a "bootstrap" key used by the browser to decrypt the initial connection response from the broadcasting terminal, which contains the above two keys encrypted with this third key. The browser obtains this bootstrap key via a [part of the url](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hash) that the server does not have access to, or via manual user input.
 
-The server then forwards that terminal data to connected browsers. When the browsers receive the data, they use the secret key to decrypt and display the terminal output.
+TermPair [forks](https://docs.python.org/3/library/pty.html#pty.fork) and starts a psuedo-terminal (pty) with the desired process, usually a shell like `bash` or `zsh`. TermPair reads data from the pty's file descriptor as it becomes available, then writes it to ther real terminal's stdout, and also encrypts it with key 1 (above) an sends it to the server.
 
-The browser obtains the secret AES keys without the server seeing them by using public key encryption. The browser generates an RSA key pair at runtime, then sends the public key to the broadcasting terminal. The broadcasting terminal responds with the AES keys encrypted with the public key.
+The server forwards the encrypted terminal data to connected browsers. When the browsers receive the data, they use the terminal's secret key to decrypt and display the terminal output.
 
-Both AES keys get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
+When a browser sends input to the terminal, it is encrypted in the browser with key #2, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the pty's file descriptor, as if it were being typed directly to the terminal.
 
-When a browser sends input to the terminal, it is encrypted in the browser, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the terminal's input.
-
+AES keys #1 and #2 get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
 
 ## Run With Latest Version
 

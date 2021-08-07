@@ -31,6 +31,7 @@ class AesKeys:
     message_count: int
 
     def __init__(self):
+        self.bootstrap_message_count = 0
         self.message_count = 0
         self.message_count_rotation_required = 2 ** 20
         self.browser_rotation_buffer_count = self.message_count_rotation_required * 0.1
@@ -39,16 +40,16 @@ class AesKeys:
         self.secret_browser_key = encryption.aes_generate_secret_key()
 
     def encrypt_bootstrap(self, plaintext: bytes):
+        self.bootstrap_message_count += 1
+        return encryption.aes_encrypt(
+            self.message_count, self.secret_bootstrap_key, plaintext
+        )
         return encryption.aes_encrypt_with_random(self.secret_bootstrap_key, plaintext)
-
-    def decrypt_bootstrap(self, ciphertext: bytes) -> str:
-        plaintext = encryption.aes_decrypt(self.secret_bootstrap_key, ciphertext)
-        return plaintext
 
     def encrypt(self, plaintext: bytes):
         self.message_count += 1
         # encrypt with our AES key
-        return encryption.aes_encrypt_with_counter(
+        return encryption.aes_encrypt(
             self.message_count, self.secret_unix_key, plaintext
         )
 
@@ -267,10 +268,8 @@ class SharingSession:
                                 {
                                     "event": "aes_keys",
                                     "payload": {
-                                        "echoed_payload": payload,
                                         "b64_bootstrap_unix_aes_key": b64_bootstrap_unix_aes_key,
                                         "b64_bootstrap_browser_aes_key": b64_bootstrap_browser_aes_key,
-                                        "encoding": "browser_public_key",
                                         "iv_count": iv_count,
                                         "max_iv_count": self.aes_keys.get_max_iv_for_browser(
                                             iv_count
@@ -308,11 +307,13 @@ class SharingSession:
         secret_key_b64 = base64.b64encode(self.aes_keys.secret_bootstrap_key).decode()
         msg = [
             "\033[1m\033[0;32mConnection established with end-to-end encryption\033[0m 🔒",
+            "",
+            "Shareable link: "
+            + self.get_share_url(self.url, self.terminal_id, secret_key_b64),
+            "",
             f"Terminal ID: {self.terminal_id}",
             f"Secret encryption key: {secret_key_b64}",
             f"TermPair Server URL: {self.url}",
-            "Sharable link (expires when this process ends): "
-            + self.get_share_url(self.url, self.terminal_id, secret_key_b64),
             "",
             "Type 'exit' or close terminal to stop sharing.",
         ]

@@ -34,15 +34,7 @@ export async function getBootstrapAESKey(): Promise<Nullable<CryptoKey>> {
       return null;
     }
     const keyData = Buffer.from(b64EncodedKey, "base64");
-    return await window.crypto.subtle.importKey(
-      "raw",
-      keyData,
-      {
-        name: "AES-GCM",
-      },
-      false, // extractable
-      ["encrypt", "decrypt"]
-    );
+    return await getAESKey(keyData, ["decrypt"]);
   } catch (e) {
     console.error(e);
     return null;
@@ -53,7 +45,6 @@ export async function aesDecrypt(
   secretcryptoKey: CryptoKey,
   encryptedPayload: Buffer
 ): Promise<Buffer> {
-
   // iv is prepended to encrypted payload
   const iv = encryptedPayload.subarray(0, IV_LENGTH);
 

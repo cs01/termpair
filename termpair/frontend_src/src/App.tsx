@@ -241,12 +241,20 @@ function LandingPageContent(props: {
   isStaticallyHosted: Nullable<boolean>;
   setCustomTermpairServer: (customServer: string) => void;
   setTerminalId: (newTerminalId: string) => void;
+  aesKeys: React.MutableRefObject<AesKeysRef>;
 }) {
   const [terminalIdInput, setTerminalIdInput] = React.useState("");
   const [customHostInput, setCustomHostInput] = React.useState("");
-  const connectToUserTerminal = () => {
+  const [bootstrapAesKeyB64Input, setBootstrapAesKeyB64Input] =
+    React.useState("");
+
+  const submitForm = async () => {
     if (!terminalIdInput) {
       toast.dark("Terminal ID cannot be empty");
+      return;
+    }
+    if (!bootstrapAesKeyB64Input) {
+      toast.dark("Secret key cannot be empty");
       return;
     }
     if (!props.isStaticallyHosted) {
@@ -260,6 +268,16 @@ function LandingPageContent(props: {
       new URL(customHostInput);
     } catch (e) {
       toast.dark(`${customHostInput} is not a valid url`);
+      return;
+    }
+    try {
+      const bootstrapKey = await getAESKey(
+        Buffer.from(bootstrapAesKeyB64Input, "base64"),
+        ["decrypt"]
+      );
+      props.aesKeys.current.bootstrap = bootstrapKey;
+    } catch (e) {
+      toast.dark(`Secret encryption key is not valid`);
       return;
     }
     props.setCustomTermpairServer(customHostInput);
@@ -282,11 +300,23 @@ function LandingPageContent(props: {
         }}
         value={terminalIdInput}
         placeholder="abcdef123456789abcded123456789"
-        onKeyPress={(e) => {
-          if (e.key === "Enter") {
-            connectToUserTerminal();
-          }
+      />
+    </div>
+  );
+  const bootstrapCryptoKeyInputEl = (
+    <div className="flex items-center" title="Base 64 encoded AES key">
+      <span className="py-2 m-2 whitespace-nowrap text-xl">
+        Secret encryption key
+      </span>
+      <input
+        name="bootstrapAesKeyB64Input"
+        placeholder="123456789abcded123456789"
+        type="text"
+        className={inputClass}
+        onChange={(event) => {
+          setBootstrapAesKeyB64Input(event.target.value);
         }}
+        value={bootstrapAesKeyB64Input}
       />
     </div>
   );
@@ -307,11 +337,6 @@ function LandingPageContent(props: {
           setCustomHostInput(event.target.value);
         }}
         value={customHostInput}
-        onKeyPress={(e) => {
-          if (e.key === "Enter") {
-            connectToUserTerminal();
-          }
-        }}
       />
     </div>
   );
@@ -333,6 +358,19 @@ function LandingPageContent(props: {
       </button>
     </div>
   );
+  const connectForm = (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submitForm();
+      }}
+    >
+      {terminalIdInputEl}
+      {bootstrapCryptoKeyInputEl}
+      {props.isStaticallyHosted ? terminalServerUrlEl : null}
+      {connectButton}
+    </form>
+  );
   const staticLandingContent = (
     <div className="py-2">
       <div className="text-2xl py-2">This page is statically hosted</div>
@@ -346,16 +384,7 @@ function LandingPageContent(props: {
         Connect to a broadcasting terminal by entering the fields below and
         clicking Connect.
       </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          connectToUserTerminal();
-        }}
-      >
-        {terminalIdInputEl}
-        {terminalServerUrlEl}
-        {connectButton}
-      </form>
+      {connectForm}
     </div>
   );
 
@@ -380,17 +409,9 @@ function LandingPageContent(props: {
       <div className="py-2">
         <div className="text-xl  py-2">Connecting to a Terminal?</div>
         If a terminal is already broadcasting and you'd like to connect to it,
-        you don't need to install or run anything. Just enter the Terminal ID
-        below and click Connect.
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            connectToUserTerminal();
-          }}
-        >
-          {terminalIdInputEl}
-          {connectButton}
-        </form>
+        you don't need to install or run anything. Just fill out the form below
+        and click Connect.
+        {connectForm}
       </div>
     </>
   );
@@ -449,7 +470,7 @@ type Status =
   | "No Terminal provided"
   | "Failed to obtain encryption keys"
   | "Ready for websocket connection"
-  | "Developer Error: RSA key not ready"
+  | "Invalid encryption key"
   | "Failed to fetch terminal data";
 
 type TerminalServerData = {
@@ -524,16 +545,12 @@ function handleStatusChange(
       xterm.writeln("");
       break;
 
-    case "Developer Error: RSA key not ready":
+    case "Invalid encryption key":
       toast.dark(
         <>
           <div>
-            Unexpected error: RSA Public key is not ready at time of websocket
-            connection. Please file an issue.
+            Secret encryption key is not provided. Cannot establish connection.
           </div>
-          <a href="https://github.com/cs01/termpair/issues">
-            https://github.com/cs01/termpair/issues
-          </a>
         </>,
         { autoClose: false }
       );
@@ -573,6 +590,13 @@ function handleStatusChange(
   return status as never;
 }
 
+type AesKeysRef = {
+  bootstrap: Nullable<CryptoKey>;
+  browser: Nullable<CryptoKey>;
+  unix: Nullable<CryptoKey>;
+  ivCount: Nullable<number>;
+  maxIvCount: Nullable<number>;
+};
 function App() {
   const [isStaticallyHosted, setIsStaticallyHosted] =
     useState<Nullable<boolean>>(null);
@@ -580,13 +604,7 @@ function App() {
     useState<Nullable<TerminalServerData>>(null);
   const [numClients, setNumClients] = useState(0);
 
-  const aesKeys = useRef<{
-    bootstrap: Nullable<CryptoKey>;
-    browser: Nullable<CryptoKey>;
-    unix: Nullable<CryptoKey>;
-    ivCount: Nullable<number>;
-    maxIvCount: Nullable<number>;
-  }>({
+  const aesKeys = useRef<AesKeysRef>({
     bootstrap: null,
     browser: null,
     unix: null,
@@ -635,7 +653,11 @@ function App() {
         setIsStaticallyHosted(true);
       }
     };
+    const assignBootstrapKey = async () => {
+      aesKeys.current.bootstrap = await getBootstrapAESKey();
+    };
     fetchIsStaticallyHosted();
+    assignBootstrapKey();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -694,8 +716,17 @@ function App() {
         console.error("no termpair server");
         return;
       }
-      aesKeys.current.bootstrap = await getBootstrapAESKey();
 
+      if (!aesKeys.current.bootstrap) {
+        const bootstrapKey = await getBootstrapAESKey();
+        if (bootstrapKey) {
+          // maybe a race condition?
+          aesKeys.current.bootstrap = bootstrapKey;
+        } else {
+          setStatus("Invalid encryption key");
+          return;
+        }
+      }
       try {
         const response = await fetch(
           new URL(`terminal/${terminalId}`, termpairHttpServer).toString()
@@ -740,11 +771,14 @@ function App() {
       if (status !== "Ready for websocket connection") {
         return;
       }
-      if (!(terminalServerData?.terminal_id && aesKeys.current.bootstrap)) {
+      if (!terminalServerData?.terminal_id) {
         return;
       }
       if (!termpairWebsocketServer) {
         return;
+      }
+      if (!aesKeys.current.bootstrap) {
+        changeStatus("Invalid encryption key");
       }
       changeStatus("Connecting...");
       const connectWebsocketUrl = new URL(
@@ -797,7 +831,7 @@ function App() {
       let onDataDispose: Nullable<IDisposable>;
       webSocket.addEventListener("open", async (event) => {
         if (aesKeys.current.bootstrap == null) {
-          changeStatus("Developer Error: RSA key not ready");
+          changeStatus("Invalid encryption key");
           return;
         }
 
@@ -991,9 +1025,12 @@ function App() {
   }, [terminalServerData, status]);
 
   const showLandingPage =
-    [null, "No Terminal provided", "Failed to fetch terminal data"].indexOf(
-      status
-    ) > -1 || isStaticallyHosted === null;
+    [
+      null,
+      "No Terminal provided",
+      "Failed to fetch terminal data",
+      "Invalid encryption key",
+    ].indexOf(status) > -1 || isStaticallyHosted === null;
 
   const content = (
     <div className="p-5 text-white flex-grow">
@@ -1002,6 +1039,7 @@ function App() {
           isStaticallyHosted={isStaticallyHosted}
           setCustomTermpairServer={setCustomTermpairServer}
           setTerminalId={setTerminalId}
+          aesKeys={aesKeys}
         />
       ) : (
         <div
