@@ -211,11 +211,10 @@ export function LandingPageContent(props: {
 
   const termpairDemoContent = (
     <div className="py-2">
-      <div className="text-xl  py-2">TermPair Demo</div>
-      <div>
+      <div className="text-xl py-2">TermPair Demo</div>
+      {/* https://www.themes.dev/blog/easily-embed-responsive-youtube-video-with-tailwind-css/ */}
+      <div className="aspect-w-16 aspect-h-9">
         <iframe
-          width="560"
-          height="315"
           src="https://www.youtube.com/embed/HF0UX4smrKk"
           title="YouTube video player"
           frameBorder="0"
