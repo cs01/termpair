@@ -8,7 +8,7 @@ export function BottomBar(props: {
   terminalSize: TerminalSize;
   numClients: number;
 }) {
-  const connected = props.status === "Connected";
+  const connected = props.status === "Connection Established";
   const hasTerminalId = props.terminalId != null;
   const status = hasTerminalId ? <div>{props.status}</div> : null;
 
@@ -18,7 +18,7 @@ export function BottomBar(props: {
       This setting is controlled when initially sharing the terminal, and cannot be changed
       after sharing has begun."
     >
-      {props.terminalData?.allow_browser_control && props.status === "Connected"
+      {props.terminalData?.allow_browser_control && connected
         ? "can type"
         : "cannot type"}
     </div>

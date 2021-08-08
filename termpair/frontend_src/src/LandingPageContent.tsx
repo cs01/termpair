@@ -1,28 +1,23 @@
 import React from "react";
 import { toast } from "react-toastify";
-import { TERMPAIR_VERSION } from "./constants";
+import {
+  defaultTermpairServer,
+  pipxTermpairShareCommand,
+  termpairShareCommand,
+  TERMPAIR_VERSION,
+} from "./constants";
 import { CopyCommand } from "./CopyCommand";
 import { getAESKey } from "./encryption";
-import { AesKeysRef } from "./types";
-
-const host = `${window.location.protocol}//${window.location.hostname}${window.location.pathname}`;
-let port = window.location.port;
-if (!window.location.port) {
-  if (window.location.protocol === "https:") {
-    port = "443";
-  } else {
-    port = "80";
-  }
-}
-
-const termpairShareCommand = `termpair share --host "${host}" --port ${port}`;
-const pipxTermpairShareCommand = `pipx run ${termpairShareCommand}`;
+import { websocketUrlFromHttpUrl } from "./utils";
 
 export function LandingPageContent(props: {
   isStaticallyHosted: Nullable<boolean>;
-  setCustomTermpairServer: (customServer: string) => void;
-  setTerminalId: (newTerminalId: string) => void;
-  aesKeys: React.MutableRefObject<AesKeysRef>;
+  connectToTerminalAndWebsocket: (
+    terminalId: string,
+    termpairWebsocketServer: URL,
+    termpairHttpServer: URL,
+    bootstrapAesKey: CryptoKey
+  ) => Promise<void>;
 }) {
   const [terminalIdInput, setTerminalIdInput] = React.useState("");
   const [customHostInput, setCustomHostInput] = React.useState("");
@@ -38,31 +33,45 @@ export function LandingPageContent(props: {
       toast.dark("Secret key cannot be empty");
       return;
     }
-    if (!props.isStaticallyHosted) {
-      props.setTerminalId(terminalIdInput);
-    }
-    if (!customHostInput) {
-      toast.dark("Host name cannot be empty");
-      return;
-    }
-    try {
-      new URL(customHostInput);
-    } catch (e) {
-      toast.dark(`${customHostInput} is not a valid url`);
-      return;
-    }
-    try {
-      const bootstrapKey = await getAESKey(
-        Buffer.from(bootstrapAesKeyB64Input, "base64"),
-        ["decrypt"]
+    if (props.isStaticallyHosted) {
+      if (!customHostInput) {
+        toast.dark("Host name cannot be empty");
+        return;
+      } else {
+        try {
+          new URL(customHostInput);
+        } catch (e) {
+          toast.dark(`${customHostInput} is not a valid url`);
+          return;
+        }
+      }
+      let bootstrapKey;
+      try {
+        bootstrapKey = await getAESKey(
+          Buffer.from(bootstrapAesKeyB64Input, "base64"),
+          ["decrypt"]
+        );
+      } catch (e) {
+        toast.dark(`Secret encryption key is not valid`);
+        return;
+      }
+      let termpairHttpServer: URL;
+      if (props.isStaticallyHosted) {
+        const customServer = new URL(customHostInput);
+        termpairHttpServer = customServer;
+      } else {
+        termpairHttpServer = defaultTermpairServer;
+      }
+      const termpairWebsocketServer =
+        websocketUrlFromHttpUrl(termpairHttpServer);
+
+      await props.connectToTerminalAndWebsocket(
+        terminalIdInput,
+        termpairWebsocketServer,
+        termpairHttpServer,
+        bootstrapKey
       );
-      props.aesKeys.current.bootstrap = bootstrapKey;
-    } catch (e) {
-      toast.dark(`Secret encryption key is not valid`);
-      return;
     }
-    props.setCustomTermpairServer(customHostInput);
-    props.setTerminalId(terminalIdInput);
   };
   const inputClass = "text-black px-2 py-3 m-2 w-full font-mono";
 
@@ -122,9 +131,12 @@ export function LandingPageContent(props: {
     </div>
   );
 
-  const canConnect = props.isStaticallyHosted
-    ? terminalIdInput.length !== 0
-    : terminalIdInput.length !== 0 && customHostInput.length !== 0;
+  const canConnect =
+    terminalIdInput.length !== 0 &&
+    bootstrapAesKeyB64Input.length > 0 &&
+    props.isStaticallyHosted
+      ? customHostInput.length !== 0
+      : true;
 
   const connectButton = (
     <div className="flex justify-end">

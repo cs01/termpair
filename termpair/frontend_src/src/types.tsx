@@ -1,5 +1,4 @@
 export type AesKeysRef = {
-  bootstrap: Nullable<CryptoKey>;
   browser: Nullable<CryptoKey>;
   unix: Nullable<CryptoKey>;
   ivCount: Nullable<number>;
@@ -9,15 +8,12 @@ export type AesKeysRef = {
 export type Status =
   | null
   | "Connecting..."
-  | "Connected"
+  | "Connection Established"
   | "Disconnected"
   | "Connection Error"
   | "Terminal ID is invalid"
   | "Browser is not running in a secure context"
-  | "No Terminal provided"
   | "Failed to obtain encryption keys"
-  | "Ready for websocket connection"
-  | "Invalid encryption key"
   | "Failed to fetch terminal data";
 
 export type TerminalSize = {
