@@ -26,7 +26,9 @@ export function TopBar(props: any) {
       </div>
       <div className="flex">
         <span className="text-gray-300 mx-3">v{TERMPAIR_VERSION}</span>
-        <a href="https://github.com/cs01/termpair">{githubLogo}</a>
+        <a href="https://github.com/cs01/termpair" title="GitHub homepage">
+          {githubLogo}
+        </a>
       </div>
     </div>
   );
