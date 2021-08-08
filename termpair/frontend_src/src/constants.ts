@@ -10,6 +10,11 @@ export const defaultTerminalId = new URLSearchParams(
   window.location.search
 ).get("terminal_id");
 
+export const defaultBootstrapb64Key = window.location.hash.substring(
+  1, // skip the '#' symbol
+  window.location.hash.length - 1
+);
+
 export const cannotTypeMsg =
   "Terminal was shared in read only mode. Unable to send data to terminal's input.";
 

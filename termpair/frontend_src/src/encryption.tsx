@@ -1,6 +1,8 @@
 // Symmetric encryption with aes gcm
 // https://github.com/mdn/dom-examples/blob/master/web-crypto/encrypt-decrypt/aes-gcm.js
 
+import { defaultBootstrapb64Key } from "./constants";
+
 const IV_LENGTH = 12;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -26,14 +28,10 @@ export async function getAESKey(
 
 export async function getBootstrapAESKey(): Promise<Nullable<CryptoKey>> {
   try {
-    const b64EncodedKey = window.location.hash.substring(
-      1, // skip the '#' symbol
-      window.location.hash.length - 1
-    );
-    if (!b64EncodedKey) {
+    if (!defaultBootstrapb64Key) {
       return null;
     }
-    const keyData = Buffer.from(b64EncodedKey, "base64");
+    const keyData = Buffer.from(defaultBootstrapb64Key, "base64");
     return await getAESKey(keyData, ["decrypt"]);
   } catch (e) {
     console.error(e);

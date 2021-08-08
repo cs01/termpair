@@ -1,6 +1,8 @@
 import React from "react";
 import { toast } from "react-toastify";
 import {
+  defaultBootstrapb64Key,
+  defaultTerminalId,
   defaultTermpairServer,
   pipxTermpairShareCommand,
   termpairShareCommand,
@@ -19,10 +21,13 @@ export function LandingPageContent(props: {
     bootstrapAesKey: CryptoKey
   ) => Promise<void>;
 }) {
-  const [terminalIdInput, setTerminalIdInput] = React.useState("");
+  const [terminalIdInput, setTerminalIdInput] = React.useState(
+    defaultTerminalId || ""
+  );
   const [customHostInput, setCustomHostInput] = React.useState("");
-  const [bootstrapAesKeyB64Input, setBootstrapAesKeyB64Input] =
-    React.useState("");
+  const [bootstrapAesKeyB64Input, setBootstrapAesKeyB64Input] = React.useState(
+    defaultBootstrapb64Key
+  );
 
   const submitForm = async () => {
     if (!terminalIdInput) {
@@ -33,45 +38,42 @@ export function LandingPageContent(props: {
       toast.dark("Secret key cannot be empty");
       return;
     }
+    let termpairHttpServer: URL;
     if (props.isStaticallyHosted) {
       if (!customHostInput) {
         toast.dark("Host name cannot be empty");
         return;
-      } else {
-        try {
-          new URL(customHostInput);
-        } catch (e) {
-          toast.dark(`${customHostInput} is not a valid url`);
-          return;
-        }
       }
-      let bootstrapKey;
       try {
-        bootstrapKey = await getAESKey(
-          Buffer.from(bootstrapAesKeyB64Input, "base64"),
-          ["decrypt"]
-        );
-      } catch (e) {
-        toast.dark(`Secret encryption key is not valid`);
-        return;
-      }
-      let termpairHttpServer: URL;
-      if (props.isStaticallyHosted) {
         const customServer = new URL(customHostInput);
         termpairHttpServer = customServer;
-      } else {
-        termpairHttpServer = defaultTermpairServer;
+      } catch (e) {
+        toast.dark(`${customHostInput} is not a valid url`);
+        return;
       }
-      const termpairWebsocketServer =
-        websocketUrlFromHttpUrl(termpairHttpServer);
-
-      await props.connectToTerminalAndWebsocket(
-        terminalIdInput,
-        termpairWebsocketServer,
-        termpairHttpServer,
-        bootstrapKey
-      );
+    } else {
+      termpairHttpServer = defaultTermpairServer;
     }
+
+    let bootstrapKey;
+    try {
+      bootstrapKey = await getAESKey(
+        Buffer.from(bootstrapAesKeyB64Input, "base64"),
+        ["decrypt"]
+      );
+    } catch (e) {
+      toast.dark(`Secret encryption key is not valid`);
+      return;
+    }
+
+    const termpairWebsocketServer = websocketUrlFromHttpUrl(termpairHttpServer);
+
+    await props.connectToTerminalAndWebsocket(
+      terminalIdInput,
+      termpairWebsocketServer,
+      termpairHttpServer,
+      bootstrapKey
+    );
   };
   const inputClass = "text-black px-2 py-3 m-2 w-full font-mono";
 
