@@ -1,5 +1,9 @@
 import { aesEncrypt } from "./encryption";
 
+function getSalt(): string {
+  return window.crypto.getRandomValues(new Uint8Array(12)).toString();
+}
+
 export function requestTerminalDimensions() {
   return JSON.stringify({ event: "request_terminal_dimensions" });
 }
@@ -17,7 +21,11 @@ export async function sendCommandToTerminal(
 ) {
   return JSON.stringify({
     event: "command",
-    payload: await aesEncrypt(secretEncryptionKey, data, messageCount),
+    payload: await aesEncrypt(
+      secretEncryptionKey,
+      JSON.stringify({ data, salt: getSalt() }),
+      messageCount
+    ),
   });
 }
 

@@ -25,11 +25,13 @@ export const handlers = {
       );
       return;
     }
-    const decryptedPayload = await aesDecrypt(
+    const decryptedJson = await aesDecrypt(
       aesKeys.current.unix,
       Buffer.from(data.payload, "base64")
     );
-    xterm.write(decryptedPayload);
+    const decryptedPayload = JSON.parse(decryptedJson.toString());
+    const pty_output = Buffer.from(decryptedPayload.pty_output, "base64");
+    xterm.write(pty_output);
   },
   resize: function (
     data: any,

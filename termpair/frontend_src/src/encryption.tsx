@@ -4,7 +4,8 @@
 import { defaultBootstrapb64Key } from "./constants";
 
 const IV_LENGTH = 12;
-
+type Base64String = string;
+type EncryptedBase64String = string;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ab2str(buf: ArrayBuffer): string {
   // @ts-ignore
@@ -84,7 +85,7 @@ export async function aesEncrypt(
   browserSecretAESKey: CryptoKey,
   utf8Payload: string,
   ivCount: number
-) {
+): Promise<EncryptedBase64String> {
   // The same iv must never be reused with a given key
   const iv = ivFromInteger(ivCount);
   const encryptedArrayBuffer = await window.crypto.subtle.encrypt(
@@ -116,7 +117,7 @@ function _combineBuffers(
   return tmp.buffer;
 }
 
-function _arrayBufferToBase64(buffer: ArrayBuffer) {
+function _arrayBufferToBase64(buffer: ArrayBuffer): Base64String {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   const len = bytes.byteLength;

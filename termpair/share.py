@@ -234,8 +234,9 @@ class SharingSession:
                     if self.allow_browser_control:
                         try:
                             encrypted_payload = base64.b64decode(payload)
-                            data_to_write = self.aes_keys.decrypt(encrypted_payload)
-                            os.write(self.pty_fd, data_to_write.encode())
+                            json_data = self.aes_keys.decrypt(encrypted_payload)
+                            data = json.loads(json_data)["data"]
+                            os.write(self.pty_fd, data.encode())
                         except Exception:
                             pass
                 elif event == "request_terminal_dimensions":
@@ -356,10 +357,20 @@ class SharingSession:
             os.write(self.stdout_fd, pty_output)
 
             # also forward output to the server so it can forward to connected browsers
-            encrypted_payload = self.aes_keys.encrypt(pty_output)
-            encrypted_base64_payload = base64.b64encode(encrypted_payload).decode()
+            plaintext_payload = json.dumps(
+                {
+                    "pty_output": base64.b64encode(pty_output).decode(),
+                    "salt": base64.b64encode(os.urandom(12)).decode("utf8"),
+                }
+            )
+            encrypted_payload = self.aes_keys.encrypt(plaintext_payload.encode())
             ws_queue.put_nowait(
-                json.dumps({"event": "new_output", "payload": encrypted_base64_payload})
+                json.dumps(
+                    {
+                        "event": "new_output",
+                        "payload": base64.b64encode(encrypted_payload).decode(),
+                    }
+                )
             )
             if self.aes_keys.need_rotation:
                 self.aes_keys.rotate_keys()
