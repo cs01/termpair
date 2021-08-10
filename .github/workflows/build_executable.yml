@@ -2,7 +2,7 @@ name: build executable
 
 on:
   workflow_dispatch:
-  push:
+
 env:
   default-python: 3.9
 
