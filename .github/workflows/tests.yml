@@ -8,7 +8,7 @@ on:
   push:
 
 env:
-  default-python: 3.8
+  default-python: 3.9
 
 jobs:
   python-lint:
@@ -32,11 +32,11 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8]
+        python-version: [3.9]
         node-version: [12.x]
         include:
           - os: macos-latest
-            python-version: 3.8
+            python-version: 3.9
             node-version: 12.x
 
     steps:
