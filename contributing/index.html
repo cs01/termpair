@@ -12,7 +12,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.6">
+      <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.2.3">
     
     
       
@@ -20,10 +20,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.875de78c.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.f7f47774.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.f1a3b89f.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.3f5d1f46.min.css">
         
       
     
@@ -40,6 +40,8 @@
     
     
       
+
+
     
     
   </head>
@@ -108,14 +110,18 @@
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
       </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
@@ -266,15 +272,15 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#contributing-documentation" class="md-nav__link">
-    Contributing documentation
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing-new-versions-to-pypi" class="md-nav__link">
+    Releasing new versions to PyPI
+  </a>
   
 </li>
       
@@ -355,15 +361,15 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#contributing-documentation" class="md-nav__link">
-    Contributing documentation
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing-new-versions-to-pypi" class="md-nav__link">
+    Releasing new versions to PyPI
+  </a>
   
 </li>
       
@@ -392,44 +398,53 @@
                 
                 
                 <h1 id="contributing-guidelines">Contributing guidelines</h1>
-<p>We're glad to see you here! This short document should give you some hints to get started with contributing to TermPair.</p>
+<p>This short document should give you some hints to get started with contributing to TermPair.</p>
 <h2 id="getting-started">Getting started</h2>
-<p>First, fork the repo and clone it to your computer, then read the section you're interested in. 👍</p>
+<p>First, fork the repo and clone it to your computer, then read the section you're interested in.</p>
 <h3 id="contributing-python-code">Contributing Python code</h3>
-<p>Install <a href="https://pypi.org/project/nox/">nox</a>, then run the server with:</p>
+<p>Install <a href="https://pypi.org/project/nox/">nox</a>.</p>
+<p>You can run the server from source with:</p>
 <div class="codehilite"><pre><span></span><code>nox -s serve
 </code></pre></div>
 
-<p>After the server is running, you can share your terminal to it:</p>
+<p>After the server is running, you can share your terminal to it by running the client code from source:</p>
 <div class="codehilite"><pre><span></span><code>nox -s broadcast
 </code></pre></div>
 
 <p>Then type <code>exit</code> to stop broadcasting.</p>
 <h3 id="contributing-frontend-code">Contributing frontend code</h3>
-<p>To modify frontend code, get <a href="https://yarnpkg.com/en/">yarn</a> and run:</p>
-<div class="codehilite"><pre><span></span><code>make install_frontend
+<p>To modify frontend code, get <a href="https://yarnpkg.com/en/">yarn</a>.</p>
+<p>Next go to the directory <code>termpair/frontend_src</code> and run</p>
+<div class="codehilite"><pre><span></span><code>yarn install
 </code></pre></div>
 
 <p>to install dependencies.</p>
-<p>You'll then be able to build the frontend app using:</p>
-<div class="codehilite"><pre><span></span><code>make build_frontend
+<p>You'll then be able to view and hot reload changes to the frontend app using:</p>
+<div class="codehilite"><pre><span></span><code>yarn start
 </code></pre></div>
 
 <p>The TermPair server does not need to be reloaded, so you can just refresh the webpage to view changes.</p>
-<p>Alternatively, changes that don't require an actively connected terminal can be tested much more easily with hot reloading by running:</p>
-<div class="codehilite"><pre><span></span><code>make watch_frontend
+<p>If you want to connect a terminal to the frontend, in a new terminal run</p>
+<div class="codehilite"><pre><span></span><code>nox -s serve
 </code></pre></div>
 
-<h3 id="contributing-documentation">Contributing documentation</h3>
-<p>TermPair's documentation is built with <a href="https://www.mkdocs.org">MkDocs</a> and the <a href="https://squidfunk.github.io/mkdocs-material/">MkDocs Material theme</a> and is in the <code>docs/</code> directory.</p>
-<p>To view documentation locally, run:</p>
-<div class="codehilite"><pre><span></span><code>nox -s watch_docs
+<p>then share a terminal with</p>
+<div class="codehilite"><pre><span></span><code>nox -s broadcast
+</code></pre></div>
+
+<p>open the browser at <code>http://localhost:3000</code> and enter the terminal id and url (<code>http://localhost:8000</code>).</p>
+<p>If you are testing something that needs a full build, you can build and statically serve the frontend with</p>
+<div class="codehilite"><pre><span></span><code>yarn build
+</code></pre></div>
+
+<h2 id="releasing-new-versions-to-pypi">Releasing new versions to PyPI</h2>
+<div class="codehilite"><pre><span></span><code>nox -s publish
 </code></pre></div>
 
 <h2 id="proposing-changes">Proposing changes</h2>
 <p>If you've found a bug, have a feature request, or would like to contribute documentation, here's what you can do to have your change merged in:</p>
 <ol>
-<li>(Recommended) If the problem is non-trivial, you should <a href="https://github.com/cs01/termpair/issues/new">open an issue</a> to discuss it with maintainers.</li>
+<li>(Recommended) If the problem is non-trivial, you should <a href="https://github.com/cs01/termpair/issues/new">open an issue</a> to discuss it</li>
 <li>Work on a separate branch, and make sure tests pass before pushing them to the remote.</li>
 <li><a href="https://github.com/cs01/termpair/compare">Open a pull request</a> with your changes.</li>
 </ol>
@@ -451,7 +466,8 @@
   
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
-        <a href=".." class="md-footer__link md-footer__link--prev" rel="prev">
+        
+        <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -466,7 +482,8 @@
         </a>
       
       
-        <a href="../changelog/" class="md-footer__link md-footer__link--next" rel="next">
+        
+        <a href="../changelog/" class="md-footer__link md-footer__link--next" aria-label="Next: Changelog" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
@@ -501,10 +518,10 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}, "search": "../assets/javascripts/workers/search.d351de03.min.js", "version": null}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.709b4209.min.js", "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.34eae1b6.min.js"></script>
+      <script src="../assets/javascripts/bundle.29db7785.min.js"></script>
       
     
   </body>
