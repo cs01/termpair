@@ -27,7 +27,7 @@ setup(
     name="termpair",
     version=get_version(),
     author="Chad Smith",
-    author_email="grassfedcode@gmail.com",
+    author_email="chadsmith.software@gmail.com",
     description="View and control remote terminals from your browser with end-to-end encryption",
     long_description=README,
     long_description_content_type="text/markdown",
