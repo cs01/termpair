@@ -4,6 +4,7 @@ import {
   defaultBootstrapb64Key,
   defaultTerminalId,
   defaultTermpairServer,
+  localStorageKeys,
   pipxTermpairShareCommand,
   termpairShareCommand,
   TERMPAIR_VERSION,
@@ -22,11 +23,15 @@ export function LandingPageContent(props: {
   ) => Promise<void>;
 }) {
   const [terminalIdInput, setTerminalIdInput] = React.useState(
-    defaultTerminalId || ""
+    defaultTerminalId ?? localStorage.getItem(localStorageKeys.terminalId) ?? ""
   );
-  const [customHostInput, setCustomHostInput] = React.useState("");
+  const [customHostInput, setCustomHostInput] = React.useState(
+    localStorage.getItem(localStorageKeys.host) ?? ""
+  );
   const [bootstrapAesKeyB64Input, setBootstrapAesKeyB64Input] = React.useState(
-    defaultBootstrapb64Key
+    (defaultBootstrapb64Key ||
+      localStorage.getItem(localStorageKeys.bootstrapAesKeyB64)) ??
+      ""
   );
 
   const submitForm = async () => {
@@ -34,6 +39,7 @@ export function LandingPageContent(props: {
       toast.dark("Terminal ID cannot be empty");
       return;
     }
+    localStorage.setItem(localStorageKeys.terminalId, terminalIdInput);
     if (!bootstrapAesKeyB64Input) {
       toast.dark("Secret key cannot be empty");
       return;
@@ -47,6 +53,7 @@ export function LandingPageContent(props: {
       try {
         const customServer = new URL(customHostInput);
         termpairHttpServer = customServer;
+        localStorage.setItem(localStorageKeys.host, customHostInput);
       } catch (e) {
         toast.dark(`${customHostInput} is not a valid url`);
         return;
@@ -60,6 +67,10 @@ export function LandingPageContent(props: {
       bootstrapKey = await getAESKey(
         Buffer.from(bootstrapAesKeyB64Input, "base64"),
         ["decrypt"]
+      );
+      localStorage.setItem(
+        localStorageKeys.bootstrapAesKeyB64,
+        bootstrapAesKeyB64Input
       );
     } catch (e) {
       toast.dark(`Secret encryption key is not valid`);

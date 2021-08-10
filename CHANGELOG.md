@@ -1,3 +1,6 @@
+## 0.3.1.0
+* [feature] Store user input values of the terminal id, key, and host, and restore them when the page loads
+
 ## 0.3.0.0
 **Breaking API Changes**
 In this version, TermPair clients from previous versions cannot connect to this TermPair server
