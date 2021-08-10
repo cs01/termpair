@@ -3,7 +3,7 @@ from pathlib import Path
 import nox  # type: ignore
 
 
-python = "3.8"
+python = ["3.8", "3.9"]
 nox.options.sessions = ["lint"]
 nox.options.reuse_existing_virtualenvs = True
 
