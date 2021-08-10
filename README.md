@@ -22,6 +22,21 @@ TermPair lets developers securely share and control terminals in real time.
    <a href="https://github.com/cs01/termpair/raw/master/termpair_browser.gif"> <img src="https://github.com/cs01/termpair/raw/master/termpair_browser.gif"/></a>
 </div>
 
+## Features
+✔️ Share unix terminals
+
+✔️ Can type from Terminal or Browser
+
+✔️ Multiple browsers can connect simultaneously
+
+✔️ Read+Write or Read only mode
+
+✔️ Server cannot read terminal data even if it wanted to, since it is encrypted with AES 128 bit encryption
+
+✔️ Secure web environment required (https)
+
+✔️ Optional static-site hosting -- build the web app yourself to ensure the integrity of the web app
+
 ## Usage
 
 First start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
@@ -30,11 +45,6 @@ The server is used to route encrypted data between terminals and connected brows
 
 ```
 > termpair serve --port 8000
-INFO:     Started server process [25289]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
-INFO:     ('127.0.0.1', 51924) - "WebSocket /connect_to_terminal" [accepted]
 ```
 
 Now that you have the server running, you can share your terminal by running `termpair share`.
@@ -43,57 +53,48 @@ This connects your terminal to the server, and allows browsers to access the ter
 
 ```
 > termpair share
----------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 Connection established with end-to-end encryption 🔒
-Terminal ID: e8add1d61a63599b91c0f5ba8779319d
+
+Shareable link: http://localhost:8000/?terminal_id=d58ff4eed5aa9425e944abe63214382e#g8hSgHnDaBtiWKTeH4I0Ow==
+
+Terminal ID: d58ff4eed5aa9425e944abe63214382e
+Secret encryption key: g8hSgHnDaBtiWKTeH4I0Ow==
 TermPair Server URL: http://localhost:8000/
-Sharable link (expires when this process ends):
-  http://localhost:8000/?terminal_id=e8add1d61a63599b91c0f5ba8779319d
+
 Type 'exit' or close terminal to stop sharing.
----------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 ```
 
-The URL printed contains a unique terminal ID. You can share the URL with whoever you like. **Anyone who has it can access your terminal while the `termpair share` process is running.**
+The URL printed contains a unique terminal ID and encryption key. You can share the URL with whoever you like. **Anyone who has it can access your terminal while the `termpair share` process is running,** so be sure you trust the person you are sharing the link with.
 
 The server multicasts terminal output to all browsers that connect to the session.
 
-## Security
+## System Requirements
 
-TermPair uses end-to-end encryption for all terminal input and output, meaning the server *never* has access to the raw input or output of the terminal.
+Python: 3.6+
 
-The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running with secure http traffic (https) or on localhost.
+Operating Systems: Linux, macOS
 
-## How it Works
+## Installation
 
-<div style="text-align: center">
-    <a href="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png">
-    <img src="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png"/></a>
-</div>
+You can install using [pipx](https://github.com/pipxproject/pipx), which installs Python applications in isolated environments (recommended):
 
-TermPair consists of three pieces:
+```
+> pipx install termpair
+```
 
-1. terminal client
-2. server
-3. browser client(s)
+or install with [pip](https://pip.pypa.io/en/stable/)
 
-First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The server listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
+```
+> pip install termpair
+```
 
-Before the TermPair client sends terminal output to the server, it creates three 128 bit AES encryption keys:
-* The first is used to encrypt the terminal's output to the browsers so the server cannot read it.
-* The second is used by the browser when sending input from the browser to the terminal.
-* The third is a "bootstrap" key used by the browser to decrypt the initial connection response from the broadcasting terminal, which contains the above two keys encrypted with this third key. The browser obtains this bootstrap key via a [part of the url](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hash) that the server does not have access to, or via manual user input.
-
-TermPair [forks](https://docs.python.org/3/library/pty.html#pty.fork) and starts a psuedo-terminal (pty) with the desired process, usually a shell like `bash` or `zsh`. TermPair reads data from the pty's file descriptor as it becomes available, then writes it to ther real terminal's stdout, and also encrypts it with key 1 (above) an sends it to the server.
-
-The server forwards the encrypted terminal data to connected browsers. When the browsers receive the data, they use the terminal's secret key to decrypt and display the terminal output.
-
-When a browser sends input to the terminal, it is encrypted in the browser with key #2, forwarded from the server to the terminal, then decrypted in the terminal by TermPair, and finally written to the pty's file descriptor, as if it were being typed directly to the terminal.
-
-AES keys #1 and #2 get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
+Note: Make sure the TermPair server you are broadcasting to is running the same major version as the broadcasting terminal (see `termpair --version`).
 
 ## Run With Latest Version
 
-Use [pipx](https://github.com/pipxproject/pipx) to run the latest version without installing:
+You can also use [pipx](https://github.com/pipxproject/pipx) to directly run the latest version without installing:
 
 Serve:
 ```
@@ -105,21 +106,64 @@ Then share:
 > pipx run termpair share --open-browser
 ```
 
-Note: pipx caches installations for a few days. To ignore the cache and force a fresh installation, use `pipx run --no-cache termpair ...`.
+Note: Make sure the TermPair server you are broadcasting to is running the same major version as the broadcasting terminal (see `pipx run termpair --version`). You can specify the version with `pipx run --spec termpair==$VERSION termpair ...`.
 
-## Installation
+## Security
 
-You can install using [pipx](https://github.com/pipxproject/pipx):
+TermPair uses end-to-end encryption for all terminal input and output, meaning the server *never* has access to the raw input or output of the terminal, nor does it have access to encryption keys (other than the https connection).
 
+The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running with secure http traffic (https) or on localhost.
+
+### Static Hosting
+As an optional additional security measure, TermPair supports statically serving the JavaScript web app.
+
+In this arrangement, you can build the TermPair web app yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app.
+
+When you open it you then specify the Terminal ID, encryption key, and TermPair server host to connect to.
+
+You can try it out or just see what it looks like with a GitHub page from this project, [https://cs01.github.io/termpair/connect/](https://cs01.github.io/termpair/connect/).
+
+If you'd like to build web app yourself, see [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md).
+
+Then you can self-serve with
+```shell
+$ cd termpair/termpair/frontend_build
+$ python3 -m http.server 7999 --bind 127.0.0.1
+# Serves at http://127.0.01:7999
 ```
-> pipx install termpair
-```
+or you can deploy to GitHub pages, Vercel, etc.
 
-or install with [pip](https://pip.pypa.io/en/stable/)
+## How it Works
 
-```
-> pip install termpair
-```
+<div style="text-align: center">
+    <a href="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png">
+    <img src="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png"/></a>
+</div>
+
+TermPair consists of three pieces:
+
+1. server
+2. terminal client
+3. JavaScript web app running in browser client(s)
+
+### Server
+First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The server listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
+
+### Terminal Client
+When a user wants to share their terminal, they run `termpair share` to start the client. The TermPair client registers this session with the server, then [forks](https://docs.python.org/3/library/pty.html#pty.fork) and starts a psuedo-terminal (pty) with the desired process, usually a shell like `bash` or `zsh`. TermPair reads data from the pty's file descriptor as it becomes available, then writes it to ther real terminal's stdout, where it is printed like normal. However, it also encrypts this output and sends it to the server via a websocket.
+
+### Encryption
+The TermPair client creates three 128 bit AES encryption keys when it starts:
+* The first is used to encrypt the terminal's output to the browsers so the server cannot read it.
+* The second is used by the browser when sending input from the browser to the terminal.
+* The third is a "bootstrap" key used by the browser to decrypt the initial connection response from the broadcasting terminal, which contains the above two keys encrypted with this third key. The browser obtains this bootstrap key via a [part of the url](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hash) that the server does not have access to, or via manual user input.
+
+### Web App
+The TermPair client provides the user with a unique URL for the duration of the shaing session. That URL points to the TermPair web application that sets up a websocket connection to receive and send the encrypted terminal data. When data is received, it is decrypted and written to a browser-based terminal.
+
+When a users types in the browser's terminal, it is encrypted in the browser with key #2, sent to the server, forwarded from the server to the terminal, then decrypted in the terminal by TermPair. Finally, the TermPair client writes it to the pty's file descriptor, as if it were being typed directly to the terminal.
+
+AES keys #1 and #2 get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
 
 ## Serving with NGINX
 Running behind an nginx proxy can be done with the following configuration.
@@ -153,19 +197,39 @@ server {
 }
 ```
 
-## Static Hosting
-As an optional additional security measure, TermPair supports staticallly serving the JavaScript web app. In this arrangement, you can build the webapp yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app.
+## Running as a systemd service
+If you use systemd to manage services, here is an exampe configuration you can use.
 
-Then, you can connect to it and specify the Terminal ID and TermPair server that routes the encrypted data.
+This configuration assumes you've installed TermPair to `/home/$USER/.local/bin/termpair` and saved the file to `/etc/systemd/system/termpair.service`.
 
-To build the web app, see [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md). You can try the one being served at [https://cs01.github.io/termpair/site/connect/](https://cs01.github.io/termpair/site/connect/).
+```toml
+# /etc/systemd/system/termpair.service
 
-Then you can deploy to GitHub pages, Vercel, etc. or self-serve with
-```shell
-$ cd termpair/termpair/frontend_build
-$ python3 -m http.server 7999 --bind 127.0.0.1
+# https://www.freedesktop.org/software/systemd/man/systemd.service.html
+[Unit]
+Description=
+After=network.target
+
+[Service]
+User=$USER
+Group=www-data
+WorkingDirectory=/var/www/termpair/
+PermissionsStartOnly=true
+ExecStart=/home/$USER/.local/bin/termpair -s serve
+ExecStop=
+Restart=on-failure
+RestartSec=1s
+
+[Install]
+WantedBy=multi-user.target
 ```
 
+After saving, you can use `systemctl` to start your `systemd` service:
+```
+sudo systemctl daemon-reload
+sudo systemctl enable termpair.service
+sudo systemctl restart termpair
+```
 
 ## CLI API
 
@@ -230,15 +294,4 @@ optional arguments:
                         remotely (default: False)
   --open-browser, -b    Open a browser tab to the terminal after you start
                         sharing (default: False)
-
 ```
-
-## System Requirements
-
-Python: 3.6+
-
-Operating System:
-
-- To view/control from the browser: All operating systems are supported.
-- To run the server, `termpair serve`: Tested on Linux and macOS. Likely works on Windows.
-- To share your terminal, `termpair share`: Tested on Linux and macOS. Likely does not work on Windows.
