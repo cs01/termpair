@@ -78,6 +78,10 @@ Operating Systems: Linux, macOS
 
 ## Installation
 
+### Option 1: Download executable
+Download from the [release](https://github.com/cs01/termpair/releases) page. You may have to run `chmod +x` before you can run it.
+
+### Option 2: Install Using `pipx` or `pip`
 You can install using [pipx](https://github.com/pipxproject/pipx), which installs Python applications in isolated environments (recommended):
 
 ```
