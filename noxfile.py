@@ -44,6 +44,13 @@ def build_frontend(session):
 
 
 @nox.session(python=python)
+def build_executable(session):
+    """Builds a pex of termpair"""
+    session.install("pex==2.1.45")
+    session.run("pex", ".", "-c", "termpair", "-o", "build/termpair", external=True)
+
+
+@nox.session(python=python)
 def publish_docs(session):
     session.install(*doc_deps)
     session.run("mkdocs", "gh-deploy")
