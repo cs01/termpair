@@ -1,0 +1,53 @@
+name: build executable
+
+on:
+  workflow_dispatch:
+
+env:
+  default-python: 3.9
+
+jobs:
+  build-executable:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.9]
+        node-version: [12.x]
+        include:
+          - os: macos-latest
+            python-version: 3.9
+            node-version: 12.x
+            buildname: "mac"
+          - os: ubuntu-latest
+            buildname: "linux"
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Set up Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Build React app
+        run: |
+          cd termpair/frontend_src
+          yarn install
+          yarn build
+      - name: Upgrade pip, Install pex
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pex==2.1.45
+      - name: Build pex executable
+        run: |
+          mkdir -p build
+          pex . -c termpair -o build/termpair
+      - name: Upload ${{ matrix.buildname }} executable
+        # if: github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v1
+        with:
+          name: termpair_${{ matrix.buildname }}
+          path: ./executable/${{ matrix.buildname }}
