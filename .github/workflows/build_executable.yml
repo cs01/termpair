@@ -2,7 +2,7 @@ name: build executable
 
 on:
   workflow_dispatch:
-
+  push:
 env:
   default-python: 3.9
 
@@ -50,4 +50,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: termpair_${{ matrix.buildname }}
-          path: ./executable/${{ matrix.buildname }}
+          path: ./build/termpair
