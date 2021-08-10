@@ -6,4 +6,4 @@ class TermPairError(Exception):
 
 
 # this must match constants.ts
-TERMPAIR_VERSION = "0.3.0.0"
+TERMPAIR_VERSION = "0.3.1.0"
