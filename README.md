@@ -277,21 +277,20 @@ optional arguments:
 To share a terminal using the TermPair client:
 ```
 > termpair share --help
-usage: termpair share [-h] [--cmd CMD] [--port PORT] [--host HOST]
-                      [--no-browser-control] [--open-browser]
+usage: termpair share [-h] [--cmd CMD] [--port PORT] [--host HOST] [--read-only]
+                      [--open-browser]
 
-Share your terminal session with one or more browsers. A termpair server must
-be running before using this command.
+Share your terminal session with one or more browsers. A termpair server must be
+running before using this command.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --cmd CMD             The command to run in this TermPair session. Defaults
-                        to the SHELL environment variable (default: /bin/bash)
-  --port PORT, -p PORT  port server is running on (default: None)
+  --cmd CMD             The command to run in this TermPair session. Defaults to
+                        the SHELL environment variable (default: /bin/bash)
+  --port PORT, -p PORT  port server is running on (default: 8000)
   --host HOST           host server is running on (default: http://localhost)
-  --no-browser-control, -n
-                        Do not allow browsers to control your terminal
-                        remotely (default: False)
+  --read-only, -r       Do not allow browsers to write to the terminal (default:
+                        False)
   --open-browser, -b    Open a browser tab to the terminal after you start
                         sharing (default: False)
 ```
