@@ -46,10 +46,10 @@ def get_parser():
         "--host", default="http://localhost", help="host server is running on"
     )
     share_parser.add_argument(
-        "--no-browser-control",
-        "-n",
+        "--read-only",
+        "-r",
         action="store_true",
-        help="Do not allow browsers to control your terminal remotely",
+        help="Do not allow browsers to write to the terminal",
     )
     share_parser.add_argument(
         "--open-browser",
@@ -106,7 +106,7 @@ def run_command(args):
         else:
             url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
         url = url if url.endswith("/") else f"{url}/"
-        allow_browser_control = not args.no_browser_control
+        allow_browser_control = not args.read_only
         try:
             asyncio.get_event_loop().run_until_complete(
                 share.broadcast_terminal(

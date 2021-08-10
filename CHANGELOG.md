@@ -9,7 +9,7 @@ In this version, TermPair clients from previous versions cannot connect to this 
 * Add additional random string to each encrypted message
 * Display version in webpage
 * Add troubleshooting instructions to webpage
-
+* Rename `--no-browser-control` argument of `termpair share` to `--read-only`
 
 ## 0.2.0.0
 * Add ability to copy+paste using keystrokes (copy with ctrl+shift+c or ctrl+shift+x, and paste with ctrl+shift+v)

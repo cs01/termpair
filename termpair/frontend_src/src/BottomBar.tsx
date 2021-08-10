@@ -19,8 +19,8 @@ export function BottomBar(props: {
       after sharing has begun."
     >
       {props.terminalData?.allow_browser_control && connected
-        ? "can type"
-        : "cannot type"}
+        ? "read/write"
+        : "read only"}
     </div>
   ) : null;
 
