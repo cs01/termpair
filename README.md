@@ -1,50 +1,41 @@
-<div style="text-align: center">
+<div style="text-align: center; font-size: 1.5em;">
     <img src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/>
     <p>View and control remote terminals from your browser with end-to-end encryption</p>
-</div>
-
-
-**Try It**: [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair)
-
 <p align="center">
 <a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a>
 
 <a href="https://github.com/cs01/termpair/actions?query=workflow%3Atests">
 <img src="https://github.com/cs01/termpair/actions/workflows/tests.yml/badge.svg?branch=master" alt="PyPI version" height="18"></a>
 </p>
-
+</div>
 
 ## What is TermPair?
 
 TermPair lets developers securely share and control terminals in real time.
 
+You can **try it now** at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair) or **check out the [YouTube Demo](https://www.youtube.com/watch?v=HF0UX4smrKk)**.
 <div style="text-align: center">
    <a href="https://github.com/cs01/termpair/raw/master/termpair_browser.gif"> <img src="https://github.com/cs01/termpair/raw/master/termpair_browser.gif"/></a>
 </div>
 
 ## Features
-✔️ Share unix terminals
-
-✔️ Can type from Terminal or Browser
-
-✔️ Multiple browsers can connect simultaneously
-
-✔️ Read+Write or Read only mode
-
-✔️ Server cannot read terminal data even if it wanted to, since it is encrypted with AES 128 bit encryption
-
-✔️ Secure web environment required (https)
-
-✔️ Optional static-site hosting -- build the web app yourself to ensure the integrity of the web app
+* Share unix terminals in real time
+* Type from the terminal or browser; both are kept in sync
+* Multiple browsers can connect simultaneously
+* Browser permissions can be read/write or read only
+* Server cannot read terminal data even if it wanted to, since it is encrypted with AES 128 bit encryption
+* Secure web environment required (https)
+* Optional static-site hosting -- build the web app yourself to ensure the integrity of the web app ([example](https://cs01.github.io/termpair/connect/))
+* Broadcasting terminal's dimensions are sent to the browser in realtime so rendering always matches
 
 ## Usage
 
 First start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
 
-The server is used to route encrypted data between terminals and connected browsers — it doesn't actually start sharing any terminals just by running it.
+The server is used to route encrypted data between terminals and connected browsers — it doesn't actually start sharing any terminals on its own.
 
 ```
-> termpair serve --port 8000
+> termpair serve
 ```
 
 Now that you have the server running, you can share your terminal by running `termpair share`.
@@ -67,6 +58,8 @@ Type 'exit' or close terminal to stop sharing.
 ```
 
 The URL printed contains a unique terminal ID and encryption key. You can share the URL with whoever you like. **Anyone who has it can access your terminal while the `termpair share` process is running,** so be sure you trust the person you are sharing the link with.
+
+By default, the process that is shared is a new process running the current shell, determined by the `$SHELL` evironment variable.
 
 The server multicasts terminal output to all browsers that connect to the session.
 
@@ -107,7 +100,7 @@ Serve:
 
 Then share:
 ```
-> pipx run termpair share --open-browser
+> pipx run termpair share
 ```
 
 Note: Make sure the TermPair server you are broadcasting to is running the same major version as the broadcasting terminal (see `pipx run termpair --version`). You can specify the version with `pipx run --spec termpair==$VERSION termpair ...`.
@@ -123,7 +116,7 @@ As an optional additional security measure, TermPair supports statically serving
 
 In this arrangement, you can build the TermPair web app yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app.
 
-When you open it you then specify the Terminal ID, encryption key, and TermPair server host to connect to.
+When you open it, you specify the Terminal ID, encryption key, and TermPair server host to connect to.
 
 You can try it out or just see what it looks like with a GitHub page from this project, [https://cs01.github.io/termpair/connect/](https://cs01.github.io/termpair/connect/).
 
@@ -158,21 +151,21 @@ When a user wants to share their terminal, they run `termpair share` to start th
 
 ### Encryption
 The TermPair client creates three 128 bit AES encryption keys when it starts:
-* The first is used to encrypt the terminal's output to the browsers so the server cannot read it.
-* The second is used by the browser when sending input from the browser to the terminal.
-* The third is a "bootstrap" key used by the browser to decrypt the initial connection response from the broadcasting terminal, which contains the above two keys encrypted with this third key. The browser obtains this bootstrap key via a [part of the url](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hash) that the server does not have access to, or via manual user input.
+* The first is used to encrypt the terminal's output before sending it to the server.
+* The second is used by the browser before sending user input to the server.
+* The third is a "bootstrap" key used by the browser to decrypt the initial connection response from the broadcasting terminal, which contains the above two keys encrypted with this third key. The browser obtains this bootstrap key via a [part of the url](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hash) that the server does not have access to, or via manual user input. A public key exchange like Diffie-Hellman was not used since multiple browsers can connect to the terminal, which would increase the complexity of TermPair's codebase. Still, DH in some form may be considered in the future.
 
 ### Web App
-The TermPair client provides the user with a unique URL for the duration of the shaing session. That URL points to the TermPair web application that sets up a websocket connection to receive and send the encrypted terminal data. When data is received, it is decrypted and written to a browser-based terminal.
+The TermPair client provides the user with a unique URL for the duration of the shaing session. That URL points to the TermPair web application (TypeScript/React) that sets up a websocket connection to receive and send the encrypted terminal data. When data is received, it is decrypted and written to a browser-based terminal.
 
-When a users types in the browser's terminal, it is encrypted in the browser with key #2, sent to the server, forwarded from the server to the terminal, then decrypted in the terminal by TermPair. Finally, the TermPair client writes it to the pty's file descriptor, as if it were being typed directly to the terminal.
+When a user types in the browser's terminal, it is encrypted in the browser with key #2, sent to the server, forwarded from the server to the terminal, then decrypted in the terminal by TermPair. Finally, the TermPair client writes it to the pty's file descriptor, as if it were being typed directly to the terminal.
 
 AES keys #1 and #2 get rotated after either key has sent 2^20 (1048576) messages. The AES initialization vector (IV) values increment monotonically to ensure they are never reused.
 
 ## Serving with NGINX
 Running behind an nginx proxy can be done with the following configuration.
 
-The TermPair server must be started with `termpair serve`, and the port being run on must be specified in the `upstream` configuration.
+The TermPair server must be started already. This is usually done as a [systemd service](#running-as-a-systemd-service). The port being run on must be specified in the `upstream` configuration.
 
 ```nginx
 upstream termpair_app {
@@ -202,7 +195,7 @@ server {
 ```
 
 ## Running as a systemd service
-If you use systemd to manage services, here is an exampe configuration you can use.
+If you use systemd to manage services, here is an example configuration you can start with.
 
 This configuration assumes you've installed TermPair to `/home/$USER/.local/bin/termpair` and saved the file to `/etc/systemd/system/termpair.service`.
 
@@ -219,7 +212,7 @@ User=$USER
 Group=www-data
 WorkingDirectory=/var/www/termpair/
 PermissionsStartOnly=true
-ExecStart=/home/$USER/.local/bin/termpair -s serve
+ExecStart=/home/$USER/.local/bin/termpair serve --port 8000
 ExecStop=
 Restart=on-failure
 RestartSec=1s
