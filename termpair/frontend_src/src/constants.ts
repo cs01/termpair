@@ -1,6 +1,6 @@
 import { Terminal as Xterm } from "xterm";
 // this must match constants.py
-export const TERMPAIR_VERSION = "0.3.0.0";
+export const TERMPAIR_VERSION = "0.3.1.0";
 
 export const defaultTermpairServer = new URL(
   `${window.location.protocol}//${window.location.hostname}:${window.location.port}${window.location.pathname}`
@@ -32,7 +32,13 @@ export const termpairShareCommand = `termpair share --host "${host}" --port ${_p
 export const pipxTermpairShareCommand = `pipx run ${termpairShareCommand}`;
 
 export const xterm = new Xterm({
-    cursorBlink: true,
-    macOptionIsMeta: true,
-    scrollback: 1000,
-  });
+  cursorBlink: true,
+  macOptionIsMeta: true,
+  scrollback: 1000,
+});
+
+export const localStorageKeys = {
+  bootstrapAesKeyB64: "termpairBase64BootstrapKey",
+  terminalId: "termpairTerminalId",
+  host: "termpairCustomHost",
+};
