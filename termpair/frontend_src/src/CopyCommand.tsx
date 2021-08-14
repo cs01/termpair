@@ -10,7 +10,7 @@ export function CopyCommand(props: { command: string }) {
       <code
         className={`${
           hovering || clicked ? "bg-yellow-200" : "bg-gray-300"
-        } text-black px-2 py-1 m-2`}
+        } text-black px-2 py-1 m-2 break-all`}
       >
         {props.command}
       </code>

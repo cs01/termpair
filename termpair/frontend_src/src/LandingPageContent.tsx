@@ -240,7 +240,7 @@ export function LandingPageContent(props: {
 
   return (
     <div className="flex justify-center">
-      <div className="text-gray-200 max-w-3xl">
+      <div className="text-gray-200">
         <div className="py-2">
           <div className="text-3xl ">Welcome to TermPair!</div>
           Easily share terminals with end-to-end encryption 🔒. Terminal data is
