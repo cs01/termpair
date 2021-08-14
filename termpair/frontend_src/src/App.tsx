@@ -325,7 +325,7 @@ function App() {
   );
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen align-middle">
+      <div className="flex flex-col h-screen align-middle max-w-3xl m-auto">
         <ToastContainer
           position="bottom-right"
           limit={3}
