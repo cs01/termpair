@@ -302,6 +302,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#running-client-from-source" class="md-nav__link">
+    Running Client from Source
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#static-hosting" class="md-nav__link">
     Static Hosting
   </a>
@@ -507,6 +514,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#running-client-from-source" class="md-nav__link">
+    Running Client from Source
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#static-hosting" class="md-nav__link">
     Static Hosting
   </a>
@@ -683,19 +697,15 @@ Type &#39;exit&#39; or close terminal to stop sharing.
 <h2 id="security">Security</h2>
 <p>TermPair uses end-to-end encryption for all terminal input and output, meaning the server <em>never</em> has access to the raw input or output of the terminal, nor does it have access to encryption keys (other than the https connection).</p>
 <p>The browser must be running in a <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts">secure context</a>. This typically means running with secure http traffic (https) or on localhost.</p>
+<h3 id="running-client-from-source">Running Client from Source</h3>
+<p>For extra assurance the source code is secure, you can broadcast your terminal from source.
+See <a href="https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a> for more information.</p>
 <h3 id="static-hosting">Static Hosting</h3>
-<p>As an optional additional security measure, TermPair supports statically serving the JavaScript web app.</p>
-<p>In this arrangement, you can build the TermPair web app yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app.</p>
-<p>When you open it, you specify the Terminal ID, encryption key, and TermPair server host to connect to.</p>
+<p>TermPair supports statically serving the JavaScript web app. This way you can easily run the web app from source for extra assurance the web app is secure.</p>
+<p>In this arrangement, you can build the TermPair web app yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app since you built it from the source.</p>
+<p>When you open the web app without a TermPair server running, you specify the Terminal ID, encryption key, and TermPair server host to connect to.</p>
 <p>You can try it out or just see what it looks like with a GitHub page from this project, <a href="https://cs01.github.io/termpair/connect/">https://cs01.github.io/termpair/connect/</a>.</p>
-<p>If you'd like to build web app yourself, see <a href="https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
-<p>Then you can self-serve with</p>
-<div class="codehilite"><pre><span></span><code>$ <span class="nb">cd</span> termpair/termpair/frontend_build
-$ python3 -m http.server <span class="m">7999</span> --bind <span class="m">127</span>.0.0.1
-<span class="c1"># Serves at http://127.0.01:7999</span>
-</code></pre></div>
-
-<p>or you can deploy to GitHub pages, Vercel, etc.</p>
+<p>See <a href="https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a> for more information.</p>
 <h2 id="how-it-works">How it Works</h2>
 <div style="text-align: center">
     <a href="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png">

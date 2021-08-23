@@ -259,15 +259,22 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#contributing-python-code" class="md-nav__link">
-    Contributing Python code
+  <a href="#server" class="md-nav__link">
+    Server
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#contributing-frontend-code" class="md-nav__link">
-    Contributing frontend code
+  <a href="#terminal-client" class="md-nav__link">
+    Terminal Client
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-web-app" class="md-nav__link">
+    Frontend Web App
   </a>
   
 </li>
@@ -348,15 +355,22 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#contributing-python-code" class="md-nav__link">
-    Contributing Python code
+  <a href="#server" class="md-nav__link">
+    Server
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#contributing-frontend-code" class="md-nav__link">
-    Contributing frontend code
+  <a href="#terminal-client" class="md-nav__link">
+    Terminal Client
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-web-app" class="md-nav__link">
+    Frontend Web App
   </a>
   
 </li>
@@ -401,42 +415,45 @@
 <p>This short document should give you some hints to get started with contributing to TermPair.</p>
 <h2 id="getting-started">Getting started</h2>
 <p>First, fork the repo and clone it to your computer, then read the section you're interested in.</p>
-<h3 id="contributing-python-code">Contributing Python code</h3>
+<h3 id="server">Server</h3>
 <p>Install <a href="https://pypi.org/project/nox/">nox</a>.</p>
 <p>You can run the server from source with:</p>
-<div class="codehilite"><pre><span></span><code>nox -s serve
+<div class="codehilite"><pre><span></span><code>nox -s serve-3.9
 </code></pre></div>
 
-<p>After the server is running, you can share your terminal to it by running the client code from source:</p>
-<div class="codehilite"><pre><span></span><code>nox -s broadcast
+<h3 id="terminal-client">Terminal Client</h3>
+<p>Install <a href="https://pypi.org/project/nox/">nox</a>.</p>
+<p>You can run the terminal client from source with:</p>
+<div class="codehilite"><pre><span></span><code>nox -s share-3.9
 </code></pre></div>
 
-<p>Then type <code>exit</code> to stop broadcasting.</p>
-<h3 id="contributing-frontend-code">Contributing frontend code</h3>
-<p>To modify frontend code, get <a href="https://yarnpkg.com/en/">yarn</a>.</p>
+<p>You can pass additional arguments like this</p>
+<div class="codehilite"><pre><span></span><code>nox -s share-3.9 -- &lt;arguments&gt;
+</code></pre></div>
+
+<h3 id="frontend-web-app">Frontend Web App</h3>
+<p>First, get <a href="https://yarnpkg.com/en/">yarn</a>.</p>
 <p>Next go to the directory <code>termpair/frontend_src</code> and run</p>
 <div class="codehilite"><pre><span></span><code>yarn install
 </code></pre></div>
 
 <p>to install dependencies.</p>
-<p>You'll then be able to view and hot reload changes to the frontend app using:</p>
+<p>You can run the development server and hot reload changes. This is the easiest way to quickly statically serve the app from source.</p>
 <div class="codehilite"><pre><span></span><code>yarn start
 </code></pre></div>
 
-<p>The TermPair server does not need to be reloaded, so you can just refresh the webpage to view changes.</p>
-<p>If you want to connect a terminal to the frontend, in a new terminal run</p>
-<div class="codehilite"><pre><span></span><code>nox -s serve
-</code></pre></div>
-
-<p>then share a terminal with</p>
-<div class="codehilite"><pre><span></span><code>nox -s broadcast
-</code></pre></div>
-
-<p>open the browser at <code>http://localhost:3000</code> and enter the terminal id and url (<code>http://localhost:8000</code>).</p>
-<p>If you are testing something that needs a full build, you can build and statically serve the frontend with</p>
+<p>To build the production code, run:</p>
 <div class="codehilite"><pre><span></span><code>yarn build
 </code></pre></div>
 
+<p>The static web app will be compiled to <code>termpair/termpair_build/</code>. TermPair will then serve this with <code>nox -s serve</code>.</p>
+<p>You can also serve locally with</p>
+<div class="codehilite"><pre><span></span><code>$ cd termpair/termpair/frontend_build
+$ python3 -m http.server 7999 --bind 127.0.0.1
+# Serves at http://127.0.01:7999
+</code></pre></div>
+
+<p>or deploy to GitHub pages, Vercel, etc.</p>
 <h2 id="releasing-new-versions-to-pypi">Releasing new versions to PyPI</h2>
 <div class="codehilite"><pre><span></span><code>nox -s publish
 </code></pre></div>
