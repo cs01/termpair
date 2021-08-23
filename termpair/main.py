@@ -21,7 +21,7 @@ def get_parser():
         description="View and control remote terminals from your browser",
     )
     p.add_argument("--version", action="store_true")
-    subparsers = p.add_subparsers(dest="command")
+    subparsers = p.add_subparsers(dest="command", required=True)
 
     share_parser = subparsers.add_parser(
         "share",
