@@ -40,30 +40,32 @@ export function BottomBar(props: {
   ) : null;
 
   const terminalDimensions = connected ? (
-    <span title="Dimensions of terminal, rows x cols">
+    <div title="Dimensions of terminal, rows x cols">
       {props.terminalSize.rows}x{props.terminalSize.cols}
-    </span>
+    </div>
   ) : null;
 
   return (
-    <>
-      <div
-        className={`flex ${
-          connected ? "bg-green-900" : "bg-red-900"
-        }   justify-evenly text-gray-300`}
-      >
-        {status}
-        {terminalDimensions}
-        {canType}
-        {connectedClients}
-        {startTime}
-      </div>
-      <div className="flex bg-black  justify-evenly text-gray-300 py-5">
+    <div className="w-screen">
+      {hasTerminalId ? (
+        <div
+          className={`py-1 w-screen flex flex-wrap space-x-3 items-center ${
+            connected ? "bg-green-900" : "bg-red-900"
+          }   justify-evenly text-gray-300`}
+        >
+          {status}
+          {terminalDimensions}
+          {canType}
+          {connectedClients}
+          {startTime}
+        </div>
+      ) : null}
+      <footer className="flex bg-black  justify-evenly text-gray-300 py-5">
         <div>
           <a href="https://chadsmith.dev">chadsmith.dev</a> |{" "}
           <a href="https://github.com/cs01/termpair">GitHub</a>
         </div>
-      </div>
-    </>
+      </footer>
+    </div>
   );
 }

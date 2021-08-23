@@ -239,7 +239,7 @@ export function LandingPageContent(props: {
   );
 
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center max-w-3xl m-auto">
       <div className="text-gray-200">
         <div className="py-2">
           <div className="text-3xl ">Welcome to TermPair!</div>

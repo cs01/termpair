@@ -18,17 +18,19 @@ const githubLogo = (
 
 export function TopBar(props: any) {
   return (
-    <div className="flex bg-black h-10 items-center justify-between">
-      <div className="h-full">
-        <a href={window.location.pathname}>
-          <img className="h-full" src={logo} alt="logo" />
-        </a>
-      </div>
-      <div className="flex">
-        <span className="text-gray-300 mx-3">v{TERMPAIR_VERSION}</span>
-        <a href="https://github.com/cs01/termpair" title="GitHub homepage">
-          {githubLogo}
-        </a>
+    <div className="bg-black w-full">
+      <div className="flex max-w-3xl m-auto h-10 items-center justify-between">
+        <div className="h-full">
+          <a href={window.location.pathname}>
+            <img className="h-full" src={logo} alt="logo" />
+          </a>
+        </div>
+        <div className="flex">
+          <span className="text-gray-300 mx-3">v{TERMPAIR_VERSION}</span>
+          <a href="https://github.com/cs01/termpair" title="GitHub homepage">
+            {githubLogo}
+          </a>
+        </div>
       </div>
     </div>
   );
