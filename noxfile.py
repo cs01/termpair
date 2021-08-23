@@ -50,13 +50,13 @@ def build_executable(session):
     session.run("pex", ".", "-c", "termpair", "-o", "build/termpair", external=True)
 
 
-@nox.session(python=python)
+@nox.session()
 def publish_docs(session):
     session.install(*doc_deps)
     session.run("mkdocs", "gh-deploy")
 
 
-@nox.session(python=python)
+@nox.session()
 def publish_static_webapp(session):
     build_frontend(session)
     session.run("git", "checkout", "gh-pages", external=True)
@@ -68,7 +68,7 @@ def publish_static_webapp(session):
     session.run("git", "push", "origin", "gh-pages", external=True)
 
 
-@nox.session(python=python)
+@nox.session()
 def publish(session):
     print("REMINDER: Has the changelog been updated?")
     session.run("rm", "-rf", "dist", "build", external=True)

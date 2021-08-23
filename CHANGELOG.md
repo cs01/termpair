@@ -1,3 +1,6 @@
+## 0.3.1.2
+* [bugfix] Require command in command line. `termpair` now results in an error instead of displaying no output and returning 0.
+
 ## 0.3.1.1
 * [feature] add small, dark grey outline around the terminal
 * [bugfix] center the terminal instead of left aligning it
