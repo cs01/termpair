@@ -46,10 +46,10 @@ export function BottomBar(props: {
   ) : null;
 
   return (
-    <div className="w-screen">
+    <div>
       {hasTerminalId ? (
         <div
-          className={`py-1 w-screen flex flex-wrap space-x-3 items-center ${
+          className={`py-1 flex flex-wrap space-x-3 items-center ${
             connected ? "bg-green-900" : "bg-red-900"
           }   justify-evenly text-gray-300`}
         >
