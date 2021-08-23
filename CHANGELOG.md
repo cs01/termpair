@@ -1,3 +1,8 @@
+## 0.3.1.1
+* [feature] add small, dark grey outline around the terminal
+* [bugfix] center the terminal instead of left aligning it
+* [bugfix] better text spacing in bottom status bar
+
 ## 0.3.1.0
 * [feature] Store user input values of the terminal id, key, and host, and restore them when the page loads
 * [bugfix] Ensure width fits on mobile devies

@@ -6,26 +6,33 @@ This short document should give you some hints to get started with contributing 
 
 First, fork the repo and clone it to your computer, then read the section you're interested in.
 
-### Contributing Python code
+### Server
 
 Install [nox](https://pypi.org/project/nox/).
 
 You can run the server from source with:
 
 ```
-nox -s serve
+nox -s serve-3.9
 ```
 
-After the server is running, you can share your terminal to it by running the client code from source:
+### Terminal Client
+
+Install [nox](https://pypi.org/project/nox/).
+
+You can run the terminal client from source with:
 ```
-nox -s broadcast
+nox -s share-3.9
 ```
-Then type `exit` to stop broadcasting.
 
+You can pass additional arguments like this
+```
+nox -s share-3.9 -- <arguments>
+```
 
-### Contributing frontend code
+### Frontend Web App
 
-To modify frontend code, get [yarn](https://yarnpkg.com/en/).
+First, get [yarn](https://yarnpkg.com/en/).
 
 Next go to the directory `termpair/frontend_src` and run
 ```bash
@@ -33,29 +40,26 @@ yarn install
 ```
 to install dependencies.
 
-You'll then be able to view and hot reload changes to the frontend app using:
+You can run the development server and hot reload changes. This is the easiest way to quickly statically serve the app from source.
 
 ```bash
 yarn start
 ```
 
-The TermPair server does not need to be reloaded, so you can just refresh the webpage to view changes.
-
-If you want to connect a terminal to the frontend, in a new terminal run
-```
-nox -s serve
-```
-then share a terminal with
-```
-nox -s broadcast
-```
-open the browser at `http://localhost:3000` and enter the terminal id and url (`http://localhost:8000`).
-
-If you are testing something that needs a full build, you can build and statically serve the frontend with
+To build the production code, run:
 
 ```bash
 yarn build
 ```
+The static web app will be compiled to `termpair/termpair_build/`. TermPair will then serve this with `nox -s serve`.
+
+You can also serve locally with
+```
+$ cd termpair/termpair/frontend_build
+$ python3 -m http.server 7999 --bind 127.0.0.1
+# Serves at http://127.0.01:7999
+```
+or deploy to GitHub pages, Vercel, etc.
 
 ## Releasing new versions to PyPI
 ```

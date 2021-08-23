@@ -26,7 +26,7 @@ def serve(session):
 
 
 @nox.session(python=python)
-def broadcast(session):
+def share(session):
     print("Note: Frontend must be built for this to work")
     session.install("-e", ".")
     session.run("termpair", "share", *session.posargs)

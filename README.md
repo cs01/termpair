@@ -111,24 +111,20 @@ TermPair uses end-to-end encryption for all terminal input and output, meaning t
 
 The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running with secure http traffic (https) or on localhost.
 
+### Running Client from Source
+For extra assurance the source code is secure, you can broadcast your terminal from source.
+See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md) for more information.
+
 ### Static Hosting
-As an optional additional security measure, TermPair supports statically serving the JavaScript web app.
+TermPair supports statically serving the JavaScript web app. This way you can easily run the web app from source for extra assurance the web app is secure.
 
-In this arrangement, you can build the TermPair web app yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app.
+In this arrangement, you can build the TermPair web app yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app since you built it from the source.
 
-When you open it, you specify the Terminal ID, encryption key, and TermPair server host to connect to.
+When you open the web app without a TermPair server running, you specify the Terminal ID, encryption key, and TermPair server host to connect to.
 
 You can try it out or just see what it looks like with a GitHub page from this project, [https://cs01.github.io/termpair/connect/](https://cs01.github.io/termpair/connect/).
 
-If you'd like to build web app yourself, see [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md).
-
-Then you can self-serve with
-```shell
-$ cd termpair/termpair/frontend_build
-$ python3 -m http.server 7999 --bind 127.0.0.1
-# Serves at http://127.0.01:7999
-```
-or you can deploy to GitHub pages, Vercel, etc.
+See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md) for more information.
 
 ## How it Works
 

@@ -309,11 +309,11 @@ function App() {
   }
 
   const content = (
-    <div className="p-5 text-white flex-grow">
+    <div className="p-5 text-white flex-grow w-auto m-auto">
       {showTerminal ? (
         <div
           id="terminal"
-          className={` p-3 bg-black flex-grow text-gray-400`}
+          className={`p-1 bg-gray-900 flex-grow text-gray-400 m-auto`}
         ></div>
       ) : (
         <LandingPageContent
@@ -325,7 +325,7 @@ function App() {
   );
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen align-middle max-w-3xl m-auto">
+      <div className="flex flex-col h-screen align-middle max-w-full m-auto">
         <ToastContainer
           position="bottom-right"
           limit={3}
