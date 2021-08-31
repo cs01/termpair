@@ -1,0 +1,9 @@
+{
+    "python.formatting.provider": "black",
+    "[python]": {
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.formatOnSave": true
+    }
+}
