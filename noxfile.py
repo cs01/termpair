@@ -40,6 +40,7 @@ def watch_docs(session):
 
 @nox.session(python=python)
 def build_frontend(session):
+    session.run("yarn", "--cwd", "termpair/frontend_src", "install", external=True)
     session.run("yarn", "--cwd", "termpair/frontend_src", "build", external=True)
 
 
