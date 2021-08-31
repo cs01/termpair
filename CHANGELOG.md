@@ -1,4 +1,8 @@
 ## 0.3.1.2
+* [bugfix] `termpair --version` was throwing an error. Fix the argument parsing so this command works.
+* remove full screen css to avoid unnecesary horizontal scroll bar
+
+## 0.3.1.2
 * [bugfix] Require command in command line. `termpair` now results in an error instead of displaying no output and returning 0.
 * Upgrade JavaScript dependencies
 

@@ -16,7 +16,6 @@ var/
 *.egg
 *.eggs
 .mypy_cache/
-.vscode
 
 site
 # dependencies

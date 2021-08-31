@@ -20,7 +20,7 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="View and control remote terminals from your browser",
     )
-    p.add_argument("--version", action="store_true")
+    p.add_argument("--version", action="version", version=TERMPAIR_VERSION)
     subparsers = p.add_subparsers(dest="command", required=True)
 
     share_parser = subparsers.add_parser(
@@ -131,10 +131,6 @@ def run_command(args):
 
 def main():
     args = get_parser().parse_args()
-    if args.version:
-        print(__version__)
-        exit(0)
-
     try:
         run_command(args)
     except Exception:

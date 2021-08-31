@@ -18,6 +18,10 @@ def get_open_port() -> int:
     return port
 
 
+def test_version_parsing():
+    subprocess.run(["termpair", "--version"], check=True)
+
+
 def test_server():
     open_port = str(get_open_port())
     server = subprocess.Popen(["termpair", "serve", "--port", open_port])

@@ -9,6 +9,7 @@ include LICENSE
 prune termpair/frontend_src
 prune docs
 prune tests
+prune .vscode
 
 exclude .flake8
 exclude Dockerfile
