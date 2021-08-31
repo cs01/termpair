@@ -6,6 +6,7 @@ import {
   defaultTermpairServer,
   localStorageKeys,
   pipxTermpairShareCommand,
+  secureContextHelp,
   termpairShareCommand,
   TERMPAIR_VERSION,
 } from "./constants";
@@ -14,6 +15,7 @@ import { getAESKey } from "./encryption";
 import { websocketUrlFromHttpUrl } from "./utils";
 
 export function LandingPageContent(props: {
+  isSecureContext: boolean;
   isStaticallyHosted: Nullable<boolean>;
   connectToTerminalAndWebsocket: (
     terminalId: string,
@@ -177,7 +179,7 @@ export function LandingPageContent(props: {
       {connectButton}
     </form>
   );
-  const staticLandingContent = (
+  const staticLandingContent = props.isSecureContext ? (
     <div className="py-2">
       <div className="text-2xl py-2">This page is statically hosted</div>
       <div>
@@ -192,7 +194,7 @@ export function LandingPageContent(props: {
       </div>
       {connectForm}
     </div>
-  );
+  ) : null;
 
   const regularServerContent = (
     <>
@@ -247,21 +249,37 @@ export function LandingPageContent(props: {
           always encrypted before being routed through the server.{" "}
           <a href="https://github.com/cs01/termpair">Learn more.</a>
         </div>
+        {!props.isSecureContext ? (
+          <div className="bg-red-800 p-2">
+            <h1>Error</h1>
+            {secureContextHelp}
+          </div>
+        ) : null}
         {props.isStaticallyHosted === null
           ? null
           : props.isStaticallyHosted === true
           ? staticLandingContent
           : regularServerContent}
 
-        <div className="py-2">
-          <div className="text-2xl py-2">Troubleshooting</div>
-          <div className="text-xl ">
-            Initial connection fails or is rejected
-          </div>
-          <div>
-            Ensure you are using a TermPair client compatible with{" "}
-            <span className="font-bold">v{TERMPAIR_VERSION}</span> (the version
-            of this webpage)
+        <div className="py-2 ">
+          <div className="text-2xl py-2 ">Troubleshooting</div>
+          <div className="space-y-5">
+            <div>
+              <div className="text-xl ">
+                Initial connection fails or is rejected
+              </div>
+              <div>
+                Ensure you are using a TermPair client compatible with{" "}
+                <span className="font-bold">v{TERMPAIR_VERSION}</span> (the
+                version of this webpage)
+              </div>
+            </div>
+            <div>
+              <div className="text-xl ">
+                Browser is not running in a secure context
+              </div>
+              <div>{secureContextHelp} </div>
+            </div>
           </div>
         </div>
         {termpairDemoContent}

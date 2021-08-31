@@ -10,7 +10,12 @@ import { AesKeysRef, Status, TerminalServerData, TerminalSize } from "./types";
 import { TopBar } from "./TopBar";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { BottomBar } from "./BottomBar";
-import { defaultTerminalId, defaultTermpairServer, xterm } from "./constants";
+import {
+  defaultTerminalId,
+  defaultTermpairServer,
+  secureContextHelp,
+  xterm,
+} from "./constants";
 import { toastStatus, websocketUrlFromHttpUrl } from "./utils";
 import {
   getCustomKeyEventHandler,
@@ -62,10 +67,7 @@ function handleStatusChange(
       break;
 
     case "Browser is not running in a secure context":
-      toast.dark(
-        "Fatal Error: TermPair only works on secure connections. Ensure url starts with https. " +
-          "See https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts and `termpair serve --help` for more information."
-      );
+      toast.dark(secureContextHelp);
       break;
 
     case "Connecting...":
@@ -127,6 +129,10 @@ function App() {
   const [terminalId, setTerminalId] = useState(defaultTerminalId);
 
   useEffect(() => {
+    if (!window.isSecureContext) {
+      changeStatus("Browser is not running in a secure context");
+      return;
+    }
     // run once when initially opened
     const initialize = async () => {
       let staticallyHosted;
@@ -317,6 +323,7 @@ function App() {
         ></div>
       ) : (
         <LandingPageContent
+          isSecureContext={window.isSecureContext}
           isStaticallyHosted={isStaticallyHosted}
           connectToTerminalAndWebsocket={connectToTerminalAndWebsocket}
         />

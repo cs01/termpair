@@ -1,6 +1,6 @@
 import { Terminal as Xterm } from "xterm";
 // this must match constants.py
-export const TERMPAIR_VERSION = "0.3.1.3";
+export const TERMPAIR_VERSION = "0.3.1.4";
 
 export const defaultTermpairServer = new URL(
   `${window.location.protocol}//${window.location.hostname}:${window.location.port}${window.location.pathname}`
@@ -42,3 +42,14 @@ export const localStorageKeys = {
   terminalId: "termpairTerminalId",
   host: "termpairCustomHost",
 };
+
+export const secureContextHelp = (
+  <div>
+    TermPair only works on secure connections. The server must be configured to
+    serve this page over https. See <code>termpair serve --help</code> and{" "}
+    <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts">
+      https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts
+    </a>{" "}
+    for more information.
+  </div>
+);
