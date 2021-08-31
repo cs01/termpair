@@ -97,3 +97,9 @@ def test(session):
     session.install(".", *test_deps)
     # can't use default capture method because termpair requires stdin to have a fileno()
     session.run("pytest", "tests", "--capture", "tee-sys", *session.posargs)
+
+
+@nox.session(python=[python])
+def termpair(session):
+    session.install("-e", ".")
+    session.run("termpair", *session.posargs)

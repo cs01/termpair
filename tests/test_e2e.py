@@ -26,6 +26,10 @@ def test_server():
     server.kill()
 
 
+def test_server():
+    subprocess.run(["termpair", "--version"], check=True)
+
+
 def test_e2e():
     if getenv("CI") is not None:
         pytest.skip(
