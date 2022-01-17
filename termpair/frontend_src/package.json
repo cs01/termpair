@@ -12,7 +12,7 @@
     "autoprefixer": "^9",
     "debounce": "^1.2.1",
     "moment": "^2.24.0",
-    "postcss": "^7",
+    "postcss": "^8",
     "react": "^16.8.4",
     "react-copy-to-clipboard": "^5.0.3",
     "react-dom": "^16.8.4",
