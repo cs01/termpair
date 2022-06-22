@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient  # type:ignore
-from termpair import server
-
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type:ignore
+
+from termpair import server
 
 client = TestClient(server.app)
 

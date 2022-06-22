@@ -14,18 +14,15 @@ from typing import Any, Dict, List, Optional
 
 import starlette  # type: ignore
 from fastapi import FastAPI  # type: ignore
+from fastapi.exceptions import HTTPException  # type: ignore
+from fastapi.middleware.cors import CORSMiddleware  # type:ignore
 from starlette.staticfiles import StaticFiles  # type: ignore
 from starlette.websockets import WebSocket  # type: ignore
-from fastapi.middleware.cors import CORSMiddleware  # type:ignore
 
+from .constants import TERMPAIR_VERSION
+from .server_websocket_subprotocol_handlers import handle_ws_message_subprotocol_v3
 from .Terminal import Terminal, TerminalId
 from .utils import get_random_string
-from .constants import TERMPAIR_VERSION
-from .server_websocket_subprotocol_handlers import (
-    handle_ws_message_subprotocol_v3,
-)
-from fastapi.exceptions import HTTPException  # type: ignore
-
 
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "frontend_build")
 STATIC_DIR = os.path.join(

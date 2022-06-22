@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 import ast
-import io
-import re
-import os
-from setuptools import find_packages, setup  # type: ignore
 import distutils.text_file
+import io
+import os
+import re
+
+from setuptools import find_packages, setup  # type: ignore
 
 EXCLUDE_FROM_PACKAGES = ["contrib", "docs", "tests*"]
 CURDIR = os.path.abspath(os.path.dirname(__file__))
