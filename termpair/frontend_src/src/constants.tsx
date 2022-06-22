@@ -1,6 +1,6 @@
 import { Terminal as Xterm } from "xterm";
 // this must match constants.py
-export const TERMPAIR_VERSION = "0.3.1.4";
+export const TERMPAIR_VERSION = "0.3.1.5";
 
 export const defaultTermpairServer = new URL(
   `${window.location.protocol}//${window.location.hostname}:${window.location.port}${window.location.pathname}`

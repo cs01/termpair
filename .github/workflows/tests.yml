@@ -8,7 +8,7 @@ on:
   push:
 
 env:
-  default-python: 3.9
+  default-python: "3.10"
 
 jobs:
   python-lint:
@@ -25,18 +25,18 @@ jobs:
           python -m pip install nox
       - name: Lint
         run: |
-          nox --error-on-missing-interpreters --non-interactive --session lint
+          nox --error-on-missing-interpreters --non-interactive --session lint-${{ env.default-python }}
 
   run-tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.9]
+        python-version: ["3.10"]
         node-version: [12.x]
         include:
           - os: macos-latest
-            python-version: 3.9
+            python-version: "3.10"
             node-version: 12.x
 
     steps:

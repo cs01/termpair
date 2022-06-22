@@ -24,7 +24,7 @@ from . import encryption
 
 max_read_bytes = 1024 * 2
 ws_queue: asyncio.Queue = asyncio.Queue()
-JS_MAX_SAFE_INTEGER = 2 ** 53 - 1
+JS_MAX_SAFE_INTEGER = 2**53 - 1
 
 
 class AesKeys:
@@ -33,7 +33,7 @@ class AesKeys:
     def __init__(self):
         self.bootstrap_message_count = 0
         self.message_count = 0
-        self.message_count_rotation_required = 2 ** 20
+        self.message_count_rotation_required = 2**20
         self.browser_rotation_buffer_count = self.message_count_rotation_required * 0.1
         self.secret_bootstrap_key = encryption.aes_generate_secret_key()
         self.secret_unix_key = encryption.aes_generate_secret_key()
