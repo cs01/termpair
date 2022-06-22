@@ -1,10 +1,10 @@
 import fcntl
-import struct
-import termios
-from contextlib import contextmanager
-import tty
 import random
 import string
+import struct
+import termios
+import tty
+from contextlib import contextmanager
 
 max_read_bytes = 1024 * 20
 

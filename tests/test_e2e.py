@@ -1,11 +1,12 @@
-import subprocess
-from time import sleep
-import socket
-import tty
-import sys
 import signal
-import psutil  # type: ignore
+import socket
+import subprocess
+import sys
+import tty
 from os import getenv
+from time import sleep
+
+import psutil  # type: ignore
 import pytest  # type:ignore
 
 

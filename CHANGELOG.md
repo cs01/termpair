@@ -2,6 +2,7 @@
 
 - Update dependencies to fix a Python 3.10 incompatibility
 - Do not require a specific version of python to run the pex executable
+- Add pre-commit and run on all files
 
 ## 0.3.1.4
 

@@ -25,3 +25,4 @@ exclude package.json
 exclude termpair_browser.png
 exclude termpair_terminal.png
 exclude yarn.lock
+exclude .pre-commit-config.yaml

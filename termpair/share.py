@@ -12,15 +12,16 @@ import pty
 import signal
 import ssl
 import sys
-from urllib.parse import urljoin, urlencode
 import webbrowser
-from typing import List, Optional, Callable
-import websockets  # type: ignore
 from math import floor
+from typing import Callable, List, Optional
+from urllib.parse import urlencode, urljoin
+
+import websockets  # type: ignore
+
+from . import encryption, utils
+from .constants import TermPairError, subprotocol_version
 from .Terminal import TerminalId
-from .constants import subprotocol_version, TermPairError
-from . import utils
-from . import encryption
 
 max_read_bytes = 1024 * 2
 ws_queue: asyncio.Queue = asyncio.Queue()

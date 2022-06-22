@@ -4,13 +4,14 @@ import argparse
 import asyncio
 import os
 import shlex
-from urllib.parse import urlparse
 import traceback
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: ignore
-import uvicorn  # type: ignore
-from . import share, server
+from urllib.parse import urlparse
 
-from .constants import TermPairError, TERMPAIR_VERSION
+import uvicorn  # type: ignore
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware  # type: ignore
+
+from . import server, share
+from .constants import TERMPAIR_VERSION, TermPairError
 
 __version__ = TERMPAIR_VERSION
 
