@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  default-python: 3.9
+  default-python: "3.10"
 
 jobs:
   build-executable:
@@ -12,11 +12,11 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.9]
+        python-version: ["3.10"]
         node-version: [12.x]
         include:
           - os: macos-latest
-            python-version: 3.9
+            python-version: "3.10"
             node-version: 12.x
             buildname: "mac"
           - os: ubuntu-latest

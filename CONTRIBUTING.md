@@ -13,7 +13,7 @@ Install [nox](https://pypi.org/project/nox/).
 You can run the server from source with:
 
 ```
-nox -s serve-3.9
+nox -s serve-3.10
 ```
 
 ### Terminal Client
@@ -21,13 +21,15 @@ nox -s serve-3.9
 Install [nox](https://pypi.org/project/nox/).
 
 You can run the terminal client from source with:
+
 ```
-nox -s share-3.9
+nox -s share-3.10
 ```
 
 You can pass additional arguments like this
+
 ```
-nox -s share-3.9 -- <arguments>
+nox -s share-3.10 -- <arguments>
 ```
 
 ### Frontend Web App
@@ -35,9 +37,11 @@ nox -s share-3.9 -- <arguments>
 First, get [yarn](https://yarnpkg.com/en/).
 
 Next go to the directory `termpair/frontend_src` and run
+
 ```bash
 yarn install
 ```
+
 to install dependencies.
 
 You can run the development server and hot reload changes. This is the easiest way to quickly statically serve the app from source.
@@ -51,17 +55,21 @@ To build the production code, run:
 ```bash
 yarn build
 ```
+
 The static web app will be compiled to `termpair/termpair_build/`. TermPair will then serve this with `nox -s serve`.
 
 You can also serve locally with
+
 ```
 $ cd termpair/termpair/frontend_build
 $ python3 -m http.server 7999 --bind 127.0.0.1
 # Serves at http://127.0.01:7999
 ```
+
 or deploy to GitHub pages, Vercel, etc.
 
 ## Releasing new versions to PyPI
+
 ```
 nox -s publish
 ```
