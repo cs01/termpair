@@ -2,7 +2,6 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-
 python = ["3.10"]
 nox.options.sessions = ["lint"]
 nox.options.reuse_existing_virtualenvs = True
@@ -50,8 +49,18 @@ def build_frontend(session):
 @nox.session(python=python)
 def build_executable(session):
     """Builds a pex of termpair"""
-    session.install("pex==2.1.45")
-    session.run("pex", ".", "-c", "termpair", "-o", "build/termpair", external=True)
+    session.install("pex==2.1.93")
+    session.run(
+        "pex",
+        ".",
+        "--console-script",
+        "termpair",
+        "--output-file",
+        "build/termpair.pex",
+        "--sh-boot",
+        "--validate-entry-point",
+        external=True,
+    )
 
 
 @nox.session()
