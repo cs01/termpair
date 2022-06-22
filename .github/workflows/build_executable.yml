@@ -49,4 +49,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: termpair_${{ matrix.buildname }}
-          path: ./build/termpair
+          path: ./build/termpair.pex
