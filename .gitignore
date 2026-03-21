@@ -48,6 +48,9 @@ service-worker*
 # rust
 termpair-rs/target/
 
+# worktrees
+.worktrees/
+
 # openssl files
 *.crt
 *.cert
