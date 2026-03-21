@@ -92,10 +92,25 @@ async fn main() {
                     .await
                     .expect("server failed");
             } else {
-                let socket = tokio::net::TcpSocket::new_v4().expect("failed to create socket");
+                let sock_addr = tokio::net::lookup_host(&addr)
+                    .await
+                    .unwrap_or_else(|e| {
+                        eprintln!("error: cannot resolve {} — {}", addr, e);
+                        std::process::exit(1);
+                    })
+                    .next()
+                    .unwrap_or_else(|| {
+                        eprintln!("error: no addresses found for {}", addr);
+                        std::process::exit(1);
+                    });
+                let socket = if sock_addr.is_ipv6() {
+                    tokio::net::TcpSocket::new_v6()
+                } else {
+                    tokio::net::TcpSocket::new_v4()
+                }.expect("failed to create socket");
                 socket.set_reuseaddr(false).ok();
-                socket.bind(addr.parse().expect("invalid address")).unwrap_or_else(|e| {
-                    eprintln!("error: cannot bind to {} — {}", addr, e);
+                socket.bind(sock_addr).unwrap_or_else(|e| {
+                    eprintln!("error: port {} already in use ({})", port, e);
                     std::process::exit(1);
                 });
                 let listener = socket.listen(1024).expect("failed to listen");
