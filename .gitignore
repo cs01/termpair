@@ -45,6 +45,9 @@ precache-manifest*
 service-worker*
 
 
+# rust
+termpair-rs/target/
+
 # openssl files
 *.crt
 *.cert
