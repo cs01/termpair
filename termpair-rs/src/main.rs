@@ -92,9 +92,13 @@ async fn main() {
                     .await
                     .expect("server failed");
             } else {
-                let listener = tokio::net::TcpListener::bind(&addr)
-                    .await
-                    .expect("failed to bind");
+                let socket = tokio::net::TcpSocket::new_v4().expect("failed to create socket");
+                socket.set_reuseaddr(false).ok();
+                socket.bind(addr.parse().expect("invalid address")).unwrap_or_else(|e| {
+                    eprintln!("error: cannot bind to {} — {}", addr, e);
+                    std::process::exit(1);
+                });
+                let listener = socket.listen(1024).expect("failed to listen");
                 axum::serve(listener, app).await.expect("server failed");
             }
         }
