@@ -118,21 +118,9 @@ pub async fn broadcast_terminal(
             .collect::<Result<Vec<_>, _>>()?;
 
         unsafe {
-            libc::setenv(
-                c"TERMPAIR_BROADCASTING".as_ptr(),
-                c"1".as_ptr(),
-                1,
-            );
-            let val = if allow_browser_control {
-                c"1"
-            } else {
-                c"0"
-            };
-            libc::setenv(
-                c"TERMPAIR_BROWSERS_CAN_CONTROL".as_ptr(),
-                val.as_ptr(),
-                1,
-            );
+            libc::setenv(c"TERMPAIR_BROADCASTING".as_ptr(), c"1".as_ptr(), 1);
+            let val = if allow_browser_control { c"1" } else { c"0" };
+            libc::setenv(c"TERMPAIR_BROWSERS_CAN_CONTROL".as_ptr(), val.as_ptr(), 1);
         }
 
         nix::unistd::execvp(&cmd_cstr, &args_cstr).map_err(|e| format!("execvp failed: {}", e))?;
