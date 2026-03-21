@@ -98,17 +98,42 @@ async fn main() {
             let addr = format!("{}:{}", host, port);
 
             if certfile.is_some() || keyfile.is_some() {
-                let cert = certfile.expect("--certfile required with --keyfile");
-                let key = keyfile.expect("--keyfile required with --certfile");
+                let cert = match certfile {
+                    Some(c) => c,
+                    None => {
+                        eprintln!("error: --certfile is required when --keyfile is provided");
+                        std::process::exit(1);
+                    }
+                };
+                let key = match keyfile {
+                    Some(k) => k,
+                    None => {
+                        eprintln!("error: --keyfile is required when --certfile is provided");
+                        std::process::exit(1);
+                    }
+                };
 
-                let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&cert, &key)
-                    .await
-                    .expect("failed to load TLS config");
+                let tls_config =
+                    match axum_server::tls_rustls::RustlsConfig::from_pem_file(&cert, &key).await {
+                        Ok(c) => c,
+                        Err(e) => {
+                            eprintln!("error: failed to load TLS config — {}", e);
+                            eprintln!("  check that --certfile and --keyfile point to valid PEM files");
+                            std::process::exit(1);
+                        }
+                    };
 
-                axum_server::bind_rustls(addr.parse().unwrap(), tls_config)
+                let bind_addr = addr.parse().unwrap_or_else(|e| {
+                    eprintln!("error: invalid address '{}' — {}", addr, e);
+                    std::process::exit(1);
+                });
+                if let Err(e) = axum_server::bind_rustls(bind_addr, tls_config)
                     .serve(app.into_make_service())
                     .await
-                    .expect("server failed");
+                {
+                    eprintln!("error: server failed — {}", e);
+                    std::process::exit(1);
+                }
             } else {
                 let sock_addr = tokio::net::lookup_host(&addr)
                     .await

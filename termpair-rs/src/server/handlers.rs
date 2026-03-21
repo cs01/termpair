@@ -79,9 +79,9 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
                 TERMPAIR_VERSION
             )),
         };
-        let _ = ws_tx
-            .send(Message::Text(serde_json::to_string(&err).unwrap().into()))
-            .await;
+        if let Ok(json) = serde_json::to_string(&err) {
+            let _ = ws_tx.send(Message::Text(json.into())).await;
+        }
         let _ = ws_tx.close().await;
         return;
     }
@@ -114,10 +114,15 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
         event: "start_broadcast".into(),
         payload: serde_json::Value::String(terminal_id.clone()),
     };
+    let start_json = match serde_json::to_string(&start_msg) {
+        Ok(j) => j,
+        Err(_) => {
+            terminals.write().await.remove(&terminal_id);
+            return;
+        }
+    };
     if ws_tx
-        .send(Message::Text(
-            serde_json::to_string(&start_msg).unwrap().into(),
-        ))
+        .send(Message::Text(start_json.into()))
         .await
         .is_err()
     {
@@ -253,7 +258,7 @@ async fn broadcast_num_clients(terminal: &Terminal, num: usize) {
         event: "num_clients".into(),
         payload: serde_json::Value::Number(serde_json::Number::from(num)),
     };
-    let _ = terminal
-        .broadcast_tx
-        .send(serde_json::to_string(&msg).unwrap());
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let _ = terminal.broadcast_tx.send(json);
+    }
 }

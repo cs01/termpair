@@ -100,7 +100,7 @@ impl AesKeys {
                 "b64_bootstrap_browser_aes_key": BASE64.encode(&encrypted_browser),
                 "iv_count": iv_count,
                 "max_iv_count": max_iv_count,
-                "salt": BASE64.encode(&salt),
+                "salt": BASE64.encode(salt),
             }
         });
 

@@ -112,23 +112,25 @@ pub async fn broadcast_terminal(
             CString::new(cmd[0].as_str()).map_err(|e| format!("invalid command: {}", e))?;
         let args_cstr: Vec<CString> = cmd
             .iter()
-            .map(|a| CString::new(a.as_str()).unwrap())
-            .collect();
+            .map(|a| {
+                CString::new(a.as_str()).map_err(|e| format!("invalid argument '{}': {}", a, e))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         unsafe {
             libc::setenv(
-                b"TERMPAIR_BROADCASTING\0".as_ptr() as *const _,
-                b"1\0".as_ptr() as *const _,
+                c"TERMPAIR_BROADCASTING".as_ptr(),
+                c"1".as_ptr(),
                 1,
             );
             let val = if allow_browser_control {
-                b"1\0"
+                c"1"
             } else {
-                b"0\0"
+                c"0"
             };
             libc::setenv(
-                b"TERMPAIR_BROWSERS_CAN_CONTROL\0".as_ptr() as *const _,
-                val.as_ptr() as *const _,
+                c"TERMPAIR_BROWSERS_CAN_CONTROL".as_ptr(),
+                val.as_ptr(),
                 1,
             );
         }
@@ -279,7 +281,7 @@ async fn run_parent(
                     rand::thread_rng().fill_bytes(&mut salt);
                     let plaintext = json!({
                         "pty_output": BASE64.encode(output),
-                        "salt": BASE64.encode(&salt),
+                        "salt": BASE64.encode(salt),
                     });
                     let plaintext_bytes = plaintext.to_string().into_bytes();
 
