@@ -78,9 +78,6 @@ pytest tests/test_server.py::test_get_index -v  # single test
 # Lint
 nox -s lint              # black, flake8, mypy, check-manifest
 pre-commit run --all-files
-
-# Build executable
-nox -s build_executable  # creates PEX file
 ```
 
 ## Key Dependencies
@@ -88,3 +85,14 @@ nox -s build_executable  # creates PEX file
 - **Rust:** axum, tokio, aes-gcm, nix (PTY), rust-embed (static files), clap, tracing
 - **Python:** FastAPI, uvicorn, starlette, websockets, cryptography, aiofiles (Python 3.8+)
 - **Python frontend:** React 16, xterm 4, tailwindcss, craco, TypeScript
+
+## Releasing
+
+Push a `v*` tag to trigger `.github/workflows/release.yml`, which cross-compiles for linux (x86_64, aarch64) and macOS (x86_64, aarch64), then creates a GitHub Release with tarballs and checksums.
+
+```bash
+git tag v0.5.0
+git push origin v0.5.0
+```
+
+`install.sh` at the repo root is a curl-installable script that downloads the latest release binary for the user's platform.

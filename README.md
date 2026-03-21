@@ -65,45 +65,44 @@ The server multicasts terminal output to all browsers that connect to the sessio
 
 ## System Requirements
 
-Python: 3.6+
-
 Operating Systems: Linux, macOS
 
 ## Installation
 
-### Option 1: Download executable
-Download from the [release](https://github.com/cs01/termpair/releases) page. You may have to run `chmod +x` before you can run it.
-
-### Option 2: Install Using `pipx` or `pip`
-You can install using [pipx](https://github.com/pipxproject/pipx), which installs Python applications in isolated environments (recommended):
+### Quick Install (recommended)
 
 ```
-> pipx install termpair
+curl -fsSL https://raw.githubusercontent.com/cs01/termpair/master/install.sh | sh
 ```
 
-or install with [pip](https://pip.pypa.io/en/stable/)
+This detects your platform and installs the latest binary to `/usr/local/bin`.
+
+To install to a different directory:
 
 ```
-> pip install termpair
+curl -fsSL https://raw.githubusercontent.com/cs01/termpair/master/install.sh | INSTALL_DIR=~/.local/bin sh
 ```
 
-Note: Make sure the TermPair server you are broadcasting to is running the same major version as the broadcasting terminal (see `termpair --version`).
+To install a specific version:
 
-## Run With Latest Version
-
-You can also use [pipx](https://github.com/pipxproject/pipx) to directly run the latest version without installing:
-
-Serve:
 ```
-> pipx run termpair serve
+curl -fsSL https://raw.githubusercontent.com/cs01/termpair/master/install.sh | VERSION=v0.5.0 sh
 ```
 
-Then share:
-```
-> pipx run termpair share
-```
+### Download from GitHub Releases
 
-Note: Make sure the TermPair server you are broadcasting to is running the same major version as the broadcasting terminal (see `pipx run termpair --version`). You can specify the version with `pipx run --spec termpair==$VERSION termpair ...`.
+Download a prebuilt binary for your platform from the [releases page](https://github.com/cs01/termpair/releases).
+
+Available platforms: Linux (x86_64, aarch64), macOS (x86_64, Apple Silicon).
+
+### Build from Source
+
+```
+git clone https://github.com/cs01/termpair.git
+cd termpair/termpair-rs
+cargo build --release
+cp target/release/termpair /usr/local/bin/
+```
 
 ## Security
 
