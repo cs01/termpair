@@ -72,16 +72,23 @@ By default, `termpair share` runs your `$SHELL`. The server multicasts terminal 
 
 ## How it Works
 
-<p align="center">
-<a href="https://github.com/cs01/termpair/raw/main/docs/termpair_architecture.png">
-<img src="https://github.com/cs01/termpair/raw/main/docs/termpair_architecture.png"/></a>
-</p>
+```
+┌─────────────────┐                                    ┌─────────────────┐
+│                 │    encrypted terminal output        │                 │
+│  Terminal       │───────────────────────────────────▶│  Browser(s)     │
+│  (termpair      │         ┌───────────────┐          │  (xterm.js +    │
+│   share)        │◀────────│  Server       │─────────▶│   Web Crypto)   │
+│                 │         │  (blind relay) │          │                 │
+│  - forks pty    │    encrypted browser input          │  - decrypts     │
+│  - encrypts I/O │         │  never sees   │          │    output       │
+│  - manages keys │         │  plaintext    │          │  - encrypts     │
+│                 │         └───────────────┘          │    input        │
+└─────────────────┘                                    └─────────────────┘
+```
 
-**Server** (`termpair serve`) -- Acts as a blind relay that routes encrypted WebSocket messages between terminal clients and browsers. It never has access to encryption keys or plaintext.
-
-**Terminal client** (`termpair share`) -- Forks a pseudo-terminal (pty) running your shell. Reads pty output, encrypts it with AES-128-GCM, and sends it to the server via WebSocket. Decrypts incoming browser input and writes it to the pty.
-
-**Browser** -- Connects via WebSocket, decrypts terminal output using the [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API), and renders it with [xterm.js](https://xtermjs.org/). User input is encrypted before sending.
+The server is a blind relay -- it routes encrypted WebSocket messages without access to keys or plaintext.
+The terminal client forks a pty, encrypts all output with AES-128-GCM, and decrypts browser input.
+Browsers decrypt and render with [xterm.js](https://xtermjs.org/) + [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API).
 
 ### Encryption
 
