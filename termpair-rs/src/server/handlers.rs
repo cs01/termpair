@@ -121,11 +121,7 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
             return;
         }
     };
-    if ws_tx
-        .send(Message::Text(start_json.into()))
-        .await
-        .is_err()
-    {
+    if ws_tx.send(Message::Text(start_json.into())).await.is_err() {
         terminals.write().await.remove(&terminal_id);
         return;
     }

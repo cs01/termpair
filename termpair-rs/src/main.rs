@@ -118,7 +118,9 @@ async fn main() {
                         Ok(c) => c,
                         Err(e) => {
                             eprintln!("error: failed to load TLS config — {}", e);
-                            eprintln!("  check that --certfile and --keyfile point to valid PEM files");
+                            eprintln!(
+                                "  check that --certfile and --keyfile point to valid PEM files"
+                            );
                             std::process::exit(1);
                         }
                     };

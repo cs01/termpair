@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Worktree Rule
 
-**ALWAYS work on a git worktree and branch. NEVER modify files directly on `master`.** `master` must always remain clean. Every piece of work — features, bug fixes, docs, even CLAUDE.md edits — must happen on a dedicated branch in a worktree:
+**ALWAYS work on a git worktree and branch. NEVER modify files directly on `main`.** `main` must always remain clean. Every piece of work — features, bug fixes, docs, even CLAUDE.md edits — must happen on a dedicated branch in a worktree:
 
 ```bash
 git worktree add .worktrees/<name> -b <branch-name>
@@ -22,14 +22,14 @@ monitor CI, and merge when green. You have push access to feature branches and m
 3. `git push origin <branch>` — push to remote
 4. `gh pr create` — open a PR
 5. `gh pr checks <number>` — monitor CI
-6. When CI is green: `gh pr merge <number> --squash --delete-branch` — merge to master
+6. When CI is green: `gh pr merge <number> --squash --delete-branch` — merge to main
 7. Clean up: return to repo root and `git worktree remove .worktrees/<name>`
-8. Pull master and continue with next task
+8. Pull main and continue with next task
 
 **Every PR must be seen through to completion** — don't just open and walk away. Monitor CI, fix failures,
 merge when green, delete the remote branch, and remove the local worktree.
 
-**Never push to master directly.** Always go through PRs.
+**Never push to main directly.** Always go through PRs.
 
 ## What is TermPair
 
