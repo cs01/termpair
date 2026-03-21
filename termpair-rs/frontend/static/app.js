@@ -335,6 +335,15 @@ function setupKeyHandler(xterm) {
   });
 }
 
+function formatElapsed(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
 // ---- Connection ----
 
 async function connect(terminalId, bootstrapKeyB64) {
@@ -366,7 +375,20 @@ async function connect(terminalId, bootstrapKeyB64) {
 
   ws.addEventListener("open", () => {
     setStatus("Connected");
+
+    const td = state.terminalData;
+    const mode = td.allow_browser_control ? "read/write" : "read-only";
+    const startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
+    const elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
+
+    xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m— secure terminal sharing\x1b[0m");
+    xterm.writeln("");
     xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
+    xterm.writeln(`\x1b[90mThe server cannot read any transmitted data.\x1b[0m`);
+    xterm.writeln("");
+    if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
+    xterm.writeln(`\x1b[90m  access:   \x1b[0m${mode}`);
+    if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
     xterm.writeln("");
 
     ws.send(JSON.stringify({ event: "request_terminal_dimensions" }));
