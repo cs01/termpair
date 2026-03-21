@@ -150,11 +150,19 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #terminal-view {
   flex: 1;
-  padding: 0.5rem;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
 }
 
 #terminal {
-  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #050505;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  max-width: 960px;
+  width: 100%;
 }
 
 #bottombar {
