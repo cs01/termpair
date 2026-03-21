@@ -472,6 +472,9 @@ async fn run_parent(
     stdin_task.abort();
     sigwinch_task.abort();
 
+    // reset terminal modes that xterm.js may have enabled (focus reporting, etc.)
+    eprint!("\x1b[?1004l\x1b[?1049l\x1b[?25h");
+
     eprintln!(
         "You are no longer broadcasting terminal id {}",
         terminal_id
