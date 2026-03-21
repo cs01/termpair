@@ -367,7 +367,6 @@ async function connect(terminalId, bootstrapKeyB64) {
   ws.addEventListener("open", () => {
     setStatus("Connected");
     xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
-    xterm.writeln("\x1b[90mCopy: ctrl+shift+c/x  Paste: ctrl+shift+v\x1b[0m");
     xterm.writeln("");
 
     ws.send(JSON.stringify({ event: "request_terminal_dimensions" }));
