@@ -1,9 +1,9 @@
 <div style="text-align: center; font-size: 1.5em;">
-    <img src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/>
+    <img src="https://github.com/cs01/termpair/raw/main/termpair/frontend_src/src/logo.png"/>
     <p>View and control remote terminals from your browser with end-to-end encryption</p>
 <p align="center">
 <a href="https://github.com/cs01/termpair/actions/workflows/ci.yml">
-<img src="https://github.com/cs01/termpair/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI" height="18"></a>
+<img src="https://github.com/cs01/termpair/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" height="18"></a>
 </p>
 </div>
 
@@ -15,7 +15,7 @@ TermPair lets developers securely share and control terminals in real time.
 
 You can **try it now** at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair) or **check out the [YouTube Demo](https://www.youtube.com/watch?v=HF0UX4smrKk)**.
 <div style="text-align: center">
-   <a href="https://github.com/cs01/termpair/raw/master/termpair_browser.gif"> <img src="https://github.com/cs01/termpair/raw/master/termpair_browser.gif"/></a>
+   <a href="https://github.com/cs01/termpair/raw/main/termpair_browser.gif"> <img src="https://github.com/cs01/termpair/raw/main/termpair_browser.gif"/></a>
 </div>
 
 ## Features
@@ -73,7 +73,7 @@ Operating Systems: Linux, macOS
 ### Quick Install (recommended)
 
 ```
-curl -fsSL https://raw.githubusercontent.com/cs01/termpair/master/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | sh
 ```
 
 This detects your platform and installs the latest binary to `/usr/local/bin`.
@@ -81,13 +81,13 @@ This detects your platform and installs the latest binary to `/usr/local/bin`.
 To install to a different directory:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/cs01/termpair/master/install.sh | INSTALL_DIR=~/.local/bin sh
+curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | INSTALL_DIR=~/.local/bin sh
 ```
 
 To install a specific version:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/cs01/termpair/master/install.sh | VERSION=v0.5.0 sh
+curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | VERSION=v0.5.0 sh
 ```
 
 ### Download from GitHub Releases
@@ -113,7 +113,7 @@ The browser must be running in a [secure context](https://developer.mozilla.org/
 
 ### Running Client from Source
 For extra assurance the source code is secure, you can broadcast your terminal from source.
-See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md) for more information.
+See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/main/CONTRIBUTING.md) for more information.
 
 ### Static Hosting
 TermPair supports statically serving the JavaScript web app. This way you can easily run the web app from source for extra assurance the web app is secure.
@@ -124,13 +124,13 @@ When you open the web app without a TermPair server running, you specify the Ter
 
 You can try it out or just see what it looks like with a GitHub page from this project, [https://cs01.github.io/termpair/connect/](https://cs01.github.io/termpair/connect/).
 
-See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/master/CONTRIBUTING.md) for more information.
+See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/main/CONTRIBUTING.md) for more information.
 
 ## How it Works
 
 <div style="text-align: center">
-    <a href="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png">
-    <img src="https://github.com/cs01/termpair/raw/master/docs/termpair_architecture.png"/></a>
+    <a href="https://github.com/cs01/termpair/raw/main/docs/termpair_architecture.png">
+    <img src="https://github.com/cs01/termpair/raw/main/docs/termpair_architecture.png"/></a>
 </div>
 
 TermPair consists of three pieces:
