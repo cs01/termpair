@@ -55,10 +55,10 @@
 
   <footer id="bottombar">
     <div id="status-bar" style="display:none" role="status" aria-live="polite">
-      <span id="status-text"></span>
-      <span id="terminal-dimensions"></span>
-      <span id="access-mode"></span>
-      <span id="client-count"></span>
+      <span class="status-item"><span class="status-dot"></span> <span id="status-text"></span></span>
+      <span class="status-item" title="Terminal dimensions (rows x cols)"><span id="terminal-dimensions"></span></span>
+      <span class="status-item" title="Browser input permission"><span id="access-mode"></span></span>
+      <span class="status-item" title="Connected viewers"><span id="client-count"></span></span>
     </div>
     <div class="footer-links">
       <a href="https://chadsmith.dev">chadsmith.dev</a> &middot; <a href="https://github.com/cs01/termpair">GitHub</a>

@@ -164,16 +164,32 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 #status-bar {
   display: flex;
   align-items: center;
-  justify-content: space-evenly;
-  padding: 0.4rem 1rem;
-  font-size: 0.8rem;
-  gap: 1rem;
+  justify-content: center;
+  padding: 0.35rem 1rem;
+  font-size: 0.75rem;
+  gap: 1.5rem;
   flex-wrap: wrap;
   color: var(--text-muted);
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
 }
 
-#status-bar.connected { background: #0a2a0a; color: var(--success); }
-#status-bar.disconnected { background: #2a0a0a; color: var(--error); }
+#status-bar .status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+#status-bar .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+#status-bar.connected { background: #091a09; border-top: 1px solid #1a3a1a; }
+#status-bar.connected .status-dot { background: var(--success); }
+#status-bar.disconnected { background: #1a0909; border-top: 1px solid #3a1a1a; }
+#status-bar.disconnected .status-dot { background: var(--error); }
 
 .footer-links {
   display: flex;

@@ -143,10 +143,7 @@ function updateBottomBar() {
   const clients = $id("client-count");
 
   if (state.terminalData) {
-    access.textContent = state.terminalData.allow_browser_control ? "read/write" : "read only";
-  }
-  if (state.xterm) {
-    dims.textContent = `${state.xterm.rows}x${state.xterm.cols}`;
+    access.textContent = state.terminalData.allow_browser_control ? "read/write" : "read-only";
   }
 }
 
@@ -232,13 +229,13 @@ function handleResize(data) {
     if (cols > 0 && rows > 0) {
       state.xterm.resize(cols, rows);
     }
-    $id("terminal-dimensions").textContent = `${rows}x${cols}`;
+    $id("terminal-dimensions").textContent = `${cols}x${rows}`;
   }
 }
 
 function handleNumClients(data) {
   const n = data.payload;
-  $id("client-count").textContent = `${n} viewer${n === 1 ? "" : "s"}`;
+  $id("client-count").textContent = n === 1 ? "1 viewer" : `${n} viewers`;
 }
 
 async function handleAesKeys(data) {
@@ -366,7 +363,6 @@ async function connect(terminalId, bootstrapKeyB64) {
   state.ws = ws;
 
   setStatus("Connecting...");
-  $id("client-count").textContent = "0 viewer(s)";
 
   ws.addEventListener("open", () => {
     setStatus("Connected");
@@ -380,7 +376,7 @@ async function connect(terminalId, bootstrapKeyB64) {
     xterm.onData((data) => sendInput(data));
     xterm.focus();
     updateBottomBar();
-    $id("terminal-dimensions").textContent = `${xterm.rows}x${xterm.cols}`;
+    $id("terminal-dimensions").textContent = `${xterm.cols}x${xterm.rows}`;
   });
 
   ws.addEventListener("message", async (event) => {
@@ -396,7 +392,7 @@ async function connect(terminalId, bootstrapKeyB64) {
     setStatus("Disconnected");
     xterm.writeln("");
     xterm.writeln("\x1b[1;31mTerminal session has ended\x1b[0m");
-    $id("client-count").textContent = "0 viewers";
+    $id("client-count").textContent = "";
   });
 
   ws.addEventListener("error", (event) => {
