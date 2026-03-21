@@ -226,9 +226,13 @@ async function handleNewOutput(data) {
 }
 
 function handleResize(data) {
-  if (data.payload && data.payload.cols && data.payload.rows) {
-    state.xterm.resize(data.payload.cols, data.payload.rows);
-    $id("terminal-dimensions").textContent = `${data.payload.rows}x${data.payload.cols}`;
+  if (data.payload && data.payload.cols != null && data.payload.rows != null) {
+    const cols = data.payload.cols;
+    const rows = data.payload.rows;
+    if (cols > 0 && rows > 0) {
+      state.xterm.resize(cols, rows);
+    }
+    $id("terminal-dimensions").textContent = `${rows}x${cols}`;
   }
 }
 
@@ -376,6 +380,7 @@ async function connect(terminalId, bootstrapKeyB64) {
     xterm.onData((data) => sendInput(data));
     xterm.focus();
     updateBottomBar();
+    $id("terminal-dimensions").textContent = `${xterm.rows}x${xterm.cols}`;
   });
 
   ws.addEventListener("message", async (event) => {
