@@ -28,7 +28,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    #[command(about = "run termpair server to route messages between terminals and browsers")]
+    #[command(about = "run termpair server to route messages between terminals and browsers", version = constants::TERMPAIR_VERSION)]
     Serve {
         #[arg(short, long, default_value = "8000", help = "port to listen on")]
         port: u16,
@@ -43,7 +43,7 @@ enum Commands {
         #[arg(short, long, help = "path to SSL private key (.key) for HTTPS")]
         keyfile: Option<String>,
     },
-    #[command(about = "share your terminal session with one or more browsers")]
+    #[command(about = "share your terminal session with one or more browsers", version = constants::TERMPAIR_VERSION)]
     Share {
         #[arg(long, default_value_t = default_shell(), help = "command to run in the shared terminal")]
         cmd: String,
