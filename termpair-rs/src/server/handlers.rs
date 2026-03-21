@@ -141,10 +141,9 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
                 if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
                     match ws_msg.event.as_str() {
                         "resize" => {
-                            if let Ok(resize) = serde_json::from_value::<
-                                crate::types::ResizePayload,
-                            >(ws_msg.payload.clone())
-                            {
+                            if let Ok(resize) = serde_json::from_value::<crate::types::ResizePayload>(
+                                ws_msg.payload.clone(),
+                            ) {
                                 *terminal_for_forward.rows.write().await = resize.rows;
                                 *terminal_for_forward.cols.write().await = resize.cols;
                             }

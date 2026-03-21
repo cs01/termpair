@@ -33,4 +33,3 @@ pub struct ResizePayload {
     pub rows: u16,
     pub cols: u16,
 }
-

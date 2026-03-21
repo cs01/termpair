@@ -10,7 +10,9 @@ use rand::Rng;
 fn random_string(n: usize) -> String {
     const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let mut rng = rand::thread_rng();
-    (0..n).map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char).collect()
+    (0..n)
+        .map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char)
+        .collect()
 }
 
 #[derive(Parser)]
@@ -30,7 +32,11 @@ enum Commands {
     Serve {
         #[arg(short, long, default_value = "8000", help = "port to listen on")]
         port: u16,
-        #[arg(long, default_value = "localhost", help = "host to bind to (use 0.0.0.0 to expose publicly)")]
+        #[arg(
+            long,
+            default_value = "localhost",
+            help = "host to bind to (use 0.0.0.0 to expose publicly)"
+        )]
         host: String,
         #[arg(short, long, help = "path to SSL certificate (.crt) for HTTPS")]
         certfile: Option<String>,
@@ -41,13 +47,26 @@ enum Commands {
     Share {
         #[arg(long, default_value_t = default_shell(), help = "command to run in the shared terminal")]
         cmd: String,
-        #[arg(short, long, default_value = "8000", help = "port the server is running on")]
+        #[arg(
+            short,
+            long,
+            default_value = "8000",
+            help = "port the server is running on"
+        )]
         port: u16,
-        #[arg(long, default_value = "http://localhost", help = "URL of the termpair server")]
+        #[arg(
+            long,
+            default_value = "http://localhost",
+            help = "URL of the termpair server"
+        )]
         host: String,
         #[arg(short, long, help = "prevent browser viewers from typing")]
         read_only: bool,
-        #[arg(short = 'b', long, help = "automatically open the share link in a browser")]
+        #[arg(
+            short = 'b',
+            long,
+            help = "automatically open the share link in a browser"
+        )]
         open_browser: bool,
     },
 }
@@ -106,7 +125,8 @@ async fn main() {
                     tokio::net::TcpSocket::new_v6()
                 } else {
                     tokio::net::TcpSocket::new_v4()
-                }.expect("failed to create socket");
+                }
+                .expect("failed to create socket");
                 socket.set_reuseaddr(false).ok();
                 socket.bind(sock_addr).unwrap_or_else(|_| {
                     eprintln!("error: port {} is already in use", port);
@@ -114,7 +134,11 @@ async fn main() {
                     std::process::exit(1);
                 });
                 let listener = socket.listen(1024).expect("failed to listen");
-                eprintln!("termpair v{} listening on http://{}", constants::TERMPAIR_VERSION, addr);
+                eprintln!(
+                    "termpair v{} listening on http://{}",
+                    constants::TERMPAIR_VERSION,
+                    addr
+                );
                 axum::serve(listener, app).await.expect("server failed");
             }
         }

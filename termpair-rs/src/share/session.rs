@@ -1,9 +1,9 @@
 use std::ffi::CString;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 
-use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD as BASE64URL;
+use base64::Engine;
 use futures_util::{SinkExt, StreamExt};
 use nix::libc;
 use nix::sys::termios;
@@ -22,10 +22,11 @@ struct RawModeGuard {
 impl RawModeGuard {
     fn new(raw_fd: i32) -> Result<Self, String> {
         let dup_fd = unsafe { libc::dup(raw_fd) };
-        if dup_fd < 0 { return Err("dup failed".into()); }
+        if dup_fd < 0 {
+            return Err("dup failed".into());
+        }
         let fd = unsafe { OwnedFd::from_raw_fd(dup_fd) };
-        let original =
-            termios::tcgetattr(&fd).map_err(|e| format!("tcgetattr failed: {}", e))?;
+        let original = termios::tcgetattr(&fd).map_err(|e| format!("tcgetattr failed: {}", e))?;
         let mut raw = original.clone();
         termios::cfmakeraw(&mut raw);
         termios::tcsetattr(&fd, termios::SetArg::TCSANOW, &raw)
@@ -64,7 +65,9 @@ fn set_terminal_size(fd: i32, rows: u16, cols: u16) {
 }
 
 fn raw_write(fd: i32, buf: &[u8]) {
-    unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()); }
+    unsafe {
+        libc::write(fd, buf.as_ptr() as *const _, buf.len());
+    }
 }
 
 fn raw_read(fd: i32, buf: &mut [u8]) -> isize {
@@ -118,7 +121,11 @@ pub async fn broadcast_terminal(
                 b"1\0".as_ptr() as *const _,
                 1,
             );
-            let val = if allow_browser_control { b"1\0" } else { b"0\0" };
+            let val = if allow_browser_control {
+                b"1\0"
+            } else {
+                b"0\0"
+            };
             libc::setenv(
                 b"TERMPAIR_BROWSERS_CAN_CONTROL\0".as_ptr() as *const _,
                 val.as_ptr() as *const _,
@@ -126,8 +133,7 @@ pub async fn broadcast_terminal(
             );
         }
 
-        nix::unistd::execvp(&cmd_cstr, &args_cstr)
-            .map_err(|e| format!("execvp failed: {}", e))?;
+        nix::unistd::execvp(&cmd_cstr, &args_cstr).map_err(|e| format!("execvp failed: {}", e))?;
         unreachable!()
     }
 
@@ -153,12 +159,7 @@ async fn run_parent(
 
     let (ws_stream, _) = tokio_tungstenite::connect_async(&ws_endpoint)
         .await
-        .map_err(|e| {
-            format!(
-                "connection refused. is the termpair server running? {}",
-                e
-            )
-        })?;
+        .map_err(|e| format!("connection refused. is the termpair server running? {}", e))?;
 
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
@@ -217,9 +218,7 @@ async fn run_parent(
 
     let dashes: String = "-".repeat(cols as usize);
     eprintln!("{}", dashes);
-    eprintln!(
-        "\x1b[1m\x1b[0;32mConnection established with end-to-end encryption\x1b[0m"
-    );
+    eprintln!("\x1b[1m\x1b[0;32mConnection established with end-to-end encryption\x1b[0m");
     eprintln!();
     eprintln!("Shareable link (full):  {}", share_url);
     eprintln!("Public viewer link:     {}", public_url);
@@ -239,7 +238,9 @@ async fn run_parent(
 
     let pty_fd_dup = unsafe {
         let fd = libc::dup(pty_fd);
-        if fd < 0 { return Err("dup failed".into()); }
+        if fd < 0 {
+            return Err("dup failed".into());
+        }
         OwnedFd::from_raw_fd(fd)
     };
     set_nonblocking(pty_fd_dup.as_raw_fd())?;
@@ -294,7 +295,9 @@ async fn run_parent(
 
     let stdin_fd_dup = unsafe {
         let fd = libc::dup(stdin_fd);
-        if fd < 0 { return Err("dup stdin failed".into()); }
+        if fd < 0 {
+            return Err("dup stdin failed".into());
+        }
         OwnedFd::from_raw_fd(fd)
     };
     set_nonblocking(stdin_fd_dup.as_raw_fd())?;
@@ -397,14 +400,12 @@ async fn run_parent(
                             if allow_browser_control {
                                 if let Some(payload) = parsed["payload"].as_str() {
                                     if let Ok(encrypted_bytes) = BASE64.decode(payload) {
-                                        if let Ok(decrypted) =
-                                            aes_keys.decrypt(&encrypted_bytes)
-                                        {
-                                            if let Ok(data) = serde_json::from_slice::<
-                                                serde_json::Value,
-                                            >(
-                                                &decrypted
-                                            ) {
+                                        if let Ok(decrypted) = aes_keys.decrypt(&encrypted_bytes) {
+                                            if let Ok(data) =
+                                                serde_json::from_slice::<serde_json::Value>(
+                                                    &decrypted,
+                                                )
+                                            {
                                                 if let Some(input) = data["data"].as_str() {
                                                     raw_write(pty_fd, input.as_bytes());
                                                 }
@@ -417,7 +418,8 @@ async fn run_parent(
                         "request_terminal_dimensions" => {
                             let (rows, cols) = get_terminal_size(stdin_fd);
                             set_terminal_size(pty_fd, rows, cols);
-                            let resize_msg = json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
+                            let resize_msg =
+                                json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
                             let _ = ws_tx
                                 .send(tokio_tungstenite::tungstenite::Message::Text(
                                     resize_msg.to_string().into(),
@@ -435,9 +437,7 @@ async fn run_parent(
                         }
                         "new_browser_connected" => {
                             num_browsers += 1;
-                            if let Ok(keys_msg) =
-                                aes_keys.build_aes_keys_message(num_browsers)
-                            {
+                            if let Ok(keys_msg) = aes_keys.build_aes_keys_message(num_browsers) {
                                 let _ = ws_tx
                                     .send(tokio_tungstenite::tungstenite::Message::Text(
                                         keys_msg.into(),
@@ -475,9 +475,6 @@ async fn run_parent(
     // reset terminal modes that xterm.js may have enabled (focus reporting, etc.)
     eprint!("\x1b[?1004l\x1b[?1049l\x1b[?25h");
 
-    eprintln!(
-        "You are no longer broadcasting terminal id {}",
-        terminal_id
-    );
+    eprintln!("You are no longer broadcasting terminal id {}", terminal_id);
     Ok(())
 }

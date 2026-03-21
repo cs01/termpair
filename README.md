@@ -2,12 +2,12 @@
     <img src="https://github.com/cs01/termpair/raw/master/termpair/frontend_src/src/logo.png"/>
     <p>View and control remote terminals from your browser with end-to-end encryption</p>
 <p align="center">
-<a href="https://badge.fury.io/py/termpair"><img src="https://badge.fury.io/py/termpair.svg" alt="PyPI version" height="18"></a>
-
-<a href="https://github.com/cs01/termpair/actions?query=workflow%3Atests">
-<img src="https://github.com/cs01/termpair/actions/workflows/tests.yml/badge.svg?branch=master" alt="PyPI version" height="18"></a>
+<a href="https://github.com/cs01/termpair/actions/workflows/ci.yml">
+<img src="https://github.com/cs01/termpair/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI" height="18"></a>
 </p>
 </div>
+
+> Originally written in Python, rewritten in Rust for single-binary distribution.
 
 ## What is TermPair?
 
@@ -27,15 +27,16 @@ You can **try it now** at [https://chadsmith.dev/termpair](https://chadsmith.dev
 * Secure web environment required (https)
 * Optional static-site hosting -- build the web app yourself to ensure the integrity of the web app ([example](https://cs01.github.io/termpair/connect/))
 * Broadcasting terminal's dimensions are sent to the browser in realtime so rendering always matches
+* Single static binary with no runtime dependencies
 
 ## Usage
 
 First start the TermPair server with `termpair serve`, or use the one already running at [https://chadsmith.dev/termpair](https://chadsmith.dev/termpair).
 
-The server is used to route encrypted data between terminals and connected browsers — it doesn't actually start sharing any terminals on its own.
+The server is used to route encrypted data between terminals and connected browsers -- it doesn't actually start sharing any terminals on its own.
 
 ```
-> termpair serve
+termpair serve
 ```
 
 Now that you have the server running, you can share your terminal by running `termpair share`.
@@ -43,9 +44,9 @@ Now that you have the server running, you can share your terminal by running `te
 This connects your terminal to the server, and allows browsers to access the terminal through the server.
 
 ```
-> termpair share
+termpair share
 --------------------------------------------------------------------------------
-Connection established with end-to-end encryption 🔒
+Connection established with end-to-end encryption
 
 Shareable link: http://localhost:8000/?terminal_id=d58ff4eed5aa9425e944abe63214382e#g8hSgHnDaBtiWKTeH4I0Ow==
 
@@ -59,7 +60,7 @@ Type 'exit' or close terminal to stop sharing.
 
 The URL printed contains a unique terminal ID and encryption key. You can share the URL with whoever you like. **Anyone who has it can access your terminal while the `termpair share` process is running,** so be sure you trust the person you are sharing the link with.
 
-By default, the process that is shared is a new process running the current shell, determined by the `$SHELL` evironment variable.
+By default, the process that is shared is a new process running the current shell, determined by the `$SHELL` environment variable.
 
 The server multicasts terminal output to all browsers that connect to the session.
 
@@ -142,7 +143,7 @@ TermPair consists of three pieces:
 First, the termpair server is started (`termpair serve`). The server acts as a router that blindly forwards encrypted data between TermPair terminal clients and connected browsers. The server listens for termpair websocket connections from unix terminal clients, and maintains a mapping to any connected browsers.
 
 ### Terminal Client
-When a user wants to share their terminal, they run `termpair share` to start the client. The TermPair client registers this session with the server, then [forks](https://docs.python.org/3/library/pty.html#pty.fork) and starts a psuedo-terminal (pty) with the desired process, usually a shell like `bash` or `zsh`. TermPair reads data from the pty's file descriptor as it becomes available, then writes it to ther real terminal's stdout, where it is printed like normal. However, it also encrypts this output and sends it to the server via a websocket.
+When a user wants to share their terminal, they run `termpair share` to start the client. The TermPair client registers this session with the server, then forks a pseudo-terminal (pty) with the desired process, usually a shell like `bash` or `zsh`. TermPair reads data from the pty's file descriptor as it becomes available, then writes it to the real terminal's stdout, where it is printed like normal. It also encrypts this output and sends it to the server via a websocket.
 
 ### Encryption
 The TermPair client creates three 128 bit AES encryption keys when it starts:
@@ -151,7 +152,7 @@ The TermPair client creates three 128 bit AES encryption keys when it starts:
 * The third is a "bootstrap" key used by the browser to decrypt the initial connection response from the broadcasting terminal, which contains the above two keys encrypted with this third key. The browser obtains this bootstrap key via a [part of the url](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hash) that the server does not have access to, or via manual user input. A public key exchange like Diffie-Hellman was not used since multiple browsers can connect to the terminal, which would increase the complexity of TermPair's codebase. Still, DH in some form may be considered in the future.
 
 ### Web App
-The TermPair client provides the user with a unique URL for the duration of the shaing session. That URL points to the TermPair web application (TypeScript/React) that sets up a websocket connection to receive and send the encrypted terminal data. When data is received, it is decrypted and written to a browser-based terminal.
+The TermPair client provides the user with a unique URL for the duration of the sharing session. That URL points to the TermPair web application that sets up a websocket connection to receive and send the encrypted terminal data. When data is received, it is decrypted and written to a browser-based terminal.
 
 When a user types in the browser's terminal, it is encrypted in the browser with key #2, sent to the server, forwarded from the server to the terminal, then decrypted in the terminal by TermPair. Finally, the TermPair client writes it to the pty's file descriptor, as if it were being typed directly to the terminal.
 
@@ -192,14 +193,14 @@ server {
 ## Running as a systemd service
 If you use systemd to manage services, here is an example configuration you can start with.
 
-This configuration assumes you've installed TermPair to `/home/$USER/.local/bin/termpair` and saved the file to `/etc/systemd/system/termpair.service`.
+This configuration assumes you've installed TermPair to `/usr/local/bin/termpair` and saved the file to `/etc/systemd/system/termpair.service`.
 
 ```toml
 # /etc/systemd/system/termpair.service
 
 # https://www.freedesktop.org/software/systemd/man/systemd.service.html
 [Unit]
-Description=
+Description=TermPair terminal sharing server
 After=network.target
 
 [Service]
@@ -207,7 +208,7 @@ User=$USER
 Group=www-data
 WorkingDirectory=/var/www/termpair/
 PermissionsStartOnly=true
-ExecStart=/home/$USER/.local/bin/termpair serve --port 8000
+ExecStart=/usr/local/bin/termpair serve --port 8000
 ExecStop=
 Restart=on-failure
 RestartSec=1s
@@ -225,64 +226,49 @@ sudo systemctl restart termpair
 
 ## CLI API
 
-```
-> termpair --help
-usage: termpair [-h] [--version] {share,serve} ...
+### termpair
 
+```
 View and control remote terminals from your browser
 
-positional arguments:
-  {share,serve}
+Usage: termpair <COMMAND>
 
-optional arguments:
-  -h, --help     show this help message and exit
-  --version
+Commands:
+  serve   Run termpair server to route messages between terminals and browsers
+  share   Share your terminal session with one or more browsers
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
-To start the TermPair server:
+### termpair serve
+
 ```
-> termpair serve --help
-usage: termpair serve [-h] [--port PORT] [--host HOST] [--certfile CERTFILE]
-                      [--keyfile KEYFILE]
+Run termpair server to route messages between terminals and browsers
 
-Run termpair server to route messages between unix terminals and browsers. Run
-this before connecting any clients. It is recommended to encrypt communication
-by using SSL/TLS. To generate an SSL certificate and private key, run `openssl
-req -newkey rsa:2048 -nodes -keyout host.key -x509 -days 365 -out host.crt`.
-To skip questions and use defaults, add the `-batch` flag. You can ignore
-warnings about self-signed certificates since you know you just made it. Then
-use them, pass the '--certfile' and '--keyfile' arguments.
+Usage: termpair serve [OPTIONS]
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --port PORT, -p PORT  Port to run the server on (default: 8000)
-  --host HOST           Host to run the server on (0.0.0.0 exposes publicly)
-                        (default: localhost)
-  --certfile CERTFILE, -c CERTFILE
-                        Path to SSL certificate file (commonly .crt extension)
-                        (default: None)
-  --keyfile KEYFILE, -k KEYFILE
-                        Path to SSL private key .key file (commonly .key
-                        extension) (default: None)
+Options:
+  -p, --port <PORT>          Port to listen on [default: 8000]
+      --host <HOST>          Host to bind to (use 0.0.0.0 to expose publicly) [default: localhost]
+  -c, --certfile <CERTFILE>  Path to SSL certificate (.crt) for HTTPS
+  -k, --keyfile <KEYFILE>    Path to SSL private key (.key) for HTTPS
+  -h, --help                 Print help
 ```
 
-To share a terminal using the TermPair client:
+### termpair share
+
 ```
-> termpair share --help
-usage: termpair share [-h] [--cmd CMD] [--port PORT] [--host HOST] [--read-only]
-                      [--open-browser]
+Share your terminal session with one or more browsers
 
-Share your terminal session with one or more browsers. A termpair server must be
-running before using this command.
+Usage: termpair share [OPTIONS]
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --cmd CMD             The command to run in this TermPair session. Defaults to
-                        the SHELL environment variable (default: /bin/bash)
-  --port PORT, -p PORT  port server is running on (default: 8000)
-  --host HOST           host server is running on (default: http://localhost)
-  --read-only, -r       Do not allow browsers to write to the terminal (default:
-                        False)
-  --open-browser, -b    Open a browser tab to the terminal after you start
-                        sharing (default: False)
+Options:
+      --cmd <CMD>    Command to run in the shared terminal [default: $SHELL]
+  -p, --port <PORT>  Port the server is running on [default: 8000]
+      --host <HOST>  URL of the termpair server [default: http://localhost]
+  -r, --read-only    Prevent browser viewers from typing
+  -b, --open-browser Automatically open the share link in a browser
+  -h, --help         Print help
 ```
