@@ -25,7 +25,7 @@ You can **try it now** at [https://chadsmith.dev/termpair](https://chadsmith.dev
 * Browser permissions can be read/write or read only
 * Server cannot read terminal data even if it wanted to, since it is encrypted with AES 128 bit encryption
 * Secure web environment required (https)
-* Optional static-site hosting -- build the web app yourself to ensure the integrity of the web app ([example](https://cs01.github.io/termpair/connect/))
+* Single static binary with frontend embedded -- no separate web server needed
 * Broadcasting terminal's dimensions are sent to the browser in realtime so rendering always matches
 * Single static binary with no runtime dependencies
 
@@ -111,19 +111,8 @@ TermPair uses end-to-end encryption for all terminal input and output, meaning t
 
 The browser must be running in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). This typically means running with secure http traffic (https) or on localhost.
 
-### Running Client from Source
-For extra assurance the source code is secure, you can broadcast your terminal from source.
-See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/main/CONTRIBUTING.md) for more information.
-
-### Static Hosting
-TermPair supports statically serving the JavaScript web app. This way you can easily run the web app from source for extra assurance the web app is secure.
-
-In this arrangement, you can build the TermPair web app yourself and host on your computer, or statically host on something like GitHub pages or Vercel. That way you can guarantee the server is not providing a malicious JavaScript web app since you built it from the source.
-
-When you open the web app without a TermPair server running, you specify the Terminal ID, encryption key, and TermPair server host to connect to.
-
-You can try it out or just see what it looks like with a GitHub page from this project, [https://cs01.github.io/termpair/connect/](https://cs01.github.io/termpair/connect/).
-
+### Building from Source
+For extra assurance the source code is secure, you can build and run from source.
 See [CONTRIBUTING.md](https://github.com/cs01/termpair/blob/main/CONTRIBUTING.md) for more information.
 
 ## How it Works
