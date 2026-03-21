@@ -28,26 +28,26 @@ struct Cli {
 enum Commands {
     #[command(about = "run termpair server to route messages between terminals and browsers")]
     Serve {
-        #[arg(short, long, default_value = "8000")]
+        #[arg(short, long, default_value = "8000", help = "port to listen on")]
         port: u16,
-        #[arg(long, default_value = "localhost")]
+        #[arg(long, default_value = "localhost", help = "host to bind to (use 0.0.0.0 to expose publicly)")]
         host: String,
-        #[arg(short, long)]
+        #[arg(short, long, help = "path to SSL certificate (.crt) for HTTPS")]
         certfile: Option<String>,
-        #[arg(short, long)]
+        #[arg(short, long, help = "path to SSL private key (.key) for HTTPS")]
         keyfile: Option<String>,
     },
     #[command(about = "share your terminal session with one or more browsers")]
     Share {
-        #[arg(long, default_value_t = default_shell())]
+        #[arg(long, default_value_t = default_shell(), help = "command to run in the shared terminal")]
         cmd: String,
-        #[arg(short, long, default_value = "8000")]
+        #[arg(short, long, default_value = "8000", help = "port the server is running on")]
         port: u16,
-        #[arg(long, default_value = "http://localhost")]
+        #[arg(long, default_value = "http://localhost", help = "URL of the termpair server")]
         host: String,
-        #[arg(short, long)]
+        #[arg(short, long, help = "prevent browser viewers from typing")]
         read_only: bool,
-        #[arg(short = 'b', long)]
+        #[arg(short = 'b', long, help = "automatically open the share link in a browser")]
         open_browser: bool,
     },
 }
