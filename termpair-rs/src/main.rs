@@ -77,7 +77,6 @@ async fn main() {
             let app = server::create_app(terminals);
 
             let addr = format!("{}:{}", host, port);
-            eprintln!("termpair v{} listening on http://{}", constants::TERMPAIR_VERSION, addr);
 
             if certfile.is_some() || keyfile.is_some() {
                 let cert = certfile.expect("--certfile required with --keyfile");
@@ -109,11 +108,13 @@ async fn main() {
                     tokio::net::TcpSocket::new_v4()
                 }.expect("failed to create socket");
                 socket.set_reuseaddr(false).ok();
-                socket.bind(sock_addr).unwrap_or_else(|e| {
-                    eprintln!("error: port {} already in use ({})", port, e);
+                socket.bind(sock_addr).unwrap_or_else(|_| {
+                    eprintln!("error: port {} is already in use", port);
+                    eprintln!("  try: termpair serve --port {}", port + 1);
                     std::process::exit(1);
                 });
                 let listener = socket.listen(1024).expect("failed to listen");
+                eprintln!("termpair v{} listening on http://{}", constants::TERMPAIR_VERSION, addr);
                 axum::serve(listener, app).await.expect("server failed");
             }
         }
