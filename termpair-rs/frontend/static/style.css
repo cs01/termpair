@@ -1,0 +1,214 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #151515;
+  --border: #2a2a2a;
+  --text: #e5e5e5;
+  --text-muted: #a0a0a0;
+  --accent: #5ba3ff;
+  --accent-hover: #78b4ff;
+  --success: #34d399;
+  --error: #f87171;
+  --warning: #fbbf24;
+  --focus: #5ba3ff;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  height: 2.75rem;
+  background: #000;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.logo:hover { color: #fff; text-decoration: none; }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.topbar-right svg { opacity: 0.7; transition: opacity 0.15s; }
+.topbar-right a:hover svg { opacity: 1; }
+
+#app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+  width: 100%;
+}
+
+h1 { font-size: 1.75rem; margin-bottom: 0.5rem; color: #fff; }
+h2 { font-size: 1.1rem; margin: 1.75rem 0 0.5rem; color: var(--text); }
+
+p { color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
+
+pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; }
+
+.warning {
+  background: #271a04;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  color: var(--text);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+input[type="text"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  color: var(--text);
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]::placeholder {
+  color: #666;
+}
+
+input[type="text"]:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px var(--focus);
+}
+
+button[type="submit"] {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  align-self: flex-end;
+  margin-top: 0.75rem;
+  transition: background 0.15s;
+}
+
+button[type="submit"]:hover { background: var(--accent-hover); }
+button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+#terminal-view {
+  flex: 1;
+  padding: 0.5rem;
+}
+
+#terminal {
+  height: 100%;
+}
+
+#bottombar {
+  border-top: 1px solid var(--border);
+}
+
+#status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+}
+
+#status-bar.connected { background: #0a2a0a; color: var(--success); }
+#status-bar.disconnected { background: #2a0a0a; color: var(--error); }
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: #000;
+}
+
+#toast-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 1000;
+  max-width: 24rem;
+}
+
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  animation: toast-in 0.2s ease;
+  cursor: pointer;
+}
+
+.toast:hover { opacity: 0.8; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}

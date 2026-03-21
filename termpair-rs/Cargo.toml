@@ -1,0 +1,34 @@
+[package]
+name = "termpair"
+version = "0.5.0"
+edition = "2021"
+description = "Securely share terminals with end-to-end encryption"
+license = "MIT"
+
+[[bin]]
+name = "termpair"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.8", features = ["ws", "query"] }
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+futures-util = "0.3"
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+nix = { version = "0.31", features = ["term", "signal", "process"] }
+rust-embed = { version = "8", features = ["compression"] }
+mime_guess = "2"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+url = "2"
+http = "1"
+chrono = "0.4"
+open = "5"
+shell-words = "1"
+axum-server = { version = "0.7", features = ["tls-rustls"] }
