@@ -170,13 +170,16 @@ function showTerminal() {
 // ---- Terminal setup ----
 
 function createXterm() {
+  const isLight = document.documentElement.getAttribute("data-theme") === "light";
   const term = new Terminal({
     cursorBlink: true,
     macOptionIsMeta: true,
     scrollback: 5000,
     fontSize: 14,
     theme: {
-      background: "#0a0a0a",
+      background: isLight ? "#ffffff" : "#0a0a0a",
+      foreground: isLight ? "#1a1a1a" : "#e5e5e5",
+      cursor: isLight ? "#1a1a1a" : "#e5e5e5",
     },
   });
   return term;
@@ -439,9 +442,13 @@ function init() {
 
   const { terminalId, bootstrapKeyB64 } = getParams();
 
-  if (terminalId && bootstrapKeyB64) {
+  if (terminalId) {
     $id("input-terminal-id").value = terminalId;
+  }
+  if (bootstrapKeyB64) {
     $id("input-secret-key").value = bootstrapKeyB64;
+  }
+  if (terminalId && bootstrapKeyB64) {
     connect(terminalId, bootstrapKeyB64);
   }
 
@@ -453,6 +460,25 @@ function init() {
     if (!key) { toast("Secret key cannot be empty"); return; }
     connect(tid, key);
   });
+
+  // theme
+  const saved = localStorage.getItem("termpair-theme") || "dark";
+  setTheme(saved);
+  $id("theme-select").value = saved;
+  $id("theme-select").addEventListener("change", (e) => {
+    setTheme(e.target.value);
+  });
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("termpair-theme", theme);
+  if (state.xterm) {
+    const bg = theme === "light" ? "#ffffff" : "#0a0a0a";
+    const fg = theme === "light" ? "#1a1a1a" : "#e5e5e5";
+    const cursor = theme === "light" ? "#1a1a1a" : "#e5e5e5";
+    state.xterm.options.theme = { background: bg, foreground: fg, cursor };
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
