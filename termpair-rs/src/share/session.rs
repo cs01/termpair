@@ -1,0 +1,524 @@
+use base64::engine::general_purpose::STANDARD as BASE64;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD as BASE64URL;
+use base64::Engine;
+use futures_util::{SinkExt, StreamExt};
+use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use rand::RngCore;
+use serde_json::json;
+use std::io::{Read, Write};
+use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
+
+use crate::constants::{MAX_READ_BYTES, SUBPROTOCOL_VERSION};
+use crate::share::aes_keys::AesKeys;
+
+#[cfg(unix)]
+mod raw_mode {
+    use nix::sys::termios;
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+
+    pub struct RawModeGuard {
+        fd: OwnedFd,
+        original: termios::Termios,
+    }
+
+    impl RawModeGuard {
+        pub fn enter() -> Result<Self, String> {
+            let stdin_fd = std::io::stdin().as_raw_fd();
+            let dup_fd = unsafe { nix::libc::dup(stdin_fd) };
+            if dup_fd < 0 {
+                return Err("dup failed".into());
+            }
+            let fd = unsafe { OwnedFd::from_raw_fd(dup_fd) };
+            let original =
+                termios::tcgetattr(&fd).map_err(|e| format!("tcgetattr failed: {}", e))?;
+            let mut raw = original.clone();
+            termios::cfmakeraw(&mut raw);
+            termios::tcsetattr(&fd, termios::SetArg::TCSANOW, &raw)
+                .map_err(|e| format!("tcsetattr failed: {}", e))?;
+            Ok(Self { fd, original })
+        }
+    }
+
+    impl Drop for RawModeGuard {
+        fn drop(&mut self) {
+            let _ = termios::tcsetattr(&self.fd, termios::SetArg::TCSAFLUSH, &self.original);
+        }
+    }
+}
+
+#[cfg(windows)]
+mod raw_mode {
+    use winapi::shared::minwindef::DWORD;
+    use winapi::um::consoleapi::{GetConsoleMode, SetConsoleMode};
+    use winapi::um::processenv::GetStdHandle;
+    use winapi::um::winbase::STD_INPUT_HANDLE;
+    use winapi::um::wincon::{ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT};
+
+    pub struct RawModeGuard {
+        handle: *mut winapi::ctypes::c_void,
+        original: DWORD,
+    }
+
+    unsafe impl Send for RawModeGuard {}
+
+    impl RawModeGuard {
+        pub fn enter() -> Result<Self, String> {
+            unsafe {
+                let handle = GetStdHandle(STD_INPUT_HANDLE);
+                let mut original: DWORD = 0;
+                if GetConsoleMode(handle, &mut original) == 0 {
+                    return Err("GetConsoleMode failed".into());
+                }
+                let raw =
+                    original & !(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+                if SetConsoleMode(handle, raw) == 0 {
+                    return Err("SetConsoleMode failed".into());
+                }
+                Ok(Self { handle, original })
+            }
+        }
+    }
+
+    impl Drop for RawModeGuard {
+        fn drop(&mut self) {
+            unsafe {
+                SetConsoleMode(self.handle, self.original);
+            }
+        }
+    }
+}
+
+fn get_terminal_size() -> (u16, u16) {
+    #[cfg(unix)]
+    {
+        use std::os::fd::AsRawFd;
+        unsafe {
+            let mut ws: nix::libc::winsize = std::mem::zeroed();
+            if nix::libc::ioctl(std::io::stdin().as_raw_fd(), nix::libc::TIOCGWINSZ, &mut ws) == 0 {
+                return (ws.ws_row, ws.ws_col);
+            }
+        }
+    }
+    #[cfg(windows)]
+    {
+        unsafe {
+            use winapi::um::processenv::GetStdHandle;
+            use winapi::um::winbase::STD_OUTPUT_HANDLE;
+            use winapi::um::wincon::{GetConsoleScreenBufferInfo, CONSOLE_SCREEN_BUFFER_INFO};
+            let handle = GetStdHandle(STD_OUTPUT_HANDLE);
+            let mut info: CONSOLE_SCREEN_BUFFER_INFO = std::mem::zeroed();
+            if GetConsoleScreenBufferInfo(handle, &mut info) != 0 {
+                let rows = (info.srWindow.Bottom - info.srWindow.Top + 1) as u16;
+                let cols = (info.srWindow.Right - info.srWindow.Left + 1) as u16;
+                return (rows, cols);
+            }
+        }
+    }
+    (24, 80)
+}
+
+pub async fn broadcast_terminal(
+    cmd: Vec<String>,
+    url: String,
+    allow_browser_control: bool,
+    open_browser: bool,
+) -> Result<(), String> {
+    let (rows, cols) = get_terminal_size();
+
+    let pty_system = native_pty_system();
+    let pair = pty_system
+        .openpty(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .map_err(|e| format!("failed to open pty: {}", e))?;
+
+    let mut cmd_builder = CommandBuilder::new(&cmd[0]);
+    for arg in &cmd[1..] {
+        cmd_builder.arg(arg);
+    }
+    cmd_builder.env("TERMPAIR_BROADCASTING", "1");
+    cmd_builder.env(
+        "TERMPAIR_BROWSERS_CAN_CONTROL",
+        if allow_browser_control { "1" } else { "0" },
+    );
+
+    let mut child = pair
+        .slave
+        .spawn_command(cmd_builder)
+        .map_err(|e| format!("failed to spawn command: {}", e))?;
+    drop(pair.slave);
+
+    let master = Arc::new(Mutex::new(pair.master));
+    let reader = {
+        let m = master.lock().unwrap();
+        m.try_clone_reader()
+            .map_err(|e| format!("failed to clone reader: {}", e))?
+    };
+    let writer = {
+        let m = master.lock().unwrap();
+        m.take_writer()
+            .map_err(|e| format!("failed to take writer: {}", e))?
+    };
+
+    run_parent(
+        master,
+        reader,
+        writer,
+        cmd,
+        url,
+        allow_browser_control,
+        open_browser,
+    )
+    .await?;
+
+    let _ = child.kill();
+    let _ = child.wait();
+    Ok(())
+}
+
+async fn run_parent(
+    master: Arc<Mutex<Box<dyn portable_pty::MasterPty + Send>>>,
+    reader: Box<dyn Read + Send>,
+    writer: Box<dyn Write + Send>,
+    cmd: Vec<String>,
+    url: String,
+    allow_browser_control: bool,
+    open_browser: bool,
+) -> Result<(), String> {
+    let (rows, cols) = get_terminal_size();
+
+    let ws_url = url.replace("http", "ws");
+    let ws_endpoint = format!("{}connect_to_terminal", ws_url);
+
+    let (ws_stream, _) = tokio_tungstenite::connect_async(&ws_endpoint)
+        .await
+        .map_err(|e| format!("connection refused. is the termpair server running? {}", e))?;
+
+    let (mut ws_tx, mut ws_rx) = ws_stream.split();
+
+    let mut aes_keys = AesKeys::new();
+    let mut num_browsers: u64 = 0;
+
+    let now = chrono::Utc::now().to_rfc3339();
+    let init_msg = json!({
+        "rows": rows,
+        "cols": cols,
+        "allow_browser_control": allow_browser_control,
+        "command": cmd.join(" "),
+        "broadcast_start_time_iso": now,
+        "subprotocol_version": SUBPROTOCOL_VERSION,
+    });
+
+    ws_tx
+        .send(tokio_tungstenite::tungstenite::Message::Text(
+            init_msg.to_string().into(),
+        ))
+        .await
+        .map_err(|e| format!("failed to send init: {}", e))?;
+
+    let resp = ws_rx
+        .next()
+        .await
+        .ok_or("no response from server")?
+        .map_err(|e| format!("ws error: {}", e))?;
+
+    let resp_text = resp
+        .into_text()
+        .map_err(|e| format!("invalid response: {}", e))?;
+    let resp_json: serde_json::Value =
+        serde_json::from_str(&resp_text).map_err(|e| format!("invalid json: {}", e))?;
+
+    let event = resp_json["event"].as_str().unwrap_or("");
+    if event == "fatal_error" {
+        return Err(format!(
+            "fatal error: {}",
+            resp_json["payload"].as_str().unwrap_or("unknown")
+        ));
+    }
+    if event != "start_broadcast" {
+        return Err(format!("unexpected event: {}", event));
+    }
+
+    let terminal_id = resp_json["payload"]
+        .as_str()
+        .ok_or("missing terminal_id")?
+        .to_string();
+
+    let secret_key_b64url = BASE64URL.encode(&aes_keys.bootstrap_key);
+    let share_url = format!("{}s/{}#{}", url, terminal_id, secret_key_b64url);
+    let public_url = format!("{}s/{}", url, terminal_id);
+
+    let dashes: String = "-".repeat(cols as usize);
+    eprintln!("{}", dashes);
+    eprintln!("\x1b[1m\x1b[0;32mConnection established with end-to-end encryption\x1b[0m");
+    eprintln!();
+    eprintln!("Shareable link (full):  {}", share_url);
+    eprintln!("Public viewer link:     {}", public_url);
+    eprintln!("Secret key:             {}", secret_key_b64url);
+    eprintln!();
+    eprintln!("Type 'exit' or close terminal to stop sharing.");
+    eprintln!("{}", dashes);
+
+    if open_browser {
+        let _ = open::that(&share_url);
+    }
+
+    let _raw_guard =
+        raw_mode::RawModeGuard::enter().map_err(|e| format!("failed to set raw mode: {}", e))?;
+
+    let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<String>(256);
+
+    let outgoing_tx_pty = outgoing_tx.clone();
+    let reader = Arc::new(Mutex::new(reader));
+    let pty_read_task = {
+        let reader = reader.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut buf = vec![0u8; MAX_READ_BYTES];
+            let mut reader = reader.lock().unwrap();
+            loop {
+                match reader.read(&mut buf) {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        let output = buf[..n].to_vec();
+
+                        {
+                            let mut stdout = std::io::stdout().lock();
+                            let _ = stdout.write_all(&output);
+                            let _ = stdout.flush();
+                        }
+
+                        let mut salt = [0u8; 12];
+                        rand::thread_rng().fill_bytes(&mut salt);
+                        let plaintext = json!({
+                            "pty_output": BASE64.encode(&output),
+                            "salt": BASE64.encode(salt),
+                        });
+                        let plaintext_bytes = plaintext.to_string().into_bytes();
+
+                        let _ = outgoing_tx_pty.blocking_send(format!(
+                            "__pty_raw:{}",
+                            BASE64.encode(&plaintext_bytes)
+                        ));
+                    }
+                    Err(_) => break,
+                }
+            }
+        })
+    };
+
+    let writer = Arc::new(Mutex::new(writer));
+    let writer_for_stdin = writer.clone();
+    let stdin_task = tokio::task::spawn_blocking(move || {
+        let mut buf = vec![0u8; MAX_READ_BYTES];
+        let stdin = std::io::stdin();
+        let mut stdin_lock = stdin.lock();
+        loop {
+            match stdin_lock.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let mut w = writer_for_stdin.lock().unwrap();
+                    let _ = w.write_all(&buf[..n]);
+                    let _ = w.flush();
+                }
+                Err(_) => break,
+            }
+        }
+    });
+
+    #[cfg(unix)]
+    let resize_task = {
+        let outgoing_tx_resize = outgoing_tx.clone();
+        let master_resize = master.clone();
+        let mut sigwinch =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::window_change())
+                .map_err(|e| format!("signal handler failed: {}", e))?;
+        tokio::spawn(async move {
+            while sigwinch.recv().await.is_some() {
+                let (rows, cols) = get_terminal_size();
+                if let Ok(m) = master_resize.lock() {
+                    let _ = m.resize(PtySize {
+                        rows,
+                        cols,
+                        pixel_width: 0,
+                        pixel_height: 0,
+                    });
+                }
+                let msg = json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
+                let _ = outgoing_tx_resize.send(msg.to_string()).await;
+            }
+        })
+    };
+
+    #[cfg(windows)]
+    let resize_task = {
+        let outgoing_tx_resize = outgoing_tx.clone();
+        let master_resize = master.clone();
+        tokio::spawn(async move {
+            let mut last_size = get_terminal_size();
+            loop {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                let current = get_terminal_size();
+                if current != last_size {
+                    last_size = current;
+                    let (rows, cols) = current;
+                    if let Ok(m) = master_resize.lock() {
+                        let _ = m.resize(PtySize {
+                            rows,
+                            cols,
+                            pixel_width: 0,
+                            pixel_height: 0,
+                        });
+                    }
+                    let msg = json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
+                    let _ = outgoing_tx_resize.send(msg.to_string()).await;
+                }
+            }
+        })
+    };
+
+    let outgoing_tx_ws_recv = outgoing_tx.clone();
+    let ws_recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = ws_rx.next().await {
+            if let Ok(text) = msg.into_text() {
+                let _ = outgoing_tx_ws_recv
+                    .send(format!("__from_browser:{}", text))
+                    .await;
+            }
+        }
+    });
+
+    let writer_for_browser = writer.clone();
+    let master_for_resize = master.clone();
+    let main_loop_task = tokio::spawn(async move {
+        while let Some(msg) = outgoing_rx.recv().await {
+            if let Some(raw_b64) = msg.strip_prefix("__pty_raw:") {
+                if let Ok(plaintext_bytes) = BASE64.decode(raw_b64) {
+                    match aes_keys.encrypt(&plaintext_bytes) {
+                        Ok(encrypted) => {
+                            let ws_msg = json!({
+                                "event": "new_output",
+                                "payload": BASE64.encode(&encrypted),
+                            });
+                            if ws_tx
+                                .send(tokio_tungstenite::tungstenite::Message::Text(
+                                    ws_msg.to_string().into(),
+                                ))
+                                .await
+                                .is_err()
+                            {
+                                break;
+                            }
+                            if aes_keys.need_rotation() {
+                                if let Ok(rotation_msg) = aes_keys.rotate_keys() {
+                                    let _ = ws_tx
+                                        .send(tokio_tungstenite::tungstenite::Message::Text(
+                                            rotation_msg.into(),
+                                        ))
+                                        .await;
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("encryption error: {}", e);
+                        }
+                    }
+                }
+            } else if let Some(browser_msg) = msg.strip_prefix("__from_browser:") {
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(browser_msg) {
+                    let event = parsed["event"].as_str().unwrap_or("");
+                    match event {
+                        "command" => {
+                            if allow_browser_control {
+                                if let Some(payload) = parsed["payload"].as_str() {
+                                    if let Ok(encrypted_bytes) = BASE64.decode(payload) {
+                                        if let Ok(decrypted) = aes_keys.decrypt(&encrypted_bytes) {
+                                            if let Ok(data) =
+                                                serde_json::from_slice::<serde_json::Value>(
+                                                    &decrypted,
+                                                )
+                                            {
+                                                if let Some(input) = data["data"].as_str() {
+                                                    if let Ok(mut w) = writer_for_browser.lock() {
+                                                        let _ = w.write_all(input.as_bytes());
+                                                        let _ = w.flush();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "request_terminal_dimensions" => {
+                            let (rows, cols) = get_terminal_size();
+                            if let Ok(m) = master_for_resize.lock() {
+                                let _ = m.resize(PtySize {
+                                    rows,
+                                    cols,
+                                    pixel_width: 0,
+                                    pixel_height: 0,
+                                });
+                            }
+                            let resize_msg =
+                                json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
+                            let _ = ws_tx
+                                .send(tokio_tungstenite::tungstenite::Message::Text(
+                                    resize_msg.to_string().into(),
+                                ))
+                                .await;
+                        }
+                        "request_key_rotation" => {
+                            if let Ok(rotation_msg) = aes_keys.rotate_keys() {
+                                let _ = ws_tx
+                                    .send(tokio_tungstenite::tungstenite::Message::Text(
+                                        rotation_msg.into(),
+                                    ))
+                                    .await;
+                            }
+                        }
+                        "new_browser_connected" => {
+                            num_browsers += 1;
+                            if let Ok(keys_msg) = aes_keys.build_aes_keys_message(num_browsers) {
+                                let _ = ws_tx
+                                    .send(tokio_tungstenite::tungstenite::Message::Text(
+                                        keys_msg.into(),
+                                    ))
+                                    .await;
+                            }
+                        }
+                        "fatal_error" => {
+                            let payload = parsed["payload"].as_str().unwrap_or("unknown");
+                            tracing::error!("fatal error from server: {}", payload);
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+            } else if ws_tx
+                .send(tokio_tungstenite::tungstenite::Message::Text(msg.into()))
+                .await
+                .is_err()
+            {
+                break;
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = pty_read_task => {},
+        _ = main_loop_task => {},
+        _ = ws_recv_task => {},
+    }
+
+    stdin_task.abort();
+    resize_task.abort();
+
+    eprint!("\x1b[?1004l\x1b[?1049l\x1b[?25h");
+
+    eprintln!("You are no longer broadcasting terminal id {}", terminal_id);
+    Ok(())
+}

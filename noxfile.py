@@ -7,7 +7,6 @@ nox.options.sessions = ["lint"]
 nox.options.reuse_existing_virtualenvs = True
 
 doc_deps = [".", "jinja2", "mkdocs", "mkdocs-material"]
-dev_deps = ["mypy", "black"]
 lint_deps = ["black", "flake8", "flake8-bugbear", "mypy", "check-manifest"]
 test_deps = [
     "pytest",
@@ -44,57 +43,6 @@ def watch_docs(session):
 def build_frontend(session):
     session.run("yarn", "--cwd", "termpair/frontend_src", "install", external=True)
     session.run("yarn", "--cwd", "termpair/frontend_src", "build", external=True)
-
-
-@nox.session(python=python)
-def build_executable(session):
-    """Builds a pex of termpair"""
-    session.install("pex==2.1.93")
-    session.run(
-        "pex",
-        ".",
-        "--console-script",
-        "termpair",
-        "--output-file",
-        "build/termpair.pex",
-        "--sh-boot",
-        "--validate-entry-point",
-        external=True,
-    )
-
-
-@nox.session()
-def publish_docs(session):
-    """Run mkdocs gh-deploy"""
-    session.install(*doc_deps)
-    session.run("mkdocs", "gh-deploy")
-
-
-@nox.session()
-def publish_static_webapp(session):
-    """Build frontend and publish to github pages"""
-    build_frontend(session)
-    session.run("git", "checkout", "gh-pages", external=True)
-    session.run("rm", "-rf", "connect/", external=True)
-    session.run("mkdir", "connect", external=True)
-    session.run("cp", "-rT", "termpair/frontend_build/", "connect/", external=True)
-    session.run("git", "add", "connect", external=True)
-    session.run("git", "commit", "-m", "commit built frontend", external=True)
-    session.run("git", "push", "origin", "gh-pages", external=True)
-
-
-@nox.session()
-def publish(session):
-    """Build+Publish to PyPI, docs, and static webapp"""
-    print("REMINDER: Has the changelog been updated?")
-    session.run("rm", "-rf", "dist", "build", external=True)
-    publish_deps = ["setuptools", "wheel", "twine"]
-    session.install(*publish_deps)
-    session.run("make", "build_frontend", external=True)
-    session.run("python", "setup.py", "--quiet", "sdist", "bdist_wheel")
-    session.run("python", "-m", "twine", "upload", "dist/*")
-    publish_docs(session)
-    publish_static_webapp(session)
 
 
 @nox.session(python=python)
