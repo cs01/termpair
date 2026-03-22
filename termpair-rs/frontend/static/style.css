@@ -127,6 +127,27 @@ pre {
 }
 
 code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; }
+p code { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.15rem 0.35rem; font-size: 0.85em; }
+kbd { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.1rem 0.4rem; font-size: 0.85em; font-family: inherit; }
+
+.steps { display: flex; flex-direction: column; gap: 0.75rem; margin: 0.75rem 0 1rem; }
+.step { display: flex; align-items: flex-start; gap: 0.75rem; }
+.step-num {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+.step div { color: var(--text-muted); line-height: 1.5; }
+.step strong { color: var(--text); }
 
 .warning {
   background: var(--surface);
