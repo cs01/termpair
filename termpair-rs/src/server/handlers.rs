@@ -12,6 +12,7 @@ use crate::constants::{SUBPROTOCOL_VERSION, TERMPAIR_VERSION};
 use crate::types::{TerminalInfo, WsMessage};
 
 use super::terminal::{Terminal, TerminalId, Terminals};
+use super::AppState;
 
 fn generate_terminal_id() -> TerminalId {
     crate::random_string(8)
@@ -27,10 +28,10 @@ pub struct TerminalIdQuery {
 }
 
 pub async fn get_terminal(
-    State(terminals): State<Terminals>,
+    State(state): State<AppState>,
     axum::extract::Path(terminal_id): axum::extract::Path<String>,
 ) -> impl IntoResponse {
-    let terminals = terminals.read().await;
+    let terminals = state.terminals.read().await;
     match terminals.get(&terminal_id) {
         Some(terminal) => {
             let rows = *terminal.rows.read().await;
@@ -52,9 +53,9 @@ pub async fn get_terminal(
 
 pub async fn ws_connect_terminal(
     ws: WebSocketUpgrade,
-    State(terminals): State<Terminals>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_terminal_ws(socket, terminals))
+    ws.on_upgrade(move |socket| handle_terminal_ws(socket, state.terminals))
 }
 
 async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
@@ -172,10 +173,10 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
 pub async fn ws_connect_browser(
     ws: WebSocketUpgrade,
     Query(params): Query<TerminalIdQuery>,
-    State(terminals): State<Terminals>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
     let terminal_id = params.terminal_id;
-    ws.on_upgrade(move |socket| handle_browser_ws(socket, terminal_id, terminals))
+    ws.on_upgrade(move |socket| handle_browser_ws(socket, terminal_id, state.terminals))
 }
 
 async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Terminals) {

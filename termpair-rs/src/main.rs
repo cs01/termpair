@@ -42,6 +42,11 @@ enum Commands {
         certfile: Option<String>,
         #[arg(short, long, help = "path to SSL private key (.key) for HTTPS")]
         keyfile: Option<String>,
+        #[arg(
+            long,
+            help = "directory of static files to serve instead of the built-in frontend"
+        )]
+        static_dir: Option<String>,
     },
     #[command(about = "share your terminal session with one or more browsers", version = constants::TERMPAIR_VERSION)]
     Share {
@@ -98,9 +103,18 @@ async fn main() {
             host,
             certfile,
             keyfile,
+            static_dir,
         } => {
+            let static_path = static_dir.map(|s| {
+                let p = std::path::PathBuf::from(&s);
+                if !p.is_dir() {
+                    eprintln!("error: --static-dir '{}' is not a directory", s);
+                    std::process::exit(1);
+                }
+                p.canonicalize().unwrap_or(p)
+            });
             let terminals = server::terminal::new_terminals();
-            let app = server::create_app(terminals);
+            let app = server::create_app(terminals, static_path);
 
             let addr = format!("{}:{}", host, port);
 
