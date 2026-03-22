@@ -11,6 +11,7 @@ detect_platform() {
   case "$os" in
     Linux)  os="unknown-linux-gnu" ;;
     Darwin) os="apple-darwin" ;;
+    MINGW*|MSYS*|CYGWIN*) echo "On Windows, download from https://github.com/${REPO}/releases" >&2; exit 1 ;;
     *) echo "Unsupported OS: $os" >&2; exit 1 ;;
   esac
 

@@ -21,7 +21,7 @@ serde_json = "1"
 aes-gcm = "0.10"
 rand = "0.8"
 base64 = "0.22"
-nix = { version = "0.31", features = ["term", "signal", "process"] }
+portable-pty = "0.9"
 rust-embed = { version = "8", features = ["compression"] }
 mime_guess = "2"
 tracing = "0.1"
@@ -32,3 +32,9 @@ chrono = "0.4"
 open = "5"
 shell-words = "1"
 axum-server = { version = "0.7", features = ["tls-rustls"] }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31", features = ["term", "signal"] }
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["consoleapi", "handleapi", "processenv", "winbase", "wincon"] }

@@ -17,7 +17,7 @@ View and control remote terminals from your browser with end-to-end encryption
 ## Features
 
 * End-to-end encrypted with AES-128-GCM -- the server never sees plaintext
-* Share unix terminals in real time
+* Share terminals in real time (Linux, macOS, Windows)
 * Type from the terminal or browser; both are kept in sync
 * Multiple browsers can connect simultaneously
 * Read-only or read-write browser permissions
@@ -41,7 +41,7 @@ VERSION=v0.5.0 sh               # specific version
 
 ### GitHub Releases
 
-Download a prebuilt binary from the [releases page](https://github.com/cs01/termpair/releases). Available for Linux (x86_64, aarch64) and macOS (x86_64, Apple Silicon).
+Download a prebuilt binary from the [releases page](https://github.com/cs01/termpair/releases). Available for Linux (x86_64, aarch64), macOS (x86_64, Apple Silicon), and Windows (x86_64).
 
 ### Build from Source
 
