@@ -72,7 +72,14 @@ enum Commands {
 }
 
 fn default_shell() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "bash".to_string())
+    #[cfg(unix)]
+    {
+        std::env::var("SHELL").unwrap_or_else(|_| "bash".to_string())
+    }
+    #[cfg(windows)]
+    {
+        std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string())
+    }
 }
 
 #[tokio::main]

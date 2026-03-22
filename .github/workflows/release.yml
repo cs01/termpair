@@ -21,6 +21,8 @@ jobs:
             os: macos-latest
           - target: aarch64-apple-darwin
             os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -43,18 +45,29 @@ jobs:
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package binary
+      - name: Package binary (unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ../../../termpair-${{ matrix.target }}.tar.gz termpair
           cd ../../..
 
+      - name: Package binary (windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ../../../termpair-${{ matrix.target }}.zip termpair.exe
+          cd ../../..
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: termpair-${{ matrix.target }}
-          path: termpair-rs/termpair-${{ matrix.target }}.tar.gz
+          path: |
+            termpair-rs/termpair-${{ matrix.target }}.tar.gz
+            termpair-rs/termpair-${{ matrix.target }}.zip
 
   release:
     needs: build
@@ -71,7 +84,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum termpair-*.tar.gz > sha256sums.txt
+          sha256sum termpair-*.tar.gz termpair-*.zip 2>/dev/null > sha256sums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -79,4 +92,5 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/termpair-*.tar.gz
+            artifacts/termpair-*.zip
             artifacts/sha256sums.txt
