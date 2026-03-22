@@ -12,7 +12,7 @@ path = "src/main.rs"
 [dependencies]
 axum = { version = "0.8", features = ["ws", "query"] }
 tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
 futures-util = "0.3"
 tower-http = { version = "0.6", features = ["cors", "fs"] }
 clap = { version = "4", features = ["derive"] }
