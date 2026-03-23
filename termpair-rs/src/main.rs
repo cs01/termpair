@@ -335,7 +335,12 @@ async fn main() {
                     constants::TERMPAIR_VERSION,
                     addr
                 );
-                axum::serve(listener, app).await.expect("server failed");
+                axum::serve(
+                    listener,
+                    app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+                )
+                .await
+                .expect("server failed");
             }
         }
         Commands::Share {
