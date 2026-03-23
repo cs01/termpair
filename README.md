@@ -181,3 +181,7 @@ $ termpair share [OPTIONS]
   -r, --read-only     prevent browsers from typing
   -b, --open-browser  open the share link in a browser
 ```
+
+## See Also
+
+**[sharemyclaude](https://github.com/cs01/sharemyclaude)** — share your Claude Code session with a browser. Built on termpair, with a public relay server so you can share instantly without self-hosting.
