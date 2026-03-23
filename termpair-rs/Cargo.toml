@@ -32,6 +32,7 @@ chrono = "0.4"
 open = "5"
 shell-words = "1"
 axum-server = { version = "0.7", features = ["tls-rustls"] }
+which = "7"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", features = ["term", "signal"] }

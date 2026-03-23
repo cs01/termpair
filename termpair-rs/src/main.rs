@@ -82,6 +82,42 @@ enum Commands {
     },
 }
 
+#[derive(Parser)]
+#[command(
+    name = "sharemyclaude",
+    about = "share your Claude Code session live in the browser",
+    version = constants::TERMPAIR_VERSION
+)]
+struct ShareMyClaudeArgs {
+    #[arg(long, help = "make session publicly listed (no encryption, read-only)")]
+    public: bool,
+    #[arg(short, long, help = "viewers can watch but not type")]
+    read_only: bool,
+    #[arg(
+        short = 'b',
+        long,
+        help = "automatically open the share link in a browser"
+    )]
+    open_browser: bool,
+    #[arg(
+        long,
+        default_value = constants::SHAREMYCLAUDE_HOST,
+        help = "override server URL"
+    )]
+    host: String,
+    #[arg(
+        short,
+        long,
+        default_value_t = constants::SHAREMYCLAUDE_PORT,
+        help = "override server port"
+    )]
+    port: u16,
+    #[arg(long, help = "print runnable instructions for AI agents (markdown)")]
+    skill: bool,
+    #[arg(last = true)]
+    claude_args: Vec<String>,
+}
+
 fn default_shell() -> String {
     #[cfg(unix)]
     {
@@ -93,6 +129,80 @@ fn default_shell() -> String {
     }
 }
 
+fn binary_name() -> String {
+    std::env::args()
+        .next()
+        .and_then(|a| {
+            std::path::Path::new(&a)
+                .file_name()
+                .map(|f| f.to_string_lossy().into_owned())
+        })
+        .unwrap_or_default()
+}
+
+fn build_share_url(host: &str, port: u16) -> String {
+    if !host.starts_with("http://") && !host.starts_with("https://") {
+        eprintln!("host must start with either http:// or https://");
+        std::process::exit(1);
+    }
+    if port != 0 {
+        format!("{}:{}/", host.trim_end_matches('/'), port)
+    } else {
+        format!("{}/", host.trim_end_matches('/'))
+    }
+}
+
+async fn run_share(
+    cmd_parts: Vec<String>,
+    host: String,
+    port: u16,
+    read_only: bool,
+    open_browser: bool,
+    public: bool,
+) {
+    let url = build_share_url(&host, port);
+    let allow_browser_control = if public { false } else { !read_only };
+    let opts = share::ShareOptions {
+        cmd: cmd_parts,
+        url,
+        allow_browser_control,
+        open_browser,
+        is_public: public,
+    };
+    if let Err(e) = share::broadcast_terminal(opts).await {
+        eprintln!("error: {}", e);
+        std::process::exit(1);
+    }
+}
+
+async fn run_sharemyclaude() {
+    let args = ShareMyClaudeArgs::parse();
+
+    if args.skill {
+        print!("{}", share::skill::SKILL_TEXT);
+        return;
+    }
+
+    if which::which(constants::SHAREMYCLAUDE_CMD).is_err() {
+        eprintln!("error: claude not found. install Claude Code first:");
+        eprintln!("  https://docs.anthropic.com/en/docs/claude-code");
+        std::process::exit(1);
+    }
+
+    let mut cmd_parts = vec![constants::SHAREMYCLAUDE_CMD.to_string()];
+    cmd_parts.extend(args.claude_args);
+
+    run_share(
+        cmd_parts,
+        args.host,
+        args.port,
+        args.read_only,
+        args.open_browser,
+        args.public,
+    )
+    .await;
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -100,6 +210,11 @@ async fn main() {
         .with_target(false)
         .with_level(false)
         .init();
+
+    if binary_name() == "sharemyclaude" {
+        run_sharemyclaude().await;
+        return;
+    }
 
     let cli = Cli::parse();
 
@@ -204,33 +319,9 @@ async fn main() {
             open_browser,
             public,
         } => {
-            if !host.starts_with("http://") && !host.starts_with("https://") {
-                eprintln!("host must start with either http:// or https://");
-                std::process::exit(1);
-            }
-
-            let url = if port != 0 {
-                format!("{}:{}/", host.trim_end_matches('/'), port)
-            } else {
-                let h = host.trim_end_matches('/');
-                format!("{}/", h)
-            };
-
             let cmd_parts: Vec<String> =
                 shell_words::split(&cmd).unwrap_or_else(|_| vec![cmd.clone()]);
-
-            let allow_browser_control = if public { false } else { !read_only };
-            let opts = share::ShareOptions {
-                cmd: cmd_parts,
-                url,
-                allow_browser_control,
-                open_browser,
-                is_public: public,
-            };
-            if let Err(e) = share::broadcast_terminal(opts).await {
-                eprintln!("error: {}", e);
-                std::process::exit(1);
-            }
+            run_share(cmd_parts, host, port, read_only, open_browser, public).await;
         }
     }
 }
