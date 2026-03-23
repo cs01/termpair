@@ -423,10 +423,7 @@ async fn run_parent(
                     Ok(0) => break,
                     Ok(n) => {
                         let output = buf[..n].to_vec();
-                        last_output.store(
-                            start.elapsed().as_millis() as u64,
-                            Ordering::Relaxed,
-                        );
+                        last_output.store(start.elapsed().as_millis() as u64, Ordering::Relaxed);
 
                         {
                             let mut stdout = std::io::stdout().lock();
@@ -690,8 +687,7 @@ async fn run_parent(
                         }
                         "new_browser_connected" => {
                             if !is_public {
-                                let count =
-                                    num_browsers.load(Ordering::Relaxed).max(1);
+                                let count = num_browsers.load(Ordering::Relaxed).max(1);
                                 if let Ok(keys_msg) = aes_keys.build_aes_keys_message(count) {
                                     let _ = ws_tx
                                         .send(tokio_tungstenite::tungstenite::Message::Text(
