@@ -264,34 +264,29 @@ async fn run_parent(
     let dashes: String = "-".repeat(cols as usize);
     eprintln!("{}", dashes);
 
-    if is_public {
+    let open_url = if is_public {
         let public_url = format!("{}s/{}", url, terminal_id);
-        eprintln!("\x1b[1m\x1b[0;33mPublic session — no encryption, read-only for viewers\x1b[0m");
+        eprintln!("\x1b[1;31m\u{1f534} Public session \u{2014} no encryption, read-only for viewers\x1b[0m");
         eprintln!();
         eprintln!("Shareable link:  {}", public_url);
-        eprintln!();
-        eprintln!("Type 'exit' or close terminal to stop sharing.");
-        eprintln!("{}", dashes);
-
-        if open_browser {
-            let _ = open::that(&public_url);
-        }
+        public_url
     } else {
         let secret_key_b64url = BASE64URL.encode(&aes_keys.bootstrap_key);
         let share_url = format!("{}s/{}#{}", url, terminal_id, secret_key_b64url);
         let public_url = format!("{}s/{}", url, terminal_id);
-        eprintln!("\x1b[1m\x1b[0;32mConnection established with end-to-end encryption\x1b[0m");
+        eprintln!("\x1b[1;33m\u{1f512} Private session \u{2014} end-to-end encrypted\x1b[0m");
         eprintln!();
         eprintln!("Shareable link (full):  {}", share_url);
         eprintln!("Public viewer link:     {}", public_url);
         eprintln!("Secret key:             {}", secret_key_b64url);
-        eprintln!();
-        eprintln!("Type 'exit' or close terminal to stop sharing.");
-        eprintln!("{}", dashes);
+        share_url
+    };
+    eprintln!();
+    eprintln!("Type 'exit' or close terminal to stop sharing.");
+    eprintln!("{}", dashes);
 
-        if open_browser {
-            let _ = open::that(&share_url);
-        }
+    if open_browser {
+        let _ = open::that(&open_url);
     }
 
     let _raw_guard =
@@ -565,8 +560,15 @@ async fn run_parent(
     stdin_task.abort();
     resize_task.abort();
 
-    eprint!("\x1b[?1004l\x1b[?1049l\x1b[?25h");
+    let _ = std::io::stdout().flush();
+    let _ = std::io::stderr().flush();
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    eprintln!("You are no longer broadcasting terminal id {}", terminal_id);
+    drop(_raw_guard);
+
+    eprintln!();
+    eprintln!("{}", dashes);
+    eprintln!("Session ended. You are no longer broadcasting.");
+    eprintln!("{}", dashes);
     Ok(())
 }
