@@ -238,8 +238,7 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
     run_parent(master, reader, writer, opts).await?;
 
     let _ = child.kill();
-    let _ = child.wait();
-    Ok(())
+    std::process::exit(0);
 }
 
 async fn run_parent(
