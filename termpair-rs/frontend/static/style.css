@@ -222,8 +222,7 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   padding: 0.75rem;
   background: var(--terminal-bg);
   box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  max-width: 960px;
-  width: 100%;
+  width: fit-content;
 }
 
 #bottombar {

@@ -287,6 +287,9 @@ async fn handle_browser_ws_inner(socket: WebSocket, terminal_id: String, termina
 
     let (mut ws_tx, mut ws_rx) = socket.split();
 
+    let mut broadcast_rx = terminal.broadcast_tx.subscribe();
+    let mut closed_rx = terminal.closed_rx.clone();
+
     {
         let mut count = terminal.browser_count.write().await;
         if *count >= MAX_BROWSERS_PER_TERMINAL {
@@ -298,8 +301,19 @@ async fn handle_browser_ws_inner(socket: WebSocket, terminal_id: String, termina
         broadcast_num_clients(&terminal, num).await;
     }
 
-    let mut broadcast_rx = terminal.broadcast_tx.subscribe();
-    let mut closed_rx = terminal.closed_rx.clone();
+    {
+        let rows = *terminal.rows.read().await;
+        let cols = *terminal.cols.read().await;
+        if rows > 0 && cols > 0 {
+            let resize_msg = WsMessage {
+                event: "resize".into(),
+                payload: serde_json::json!({"rows": rows, "cols": cols}),
+            };
+            if let Ok(json) = serde_json::to_string(&resize_msg) {
+                let _ = ws_tx.send(Message::Text(json.into())).await;
+            }
+        }
+    }
 
     let send_task = tokio::spawn(async move {
         loop {
