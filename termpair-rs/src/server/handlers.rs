@@ -1,5 +1,7 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
 
+use axum::extract::connect_info::ConnectInfo;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Query, State, WebSocketUpgrade};
 use axum::http::StatusCode;
@@ -9,7 +11,9 @@ use serde::Deserialize;
 use tokio::sync::{broadcast, mpsc, watch, RwLock};
 
 use crate::constants::{
-    MAX_BROWSERS_PER_TERMINAL, MAX_TERMINALS, SUBPROTOCOL_VERSION, TERMPAIR_VERSION,
+    MAX_BROWSERS_PER_TERMINAL, MAX_TERMINALS, MAX_TERMINAL_COLS, MAX_TERMINAL_ROWS,
+    MAX_WS_FRAME_BYTES, MAX_WS_MSGS_PER_SEC, SUBPROTOCOL_VERSION, TERMPAIR_VERSION,
+    WS_IDLE_TIMEOUT_SECS,
 };
 use crate::types::{PublicSession, TerminalInfo, WsMessage};
 
@@ -57,12 +61,32 @@ pub async fn get_terminal(
 
 pub async fn ws_connect_terminal(
     ws: WebSocketUpgrade,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_terminal_ws(socket, state.terminals))
+    let ip = addr.ip();
+    let connections = state.connections.clone();
+    ws.max_frame_size(MAX_WS_FRAME_BYTES)
+        .max_message_size(MAX_WS_FRAME_BYTES)
+        .on_upgrade(move |socket| handle_terminal_ws(socket, state.terminals, ip, connections))
 }
 
-async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
+async fn handle_terminal_ws(
+    socket: WebSocket,
+    terminals: Terminals,
+    ip: std::net::IpAddr,
+    connections: Arc<super::terminal::ConnectionTracker>,
+) {
+    if !connections.try_add(ip).await {
+        return;
+    }
+
+    let result = handle_terminal_ws_inner(socket, terminals.clone()).await;
+    connections.remove(ip).await;
+    result
+}
+
+async fn handle_terminal_ws_inner(socket: WebSocket, terminals: Terminals) {
     let (mut ws_tx, mut ws_rx) = socket.split();
 
     let init_msg = match ws_rx.next().await {
@@ -78,11 +102,11 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
     if init_data.subprotocol_version != SUBPROTOCOL_VERSION {
         let err = WsMessage {
             event: "fatal_error".into(),
-            payload: serde_json::Value::String(format!(
-                "Client and server are running incompatible versions. Server is running v{}. \
-                 Ensure you are using a version of the TermPair client compatible with the server.",
-                TERMPAIR_VERSION
-            )),
+            payload: serde_json::Value::String(
+                "Client and server are running incompatible versions. \
+                 Ensure you are using a compatible version of the TermPair client."
+                    .into(),
+            ),
         };
         if let Ok(json) = serde_json::to_string(&err) {
             let _ = ws_tx.send(Message::Text(json.into())).await;
@@ -162,7 +186,26 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
         let _ = ws_tx.close().await;
     });
 
-    while let Some(Ok(msg)) = ws_rx.next().await {
+    let idle_timeout = std::time::Duration::from_secs(WS_IDLE_TIMEOUT_SECS);
+    let mut msg_count: u32 = 0;
+    let mut window_start = std::time::Instant::now();
+
+    loop {
+        let msg = match tokio::time::timeout(idle_timeout, ws_rx.next()).await {
+            Ok(Some(Ok(msg))) => msg,
+            _ => break,
+        };
+
+        let now = std::time::Instant::now();
+        if now.duration_since(window_start) >= std::time::Duration::from_secs(1) {
+            msg_count = 0;
+            window_start = now;
+        }
+        msg_count += 1;
+        if msg_count > MAX_WS_MSGS_PER_SEC {
+            continue;
+        }
+
         match msg {
             Message::Text(text) => {
                 if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
@@ -171,16 +214,23 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
                             if let Ok(resize) = serde_json::from_value::<crate::types::ResizePayload>(
                                 ws_msg.payload.clone(),
                             ) {
-                                *terminal_for_forward.rows.write().await = resize.rows;
-                                *terminal_for_forward.cols.write().await = resize.cols;
+                                if resize.rows > 0
+                                    && resize.rows <= MAX_TERMINAL_ROWS
+                                    && resize.cols > 0
+                                    && resize.cols <= MAX_TERMINAL_COLS
+                                {
+                                    *terminal_for_forward.rows.write().await = resize.rows;
+                                    *terminal_for_forward.cols.write().await = resize.cols;
+                                    let _ =
+                                        terminal_for_forward.broadcast_tx.send(text.to_string());
+                                }
                             }
-                            let _ = terminal_for_forward.broadcast_tx.send(text.to_string());
                         }
                         "new_output" | "aes_keys" | "aes_key_rotation" => {
                             let _ = terminal_for_forward.broadcast_tx.send(text.to_string());
                         }
                         _ => {
-                            tracing::warn!("unknown event from terminal: {}", ws_msg.event);
+                            tracing::trace!("unknown event from terminal");
                         }
                     }
                 }
@@ -197,14 +247,36 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
 
 pub async fn ws_connect_browser(
     ws: WebSocketUpgrade,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Query(params): Query<TerminalIdQuery>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let terminal_id = params.terminal_id;
-    ws.on_upgrade(move |socket| handle_browser_ws(socket, terminal_id, state.terminals))
+    let ip = addr.ip();
+    let connections = state.connections.clone();
+    ws.max_frame_size(MAX_WS_FRAME_BYTES)
+        .max_message_size(MAX_WS_FRAME_BYTES)
+        .on_upgrade(move |socket| {
+            handle_browser_ws(socket, terminal_id, state.terminals, ip, connections)
+        })
 }
 
-async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Terminals) {
+async fn handle_browser_ws(
+    socket: WebSocket,
+    terminal_id: String,
+    terminals: Terminals,
+    ip: std::net::IpAddr,
+    connections: Arc<super::terminal::ConnectionTracker>,
+) {
+    if !connections.try_add(ip).await {
+        return;
+    }
+
+    handle_browser_ws_inner(socket, terminal_id, terminals).await;
+    connections.remove(ip).await;
+}
+
+async fn handle_browser_ws_inner(socket: WebSocket, terminal_id: String, terminals: Terminals) {
     let terminal = {
         let terms = terminals.read().await;
         match terms.get(&terminal_id) {
@@ -250,7 +322,26 @@ async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Te
         }
     });
 
-    while let Some(Ok(msg)) = ws_rx.next().await {
+    let idle_timeout = std::time::Duration::from_secs(WS_IDLE_TIMEOUT_SECS);
+    let mut msg_count: u32 = 0;
+    let mut window_start = std::time::Instant::now();
+
+    loop {
+        let msg = match tokio::time::timeout(idle_timeout, ws_rx.next()).await {
+            Ok(Some(Ok(msg))) => msg,
+            _ => break,
+        };
+
+        let now = std::time::Instant::now();
+        if now.duration_since(window_start) >= std::time::Duration::from_secs(1) {
+            msg_count = 0;
+            window_start = now;
+        }
+        msg_count += 1;
+        if msg_count > MAX_WS_MSGS_PER_SEC {
+            continue;
+        }
+
         match msg {
             Message::Text(text) => {
                 if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {

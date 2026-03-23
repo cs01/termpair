@@ -6,11 +6,12 @@ mod share;
 mod types;
 
 use clap::{Parser, Subcommand};
+use rand::rngs::OsRng;
 use rand::Rng;
 
 fn random_string(n: usize) -> String {
     const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let mut rng = rand::thread_rng();
+    let mut rng = OsRng;
     (0..n)
         .map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char)
         .collect()
@@ -92,18 +93,16 @@ INSTALL:
   curl -fsSL https://raw.githubusercontent.com/cs01/sharemyclaude/main/install.sh | sh
 
 USAGE EXAMPLES:
-  sharemyclaude                  Private session (end-to-end encrypted)
+  sharemyclaude                  Private session (end-to-end encrypted, link-only access)
   sharemyclaude --public         Public session (listed on sharemyclau.de, read-only, no encryption)
+  sharemyclaude -- --model sonnet                       Pass flags to claude after --
   sharemyclaude --public -- --dangerously-skip-permissions
-  sharemyclaude -- --model sonnet
-
-  Use -- to separate sharemyclaude flags from claude flags.
 
 HOW IT WORKS:
-  1. Launches Claude Code inside a shared terminal
+  1. sharemyclaude launches Claude Code inside a shared terminal
   2. Terminal output is encrypted and relayed through the server via WebSocket
   3. Browsers decrypt and render the terminal in real-time
-  4. The server is a blind relay and never sees your data (for private sessions)
+  4. The server is a blind relay — it never sees your data (private sessions)
 
 LINKS:
   Website:    https://sharemyclau.de
@@ -283,7 +282,7 @@ async fn main() {
                     std::process::exit(1);
                 });
                 if let Err(e) = axum_server::bind_rustls(bind_addr, tls_config)
-                    .serve(app.into_make_service())
+                    .serve(app.into_make_service_with_connect_info::<std::net::SocketAddr>())
                     .await
                 {
                     eprintln!("error: server failed — {}", e);

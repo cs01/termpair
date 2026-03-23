@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::net::IpAddr;
 use std::sync::Arc;
-use tokio::sync::{broadcast, mpsc, watch, RwLock};
+use tokio::sync::{broadcast, mpsc, watch, Mutex, RwLock};
 
 pub type TerminalId = String;
 
@@ -23,4 +24,38 @@ pub type Terminals = Arc<RwLock<HashMap<TerminalId, Arc<Terminal>>>>;
 
 pub fn new_terminals() -> Terminals {
     Arc::new(RwLock::new(HashMap::new()))
+}
+
+pub struct ConnectionTracker {
+    connections: Mutex<HashMap<IpAddr, usize>>,
+    max_per_ip: usize,
+}
+
+impl ConnectionTracker {
+    pub fn new(max_per_ip: usize) -> Self {
+        Self {
+            connections: Mutex::new(HashMap::new()),
+            max_per_ip,
+        }
+    }
+
+    pub async fn try_add(&self, ip: IpAddr) -> bool {
+        let mut map = self.connections.lock().await;
+        let count = map.entry(ip).or_insert(0);
+        if *count >= self.max_per_ip {
+            return false;
+        }
+        *count += 1;
+        true
+    }
+
+    pub async fn remove(&self, ip: IpAddr) {
+        let mut map = self.connections.lock().await;
+        if let Some(count) = map.get_mut(&ip) {
+            *count = count.saturating_sub(1);
+            if *count == 0 {
+                map.remove(&ip);
+            }
+        }
+    }
 }

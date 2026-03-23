@@ -1,10 +1,9 @@
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use rand::RngCore;
 use serde_json::json;
 use zeroize::Zeroizing;
 
-use crate::constants::{JS_MAX_SAFE_INTEGER, ROTATION_THRESHOLD};
+use crate::constants::{JS_MAX_SAFE_INTEGER, MAX_MESSAGES_PER_KEY, ROTATION_THRESHOLD};
 use crate::encryption;
 
 pub struct AesKeys {
@@ -35,6 +34,9 @@ impl AesKeys {
 
     pub fn encrypt(&mut self, plaintext: &[u8]) -> Result<Vec<u8>, String> {
         self.message_count += 1;
+        if self.message_count >= MAX_MESSAGES_PER_KEY {
+            return Err("nonce limit exceeded: key rotation required".into());
+        }
         encryption::encrypt(self.message_count, &self.unix_key, plaintext)
     }
 
@@ -91,9 +93,6 @@ impl AesKeys {
         let iv_count = self.get_start_iv_count(browser_number)?;
         let max_iv_count = self.get_max_iv_for_browser(iv_count)?;
 
-        let mut salt = [0u8; 12];
-        rand::thread_rng().fill_bytes(&mut salt);
-
         let msg = json!({
             "event": "aes_keys",
             "payload": {
@@ -101,7 +100,6 @@ impl AesKeys {
                 "b64_bootstrap_browser_aes_key": BASE64.encode(&encrypted_browser),
                 "iv_count": iv_count,
                 "max_iv_count": max_iv_count,
-                "salt": BASE64.encode(salt),
             }
         });
 

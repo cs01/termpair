@@ -5,19 +5,19 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::extract::State;
-use axum::http::header;
+use axum::http::{header, HeaderName};
 use axum::response::IntoResponse;
 use axum::routing::{get, Router};
 use rust_embed::Embed;
-use tower_http::cors::{Any, CorsLayer};
 use tower_http::set_header::SetResponseHeaderLayer;
 
-use self::terminal::Terminals;
+use self::terminal::{ConnectionTracker, Terminals};
 
 #[derive(Clone)]
 pub struct AppState {
     pub terminals: Terminals,
     pub static_dir: Option<Arc<PathBuf>>,
+    pub connections: Arc<ConnectionTracker>,
 }
 
 #[derive(Embed)]
@@ -79,14 +79,12 @@ async fn serve_index(State(state): State<AppState>) -> impl axum::response::Into
 }
 
 pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
-    let cors = CorsLayer::new()
-        .allow_methods(Any)
-        .allow_headers(Any)
-        .allow_origin(tower_http::cors::AllowOrigin::mirror_request());
-
     let state = AppState {
         terminals,
         static_dir: static_dir.map(Arc::new),
+        connections: Arc::new(ConnectionTracker::new(
+            crate::constants::MAX_CONNECTIONS_PER_IP,
+        )),
     };
 
     Router::new()
@@ -100,7 +98,6 @@ pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
         )
         .route("/s/{terminal_id}", get(serve_index))
         .fallback(serve_frontend)
-        .layer(cors)
         .layer(SetResponseHeaderLayer::overriding(
             header::REFERRER_POLICY,
             header::HeaderValue::from_static("no-referrer"),
@@ -112,6 +109,12 @@ pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
         .layer(SetResponseHeaderLayer::overriding(
             header::X_CONTENT_TYPE_OPTIONS,
             header::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("content-security-policy"),
+            header::HeaderValue::from_static(
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            ),
         ))
         .with_state(state)
 }

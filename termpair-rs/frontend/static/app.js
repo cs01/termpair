@@ -65,7 +65,9 @@ async function aesEncrypt(cryptoKey, utf8String, ivCount) {
   const combined = new Uint8Array(iv.byteLength + encrypted.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(encrypted), iv.byteLength);
-  return btoa(String.fromCharCode(...combined));
+  let bin = "";
+  for (let i = 0; i < combined.length; i++) bin += String.fromCharCode(combined[i]);
+  return btoa(bin);
 }
 
 function base64ToBytes(b64) {
@@ -311,6 +313,12 @@ async function sendInput(input) {
     return;
   }
 
+  if (state.aesKeys.ivCount >= state.aesKeys.maxIvCount) {
+    state.ws.send(JSON.stringify({ event: "request_key_rotation" }));
+    toast("Waiting for key rotation...");
+    return;
+  }
+
   const payload = JSON.stringify({ data: input, salt: getSalt() });
   const encrypted = await aesEncrypt(
     state.aesKeys.browser,
@@ -320,9 +328,8 @@ async function sendInput(input) {
 
   state.ws.send(JSON.stringify({ event: "command", payload: encrypted }));
 
-  if (state.aesKeys.ivCount >= state.aesKeys.maxIvCount) {
+  if (state.aesKeys.ivCount >= state.aesKeys.maxIvCount - 100) {
     state.ws.send(JSON.stringify({ event: "request_key_rotation" }));
-    state.aesKeys.maxIvCount += 1000;
   }
 }
 
