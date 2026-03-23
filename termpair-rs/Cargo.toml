@@ -1,6 +1,6 @@
 [package]
 name = "termpair"
-version = "0.5.0"
+version = "1.0.0"
 edition = "2021"
 description = "Securely share terminals with end-to-end encryption"
 license = "MIT"
