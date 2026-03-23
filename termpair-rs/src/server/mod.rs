@@ -5,10 +5,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::extract::State;
+use axum::http::header;
 use axum::response::IntoResponse;
 use axum::routing::{get, Router};
 use rust_embed::Embed;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{Any, CorsLayer};
+use tower_http::set_header::SetResponseHeaderLayer;
 
 use self::terminal::Terminals;
 
@@ -28,10 +30,11 @@ fn try_read_static_dir(
 ) -> Option<(String, Vec<u8>)> {
     let dir = static_dir.as_ref()?;
     let file_path = dir.join(filename);
-    if !file_path.starts_with(dir.as_ref()) {
+    let canonical = file_path.canonicalize().ok()?;
+    if !canonical.starts_with(dir.as_ref()) {
         return None;
     }
-    let data = std::fs::read(&file_path).ok()?;
+    let data = std::fs::read(&canonical).ok()?;
     let mime = mime_guess::from_path(filename)
         .first_or_octet_stream()
         .to_string();
@@ -58,11 +61,11 @@ async fn serve_frontend(
     let path = if path.is_empty() { "index.html" } else { path };
 
     if let Some((mime, data)) = resolve_static(&state.static_dir, path) {
-        return ([(axum::http::header::CONTENT_TYPE, mime)], data).into_response();
+        return ([(header::CONTENT_TYPE, mime)], data).into_response();
     }
 
     if let Some((mime, data)) = resolve_static(&state.static_dir, "index.html") {
-        return ([(axum::http::header::CONTENT_TYPE, mime)], data).into_response();
+        return ([(header::CONTENT_TYPE, mime)], data).into_response();
     }
 
     axum::http::StatusCode::NOT_FOUND.into_response()
@@ -70,13 +73,16 @@ async fn serve_frontend(
 
 async fn serve_index(State(state): State<AppState>) -> impl axum::response::IntoResponse {
     match resolve_static(&state.static_dir, "index.html") {
-        Some((mime, data)) => ([(axum::http::header::CONTENT_TYPE, mime)], data).into_response(),
+        Some((mime, data)) => ([(header::CONTENT_TYPE, mime)], data).into_response(),
         None => axum::http::StatusCode::NOT_FOUND.into_response(),
     }
 }
 
 pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
-    let cors = CorsLayer::very_permissive();
+    let cors = CorsLayer::new()
+        .allow_methods(Any)
+        .allow_headers(Any)
+        .allow_origin(tower_http::cors::AllowOrigin::mirror_request());
 
     let state = AppState {
         terminals,
@@ -95,5 +101,17 @@ pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
         .route("/s/{terminal_id}", get(serve_index))
         .fallback(serve_frontend)
         .layer(cors)
+        .layer(SetResponseHeaderLayer::overriding(
+            header::REFERRER_POLICY,
+            header::HeaderValue::from_static("no-referrer"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            header::HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            header::HeaderValue::from_static("nosniff"),
+        ))
         .with_state(state)
 }

@@ -2,14 +2,15 @@ use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use rand::RngCore;
 use serde_json::json;
+use zeroize::Zeroizing;
 
 use crate::constants::{JS_MAX_SAFE_INTEGER, ROTATION_THRESHOLD};
 use crate::encryption;
 
 pub struct AesKeys {
-    pub bootstrap_key: Vec<u8>,
-    pub unix_key: Vec<u8>,
-    pub browser_key: Vec<u8>,
+    pub bootstrap_key: Zeroizing<Vec<u8>>,
+    pub unix_key: Zeroizing<Vec<u8>>,
+    pub browser_key: Zeroizing<Vec<u8>>,
     bootstrap_message_count: u64,
     message_count: u64,
     browser_rotation_buffer: u64,

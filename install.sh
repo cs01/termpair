@@ -43,6 +43,33 @@ download() {
   fi
 }
 
+verify_checksum() {
+  archive="$1"; expected_name="$2"; checksums_file="$3"
+
+  expected=$(grep "$expected_name" "$checksums_file" | awk '{print $1}')
+  if [ -z "$expected" ]; then
+    echo "warning: no checksum found for $expected_name, skipping verification" >&2
+    return 0
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual=$(sha256sum "$archive" | awk '{print $1}')
+  elif command -v shasum >/dev/null 2>&1; then
+    actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+  else
+    echo "warning: no sha256sum or shasum found, skipping verification" >&2
+    return 0
+  fi
+
+  if [ "$actual" != "$expected" ]; then
+    echo "error: checksum mismatch for $expected_name" >&2
+    echo "  expected: $expected" >&2
+    echo "  actual:   $actual" >&2
+    exit 1
+  fi
+  echo "Checksum verified."
+}
+
 main() {
   platform="$(detect_platform)"
   version="${VERSION:-$(get_latest_version)}"
@@ -53,12 +80,18 @@ main() {
 
   echo "Installing termpair ${version} for ${platform}..."
 
-  url="https://github.com/${REPO}/releases/download/${version}/termpair-${platform}.tar.gz"
+  archive_name="termpair-${platform}.tar.gz"
+  url="https://github.com/${REPO}/releases/download/${version}/${archive_name}"
+  checksums_url="https://github.com/${REPO}/releases/download/${version}/sha256sums.txt"
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
 
-  download "$url" "$tmp/termpair.tar.gz"
-  tar xzf "$tmp/termpair.tar.gz" -C "$tmp"
+  download "$url" "$tmp/${archive_name}"
+  download "$checksums_url" "$tmp/sha256sums.txt" 2>/dev/null && \
+    verify_checksum "$tmp/${archive_name}" "$archive_name" "$tmp/sha256sums.txt" || \
+    echo "warning: could not download checksums, skipping verification" >&2
+
+  tar xzf "$tmp/${archive_name}" -C "$tmp"
 
   if [ -w "$INSTALL_DIR" ]; then
     mv "$tmp/termpair" "$INSTALL_DIR/termpair"

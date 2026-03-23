@@ -8,14 +8,16 @@ use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use tokio::sync::{broadcast, mpsc, watch, RwLock};
 
-use crate::constants::{SUBPROTOCOL_VERSION, TERMPAIR_VERSION};
+use crate::constants::{
+    MAX_BROWSERS_PER_TERMINAL, MAX_TERMINALS, SUBPROTOCOL_VERSION, TERMPAIR_VERSION,
+};
 use crate::types::{PublicSession, TerminalInfo, WsMessage};
 
 use super::terminal::{Terminal, TerminalId, Terminals};
 use super::AppState;
 
 fn generate_terminal_id() -> TerminalId {
-    crate::random_string(8)
+    crate::random_string(24)
 }
 
 pub async fn ping() -> &'static str {
@@ -118,6 +120,19 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
 
     {
         let mut terms = terminals.write().await;
+        if terms.len() >= MAX_TERMINALS {
+            let err = WsMessage {
+                event: "fatal_error".into(),
+                payload: serde_json::Value::String(
+                    "server has reached maximum number of active sessions".into(),
+                ),
+            };
+            if let Ok(json) = serde_json::to_string(&err) {
+                let _ = ws_tx.send(Message::Text(json.into())).await;
+            }
+            let _ = ws_tx.close().await;
+            return;
+        }
         terms.insert(terminal_id.clone(), terminal.clone());
     }
 
@@ -202,6 +217,9 @@ async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Te
 
     {
         let mut count = terminal.browser_count.write().await;
+        if *count >= MAX_BROWSERS_PER_TERMINAL {
+            return;
+        }
         *count += 1;
         let num = *count;
         drop(count);
@@ -239,8 +257,6 @@ async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Te
                     if ws_msg.event == "command" && !terminal.allow_browser_control {
                         continue;
                     }
-                    let _ = terminal.terminal_tx.send(text.to_string()).await;
-                } else {
                     let _ = terminal.terminal_tx.send(text.to_string()).await;
                 }
             }
