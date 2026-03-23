@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::extract::State;
-use axum::http::header;
+use axum::http::{header, HeaderName, Method};
 use axum::response::IntoResponse;
 use axum::routing::{get, Router};
 use rust_embed::Embed;
@@ -80,7 +80,7 @@ async fn serve_index(State(state): State<AppState>) -> impl axum::response::Into
 
 pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
     let cors = CorsLayer::new()
-        .allow_methods(Any)
+        .allow_methods([Method::GET, Method::OPTIONS])
         .allow_headers(Any)
         .allow_origin(tower_http::cors::AllowOrigin::mirror_request());
 
@@ -112,6 +112,12 @@ pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
         .layer(SetResponseHeaderLayer::overriding(
             header::X_CONTENT_TYPE_OPTIONS,
             header::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("content-security-policy"),
+            header::HeaderValue::from_static(
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            ),
         ))
         .with_state(state)
 }

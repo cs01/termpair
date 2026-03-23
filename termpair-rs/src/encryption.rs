@@ -1,5 +1,6 @@
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes128Gcm, Nonce};
+use rand::rngs::OsRng;
 use rand::RngCore;
 use zeroize::Zeroizing;
 
@@ -7,7 +8,7 @@ use crate::constants::{IV_LENGTH, KEY_LENGTH_BYTES};
 
 pub fn generate_key() -> Zeroizing<Vec<u8>> {
     let mut key = Zeroizing::new(vec![0u8; KEY_LENGTH_BYTES]);
-    rand::thread_rng().fill_bytes(&mut key);
+    OsRng.fill_bytes(&mut key);
     key
 }
 
