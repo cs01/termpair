@@ -80,6 +80,8 @@ enum Commands {
             help = "make session publicly discoverable (no encryption, read-only for viewers)"
         )]
         public: bool,
+        #[arg(short, long, help = "skip confirmation prompt and start immediately")]
+        yes: bool,
     },
 }
 
@@ -133,6 +135,8 @@ struct ShareMyClaudeArgs {
         help = "override server port"
     )]
     port: u16,
+    #[arg(short, long, help = "skip confirmation prompt and start immediately")]
+    yes: bool,
     #[arg(last = true)]
     claude_args: Vec<String>,
 }
@@ -164,7 +168,9 @@ fn build_share_url(host: &str, port: u16) -> String {
         eprintln!("host must start with either http:// or https://");
         std::process::exit(1);
     }
-    if port != 0 {
+    let is_default_port = (host.starts_with("https://") && port == 443)
+        || (host.starts_with("http://") && port == 80);
+    if port != 0 && !is_default_port {
         format!("{}:{}/", host.trim_end_matches('/'), port)
     } else {
         format!("{}/", host.trim_end_matches('/'))
@@ -178,6 +184,7 @@ async fn run_share(
     read_only: bool,
     open_browser: bool,
     public: bool,
+    yes: bool,
 ) {
     let url = build_share_url(&host, port);
     let allow_browser_control = if public { false } else { !read_only };
@@ -187,6 +194,7 @@ async fn run_share(
         allow_browser_control,
         open_browser,
         is_public: public,
+        yes,
     };
     if let Err(e) = share::broadcast_terminal(opts).await {
         eprintln!("error: {}", e);
@@ -213,6 +221,7 @@ async fn run_sharemyclaude() {
         args.read_only,
         args.open_browser,
         args.public,
+        args.yes,
     )
     .await;
 }
@@ -336,10 +345,11 @@ async fn main() {
             read_only,
             open_browser,
             public,
+            yes,
         } => {
             let cmd_parts: Vec<String> =
                 shell_words::split(&cmd).unwrap_or_else(|_| vec![cmd.clone()]);
-            run_share(cmd_parts, host, port, read_only, open_browser, public).await;
+            run_share(cmd_parts, host, port, read_only, open_browser, public, yes).await;
         }
     }
 }
