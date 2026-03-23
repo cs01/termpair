@@ -168,6 +168,7 @@ pub struct ShareOptions {
     pub allow_browser_control: bool,
     pub open_browser: bool,
     pub is_public: bool,
+    pub yes: bool,
 }
 
 pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
@@ -177,6 +178,7 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
         allow_browser_control,
         open_browser,
         is_public,
+        yes,
     } = opts;
     let (rows, cols) = get_terminal_size();
 
@@ -231,6 +233,7 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
         allow_browser_control,
         open_browser,
         is_public,
+        yes,
     };
     run_parent(master, reader, writer, opts).await?;
 
@@ -251,6 +254,7 @@ async fn run_parent(
         allow_browser_control,
         open_browser,
         is_public,
+        yes,
     } = opts;
     let (rows, cols) = get_terminal_size();
 
@@ -318,32 +322,46 @@ async fn run_parent(
         .ok_or("missing terminal_id")?
         .to_string();
 
-    let dashes: String = "-".repeat(cols as usize);
-    eprintln!("{}", dashes);
+    let d = "\x1b[90m";
+    let r = "\x1b[0m";
+    let bar: String = "\u{2501}".repeat(cols as usize);
+    eprintln!("{d}{bar}{r}");
 
     let open_url = if is_public {
         let public_url = format!("{}s/{}", url, terminal_id);
-        eprintln!("\x1b[1;31m\u{1f534} Public session \u{2014} no encryption, read-only for viewers\x1b[0m");
+        eprintln!("\x1b[1;31m\u{25cf} Public session{r}");
         eprintln!();
-        eprintln!("Shareable link:  {}", public_url);
+        eprintln!("  {d}Link:{r}       \x1b[4m{}{r}", public_url);
+        eprintln!("  {d}Encryption:{r} none");
+        eprintln!("  {d}Viewers:{r}    read-only {d}(anyone can find this session){r}");
         public_url
     } else {
         let secret_key_b64url = BASE64URL.encode(&aes_keys.bootstrap_key);
         let share_url = format!("{}s/{}#{}", url, terminal_id, secret_key_b64url);
-        let public_url = format!("{}s/{}", url, terminal_id);
-        eprintln!("\x1b[1;33m\u{1f512} Private session \u{2014} end-to-end encrypted\x1b[0m");
+        eprintln!("\x1b[1;33m\u{25cf} Private session{r}");
         eprintln!();
-        eprintln!("Shareable link (full):  {}", share_url);
-        eprintln!("Public viewer link:     {}", public_url);
-        eprintln!("Secret key:             {}", secret_key_b64url);
+        eprintln!("  {d}Link:{r}       \x1b[4m{}{r}", share_url);
+        eprintln!("  {d}Encryption:{r} AES-128-GCM {d}(key is in the URL fragment){r}");
+        if allow_browser_control {
+            eprintln!("  {d}Viewers:{r}    read + write {d}(only people with the link){r}");
+        } else {
+            eprintln!("  {d}Viewers:{r}    read-only {d}(only people with the link){r}");
+        }
         share_url
     };
     eprintln!();
-    eprintln!("Type 'exit' or close terminal to stop sharing.");
-    eprintln!("{}", dashes);
+    eprintln!("  {d}To stop: type 'exit', press Ctrl+C, or close the terminal{r}");
+    eprintln!("{d}{bar}{r}");
 
     if open_browser {
         let _ = open::that(&open_url);
+    }
+
+    if !yes {
+        eprint!("\x1b[1mPress Enter to start...\x1b[0m");
+        let _ = std::io::stderr().flush();
+        let mut buf = String::new();
+        let _ = std::io::stdin().read_line(&mut buf);
     }
 
     let _raw_guard =
@@ -627,9 +645,13 @@ async fn run_parent(
 
     drop(_raw_guard);
 
+    let (_, cols) = get_terminal_size();
+    let d = "\x1b[90m";
+    let r = "\x1b[0m";
+    let bar: String = "\u{2501}".repeat(cols as usize);
     eprintln!();
-    eprintln!("{}", dashes);
-    eprintln!("Session ended. You are no longer broadcasting.");
-    eprintln!("{}", dashes);
+    eprintln!("{d}{bar}{r}");
+    eprintln!("Session ended.");
+    eprintln!("{d}{bar}{r}");
     Ok(())
 }
