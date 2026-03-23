@@ -170,7 +170,6 @@ fn write_status_bar(
     open_url: &str,
 ) {
     let (rows, cols) = get_terminal_size();
-    let pty_rows = rows.saturating_sub(1).max(1);
     let mode = if is_public { "public" } else { "private" };
     let enc = if is_public {
         "unencrypted"
@@ -182,14 +181,10 @@ fn write_status_bar(
         mode, enc, num_browsers, open_url
     );
     let display: String = status.chars().take(cols as usize).collect();
-    let pad = (cols as usize).saturating_sub(display.len());
     let _ = write!(
         w,
-        "\x1b[s\x1b[1;{}r\x1b[{};1H\x1b[2K\x1b[7m{}{}\x1b[m\x1b[u",
-        pty_rows,
-        rows,
-        display,
-        " ".repeat(pad)
+        "\x1b7\x1b[{};1H\x1b[33;100m\x1b[2K{}\x1b[m\x1b8",
+        rows, display
     );
 }
 
@@ -677,8 +672,8 @@ async fn run_parent(
                             }
                         }
                         "new_browser_connected" => {
+                            let count = num_browsers.fetch_add(1, Ordering::Relaxed) + 1;
                             if !is_public {
-                                let count = num_browsers.fetch_add(1, Ordering::Relaxed) + 1;
                                 if let Ok(keys_msg) = aes_keys.build_aes_keys_message(count) {
                                     let _ = ws_tx
                                         .send(tokio_tungstenite::tungstenite::Message::Text(
@@ -686,6 +681,16 @@ async fn run_parent(
                                         ))
                                         .await;
                                 }
+                            }
+                            {
+                                let mut stdout = std::io::stdout().lock();
+                                write_status_bar(
+                                    &mut stdout,
+                                    is_public,
+                                    count,
+                                    &open_url,
+                                );
+                                let _ = stdout.flush();
                             }
                         }
                         "fatal_error" => {
@@ -718,11 +723,10 @@ async fn run_parent(
     {
         let (rows, _) = get_terminal_size();
         let mut stdout = std::io::stdout();
-        let _ = write!(stdout, "\x1b[1;{}r\x1b[{};1H\x1b[2K", rows, rows);
+        let _ = write!(stdout, "\x1b[r\x1b[{};1H\x1b[2K", rows);
         let _ = stdout.flush();
     }
     let _ = std::io::stderr().flush();
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
     drop(_raw_guard);
 
@@ -734,5 +738,6 @@ async fn run_parent(
     eprintln!("{d}{bar}{r}");
     eprintln!("Session ended.");
     eprintln!("{d}{bar}{r}");
-    Ok(())
+
+    std::process::exit(0);
 }
