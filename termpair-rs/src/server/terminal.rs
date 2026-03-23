@@ -15,6 +15,8 @@ pub struct Terminal {
     pub command: String,
     pub broadcast_start_time_iso: String,
     pub browser_count: RwLock<usize>,
+    pub is_public: bool,
+    pub display_name: String,
 }
 
 pub type Terminals = Arc<RwLock<HashMap<TerminalId, Arc<Terminal>>>>;

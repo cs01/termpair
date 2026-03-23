@@ -55,6 +55,7 @@ pub fn create_app(terminals: Terminals) -> Router {
     let cors = CorsLayer::very_permissive();
 
     Router::new()
+        .route("/api/sessions", get(handlers::get_sessions))
         .route("/ping", get(handlers::ping))
         .route("/terminal/{terminal_id}", get(handlers::get_terminal))
         .route("/connect_to_terminal", get(handlers::ws_connect_terminal))

@@ -1,5 +1,6 @@
 mod constants;
 mod encryption;
+mod names;
 mod server;
 mod share;
 mod types;
@@ -68,6 +69,11 @@ enum Commands {
             help = "automatically open the share link in a browser"
         )]
         open_browser: bool,
+        #[arg(
+            long,
+            help = "make session publicly discoverable (no encryption, read-only for viewers)"
+        )]
+        public: bool,
     },
 }
 
@@ -182,6 +188,7 @@ async fn main() {
             host,
             read_only,
             open_browser,
+            public,
         } => {
             if !host.starts_with("http://") && !host.starts_with("https://") {
                 eprintln!("host must start with either http:// or https://");
@@ -198,10 +205,15 @@ async fn main() {
             let cmd_parts: Vec<String> =
                 shell_words::split(&cmd).unwrap_or_else(|_| vec![cmd.clone()]);
 
-            let allow_browser_control = !read_only;
-            if let Err(e) =
-                share::broadcast_terminal(cmd_parts, url, allow_browser_control, open_browser).await
-            {
+            let allow_browser_control = if public { false } else { !read_only };
+            let opts = share::ShareOptions {
+                cmd: cmd_parts,
+                url,
+                allow_browser_control,
+                open_browser,
+                is_public: public,
+            };
+            if let Err(e) = share::broadcast_terminal(opts).await {
                 eprintln!("error: {}", e);
                 std::process::exit(1);
             }

@@ -15,6 +15,8 @@ pub struct TerminalInitData {
     pub command: String,
     pub broadcast_start_time_iso: String,
     pub subprotocol_version: String,
+    #[serde(default)]
+    pub is_public: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,6 +28,22 @@ pub struct TerminalInfo {
     pub command: String,
     pub broadcast_start_time_iso: String,
     pub termpair_version: String,
+    #[serde(default)]
+    pub is_public: bool,
+    #[serde(default)]
+    pub display_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PublicSession {
+    pub terminal_id: String,
+    pub display_name: String,
+    pub command: String,
+    pub cols: u16,
+    pub rows: u16,
+    pub allow_browser_control: bool,
+    pub broadcast_start_time_iso: String,
+    pub viewer_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
