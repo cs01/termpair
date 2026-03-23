@@ -260,8 +260,8 @@ async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Te
     }
 }
 
-pub async fn get_sessions(State(terminals): State<Terminals>) -> Json<Vec<PublicSession>> {
-    let terms = terminals.read().await;
+pub async fn get_sessions(State(state): State<AppState>) -> Json<Vec<PublicSession>> {
+    let terms = state.terminals.read().await;
     let mut sessions: Vec<PublicSession> = Vec::new();
     for (id, terminal) in terms.iter() {
         if !terminal.is_public {

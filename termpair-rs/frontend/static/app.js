@@ -480,7 +480,7 @@ async function fetchSessions() {
       const started = new Date(s.broadcast_start_time_iso);
       const elapsed = formatElapsed(Date.now() - started.getTime());
       const viewers = s.viewer_count === 1 ? "1 viewer" : `${s.viewer_count} viewers`;
-      return `<a href="/s/${s.terminal_id}" class="session-card">
+      return `<a href="${baseUrl}s/${s.terminal_id}" class="session-card">
         <div class="session-name">${escapeHtml(s.display_name)}</div>
         <div class="session-meta">
           <span>${escapeHtml(s.command)}</span>
