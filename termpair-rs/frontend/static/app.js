@@ -455,8 +455,11 @@ async function connect(terminalId, bootstrapKeyB64) {
 
   ws.addEventListener("close", () => {
     setStatus("Disconnected");
+    const td = state.terminalData;
+    const startedAt = td && td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
+    const duration = startedAt ? ` after ${formatElapsed(Date.now() - startedAt.getTime())}` : "";
     xterm.writeln("");
-    xterm.writeln("\x1b[1;31mTerminal session has ended\x1b[0m");
+    xterm.writeln(`\x1b[1;31mTerminal session has ended${duration}\x1b[0m`);
     $id("client-count").textContent = "";
   });
 
