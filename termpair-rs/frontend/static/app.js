@@ -313,6 +313,12 @@ async function sendInput(input) {
     return;
   }
 
+  if (state.aesKeys.ivCount >= state.aesKeys.maxIvCount) {
+    state.ws.send(JSON.stringify({ event: "request_key_rotation" }));
+    toast("Waiting for key rotation...");
+    return;
+  }
+
   const payload = JSON.stringify({ data: input, salt: getSalt() });
   const encrypted = await aesEncrypt(
     state.aesKeys.browser,
@@ -322,9 +328,8 @@ async function sendInput(input) {
 
   state.ws.send(JSON.stringify({ event: "command", payload: encrypted }));
 
-  if (state.aesKeys.ivCount >= state.aesKeys.maxIvCount) {
+  if (state.aesKeys.ivCount >= state.aesKeys.maxIvCount - 100) {
     state.ws.send(JSON.stringify({ event: "request_key_rotation" }));
-    state.aesKeys.maxIvCount += 1000;
   }
 }
 

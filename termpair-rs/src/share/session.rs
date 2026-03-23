@@ -8,7 +8,7 @@ use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
-use crate::constants::{MAX_READ_BYTES, SUBPROTOCOL_VERSION};
+use crate::constants::{MAX_COMMAND_INPUT_BYTES, MAX_READ_BYTES, SUBPROTOCOL_VERSION};
 use crate::share::aes_keys::AesKeys;
 
 const SENSITIVE_ENV_VARS: &[&str] = &[
@@ -24,6 +24,36 @@ const SENSITIVE_ENV_VARS: &[&str] = &[
     "SECRET_KEY",
     "API_KEY",
     "API_SECRET",
+    "STRIPE_API_KEY",
+    "STRIPE_SECRET_KEY",
+    "DATADOG_API_KEY",
+    "HUGGINGFACE_TOKEN",
+    "HF_TOKEN",
+    "SLACK_TOKEN",
+    "SLACK_BOT_TOKEN",
+    "AZURE_CLIENT_SECRET",
+    "AZURE_STORAGE_KEY",
+    "GCP_SERVICE_ACCOUNT_KEY",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "NPM_TOKEN",
+    "PYPI_TOKEN",
+    "DOCKER_PASSWORD",
+    "DOCKER_AUTH_CONFIG",
+    "SENTRY_DSN",
+    "TWILIO_AUTH_TOKEN",
+    "SENDGRID_API_KEY",
+    "CLOUDFLARE_API_TOKEN",
+    "DO_API_TOKEN",
+    "LINODE_TOKEN",
+    "HEROKU_API_KEY",
+    "NETLIFY_AUTH_TOKEN",
+    "VERCEL_TOKEN",
+    "SSH_PRIVATE_KEY",
+    "GPG_PRIVATE_KEY",
+    "ENCRYPTION_KEY",
+    "JWT_SECRET",
+    "SESSION_SECRET",
+    "COOKIE_SECRET",
 ];
 
 #[cfg(unix)]
@@ -508,9 +538,12 @@ async fn run_parent(
                                                 )
                                             {
                                                 if let Some(input) = data["data"].as_str() {
-                                                    if let Ok(mut w) = writer_for_browser.lock() {
-                                                        let _ = w.write_all(input.as_bytes());
-                                                        let _ = w.flush();
+                                                    if input.len() <= MAX_COMMAND_INPUT_BYTES {
+                                                        if let Ok(mut w) = writer_for_browser.lock()
+                                                        {
+                                                            let _ = w.write_all(input.as_bytes());
+                                                            let _ = w.flush();
+                                                        }
                                                     }
                                                 }
                                             }
