@@ -3,7 +3,6 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD as BASE64URL;
 use base64::Engine;
 use futures_util::{SinkExt, StreamExt};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
-use rand::RngCore;
 use serde_json::json;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
@@ -11,6 +10,21 @@ use tokio::sync::mpsc;
 
 use crate::constants::{MAX_READ_BYTES, SUBPROTOCOL_VERSION};
 use crate::share::aes_keys::AesKeys;
+
+const SENSITIVE_ENV_VARS: &[&str] = &[
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "GITHUB_TOKEN",
+    "GH_TOKEN",
+    "GITLAB_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "DATABASE_URL",
+    "SECRET_KEY",
+    "API_KEY",
+    "API_SECRET",
+];
 
 #[cfg(unix)]
 mod raw_mode {
@@ -155,6 +169,9 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
         "TERMPAIR_BROWSERS_CAN_CONTROL",
         if allow_browser_control { "1" } else { "0" },
     );
+    for var in SENSITIVE_ENV_VARS {
+        cmd_builder.env(var, "");
+    }
 
     let mut child = pair
         .slave
@@ -164,12 +181,16 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
 
     let master = Arc::new(Mutex::new(pair.master));
     let reader = {
-        let m = master.lock().unwrap();
+        let m = master
+            .lock()
+            .map_err(|_| "master pty lock poisoned".to_string())?;
         m.try_clone_reader()
             .map_err(|e| format!("failed to clone reader: {}", e))?
     };
     let writer = {
-        let m = master.lock().unwrap();
+        let m = master
+            .lock()
+            .map_err(|_| "master pty lock poisoned".to_string())?;
         m.take_writer()
             .map_err(|e| format!("failed to take writer: {}", e))?
     };
@@ -203,7 +224,13 @@ async fn run_parent(
     } = opts;
     let (rows, cols) = get_terminal_size();
 
-    let ws_url = url.replace("http", "ws");
+    let ws_url = if url.starts_with("https://") {
+        url.replacen("https://", "wss://", 1)
+    } else if url.starts_with("http://") {
+        url.replacen("http://", "ws://", 1)
+    } else {
+        return Err("url must start with http:// or https://".into());
+    };
     let ws_endpoint = format!("{}connect_to_terminal", ws_url);
 
     let (ws_stream, _) = tokio_tungstenite::connect_async(&ws_endpoint)
@@ -300,7 +327,10 @@ async fn run_parent(
         let reader = reader.clone();
         tokio::task::spawn_blocking(move || {
             let mut buf = vec![0u8; MAX_READ_BYTES];
-            let mut reader = reader.lock().unwrap();
+            let mut reader = match reader.lock() {
+                Ok(r) => r,
+                Err(_) => return,
+            };
             loop {
                 match reader.read(&mut buf) {
                     Ok(0) => break,
@@ -313,11 +343,8 @@ async fn run_parent(
                             let _ = stdout.flush();
                         }
 
-                        let mut salt = [0u8; 12];
-                        rand::thread_rng().fill_bytes(&mut salt);
                         let plaintext = json!({
                             "pty_output": BASE64.encode(&output),
-                            "salt": BASE64.encode(salt),
                         });
                         let plaintext_bytes = plaintext.to_string().into_bytes();
 
@@ -342,9 +369,10 @@ async fn run_parent(
             match stdin_lock.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
-                    let mut w = writer_for_stdin.lock().unwrap();
-                    let _ = w.write_all(&buf[..n]);
-                    let _ = w.flush();
+                    if let Ok(mut w) = writer_for_stdin.lock() {
+                        let _ = w.write_all(&buf[..n]);
+                        let _ = w.flush();
+                    }
                 }
                 Err(_) => break,
             }

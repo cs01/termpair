@@ -65,7 +65,9 @@ async function aesEncrypt(cryptoKey, utf8String, ivCount) {
   const combined = new Uint8Array(iv.byteLength + encrypted.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(encrypted), iv.byteLength);
-  return btoa(String.fromCharCode(...combined));
+  let bin = "";
+  for (let i = 0; i < combined.length; i++) bin += String.fromCharCode(combined[i]);
+  return btoa(bin);
 }
 
 function base64ToBytes(b64) {

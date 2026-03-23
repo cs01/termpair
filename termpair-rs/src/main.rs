@@ -6,11 +6,12 @@ mod share;
 mod types;
 
 use clap::{Parser, Subcommand};
+use rand::rngs::OsRng;
 use rand::Rng;
 
 fn random_string(n: usize) -> String {
     const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let mut rng = rand::thread_rng();
+    let mut rng = OsRng;
     (0..n)
         .map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char)
         .collect()
