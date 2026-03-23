@@ -282,7 +282,7 @@ async fn main() {
                     std::process::exit(1);
                 });
                 if let Err(e) = axum_server::bind_rustls(bind_addr, tls_config)
-                    .serve(app.into_make_service())
+                    .serve(app.into_make_service_with_connect_info::<std::net::SocketAddr>())
                     .await
                 {
                     eprintln!("error: server failed — {}", e);

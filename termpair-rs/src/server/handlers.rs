@@ -1,5 +1,7 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
 
+use axum::extract::connect_info::ConnectInfo;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Query, State, WebSocketUpgrade};
 use axum::http::StatusCode;
@@ -59,14 +61,32 @@ pub async fn get_terminal(
 
 pub async fn ws_connect_terminal(
     ws: WebSocketUpgrade,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
+    let ip = addr.ip();
+    let connections = state.connections.clone();
     ws.max_frame_size(MAX_WS_FRAME_BYTES)
         .max_message_size(MAX_WS_FRAME_BYTES)
-        .on_upgrade(move |socket| handle_terminal_ws(socket, state.terminals))
+        .on_upgrade(move |socket| handle_terminal_ws(socket, state.terminals, ip, connections))
 }
 
-async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
+async fn handle_terminal_ws(
+    socket: WebSocket,
+    terminals: Terminals,
+    ip: std::net::IpAddr,
+    connections: Arc<super::terminal::ConnectionTracker>,
+) {
+    if !connections.try_add(ip).await {
+        return;
+    }
+
+    let result = handle_terminal_ws_inner(socket, terminals.clone()).await;
+    connections.remove(ip).await;
+    result
+}
+
+async fn handle_terminal_ws_inner(socket: WebSocket, terminals: Terminals) {
     let (mut ws_tx, mut ws_rx) = socket.split();
 
     let init_msg = match ws_rx.next().await {
@@ -82,11 +102,11 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
     if init_data.subprotocol_version != SUBPROTOCOL_VERSION {
         let err = WsMessage {
             event: "fatal_error".into(),
-            payload: serde_json::Value::String(format!(
-                "Client and server are running incompatible versions. Server is running v{}. \
-                 Ensure you are using a version of the TermPair client compatible with the server.",
-                TERMPAIR_VERSION
-            )),
+            payload: serde_json::Value::String(
+                "Client and server are running incompatible versions. \
+                 Ensure you are using a compatible version of the TermPair client."
+                    .into(),
+            ),
         };
         if let Ok(json) = serde_json::to_string(&err) {
             let _ = ws_tx.send(Message::Text(json.into())).await;
@@ -227,16 +247,36 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
 
 pub async fn ws_connect_browser(
     ws: WebSocketUpgrade,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Query(params): Query<TerminalIdQuery>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let terminal_id = params.terminal_id;
+    let ip = addr.ip();
+    let connections = state.connections.clone();
     ws.max_frame_size(MAX_WS_FRAME_BYTES)
         .max_message_size(MAX_WS_FRAME_BYTES)
-        .on_upgrade(move |socket| handle_browser_ws(socket, terminal_id, state.terminals))
+        .on_upgrade(move |socket| {
+            handle_browser_ws(socket, terminal_id, state.terminals, ip, connections)
+        })
 }
 
-async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Terminals) {
+async fn handle_browser_ws(
+    socket: WebSocket,
+    terminal_id: String,
+    terminals: Terminals,
+    ip: std::net::IpAddr,
+    connections: Arc<super::terminal::ConnectionTracker>,
+) {
+    if !connections.try_add(ip).await {
+        return;
+    }
+
+    handle_browser_ws_inner(socket, terminal_id, terminals).await;
+    connections.remove(ip).await;
+}
+
+async fn handle_browser_ws_inner(socket: WebSocket, terminal_id: String, terminals: Terminals) {
     let terminal = {
         let terms = terminals.read().await;
         match terms.get(&terminal_id) {
