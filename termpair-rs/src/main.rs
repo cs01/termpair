@@ -205,11 +205,7 @@ async fn run_sharemyclaude() {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .without_time()
-        .with_target(false)
-        .with_level(false)
-        .init();
+    tracing_subscriber::fmt().with_target(false).init();
 
     if binary_name() == "sharemyclaude" {
         run_sharemyclaude().await;
@@ -303,6 +299,14 @@ async fn main() {
                     std::process::exit(1);
                 });
                 let listener = socket.listen(1024).expect("failed to listen");
+                if host != "localhost" && host != "127.0.0.1" && host != "::1" {
+                    eprintln!(
+                        "\x1b[1;33mwarning:\x1b[0m serving without TLS on {}. \
+                         encryption keys will be sent over plaintext HTTP. \
+                         use --certfile/--keyfile for production deployments.",
+                        host
+                    );
+                }
                 eprintln!(
                     "termpair v{} listening on http://{}",
                     constants::TERMPAIR_VERSION,

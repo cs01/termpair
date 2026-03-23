@@ -383,7 +383,7 @@ async function connect(terminalId, bootstrapKeyB64) {
 
   setupKeyHandler(xterm);
 
-  const wsUrl = `${httpToWs(baseUrl)}connect_browser_to_terminal?terminal_id=${terminalId}`;
+  const wsUrl = `${httpToWs(baseUrl)}connect_browser_to_terminal?terminal_id=${encodeURIComponent(terminalId)}`;
   const ws = new WebSocket(wsUrl);
   state.ws = ws;
 
@@ -476,19 +476,33 @@ async function fetchSessions() {
 
     $id("live-count").textContent = `(${sessions.length})`;
 
-    container.innerHTML = sessions.map((s) => {
+    container.innerHTML = "";
+    sessions.forEach((s) => {
       const started = new Date(s.broadcast_start_time_iso);
       const elapsed = formatElapsed(Date.now() - started.getTime());
       const viewers = s.viewer_count === 1 ? "1 viewer" : `${s.viewer_count} viewers`;
-      return `<a href="${baseUrl}s/${s.terminal_id}" class="session-card">
-        <div class="session-name">${escapeHtml(s.display_name)}</div>
-        <div class="session-meta">
-          <span>${escapeHtml(s.command)}</span>
-          <span>${viewers}</span>
-          <span>${elapsed}</span>
-        </div>
-      </a>`;
-    }).join("");
+
+      const a = document.createElement("a");
+      a.href = `${baseUrl}s/${encodeURIComponent(s.terminal_id)}`;
+      a.className = "session-card";
+
+      const nameDiv = document.createElement("div");
+      nameDiv.className = "session-name";
+      nameDiv.textContent = s.display_name;
+
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "session-meta";
+      const cmdSpan = document.createElement("span");
+      cmdSpan.textContent = s.command;
+      const viewerSpan = document.createElement("span");
+      viewerSpan.textContent = viewers;
+      const elapsedSpan = document.createElement("span");
+      elapsedSpan.textContent = elapsed;
+      metaDiv.append(cmdSpan, viewerSpan, elapsedSpan);
+
+      a.append(nameDiv, metaDiv);
+      container.appendChild(a);
+    });
   } catch (e) {
     console.error("failed to fetch sessions:", e);
   }
