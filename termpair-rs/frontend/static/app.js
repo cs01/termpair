@@ -96,6 +96,7 @@ const state = {
   terminalData: null,
   terminalId: null,
   status: null,
+  isPublic: false,
 };
 
 // ---- URL parsing ----
@@ -213,6 +214,17 @@ async function handleMessage(data) {
 }
 
 async function handleNewOutput(data) {
+  if (state.isPublic) {
+    try {
+      const raw = base64ToBytes(data.payload);
+      const json = JSON.parse(new TextDecoder().decode(raw));
+      const ptyOutput = base64ToBytes(json.pty_output);
+      state.xterm.write(ptyOutput);
+    } catch (e) {
+      console.error("public output error:", e);
+    }
+    return;
+  }
   if (!state.aesKeys.unix) return;
   try {
     const encrypted = base64ToBytes(data.payload);
@@ -360,6 +372,7 @@ async function connect(terminalId, bootstrapKeyB64) {
   }
 
   state.terminalData = await resp.json();
+  state.isPublic = state.terminalData.is_public || false;
 
   await loadXtermAssets();
   showTerminal();
@@ -380,24 +393,41 @@ async function connect(terminalId, bootstrapKeyB64) {
     setStatus("Connected");
 
     const td = state.terminalData;
-    const mode = td.allow_browser_control ? "read/write" : "read-only";
     const startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
     const elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
 
-    xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m— secure terminal sharing\x1b[0m");
-    xterm.writeln("");
-    xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
-    xterm.writeln(`\x1b[90mThe server cannot read any transmitted data.\x1b[0m`);
-    xterm.writeln("");
-    if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
-    xterm.writeln(`\x1b[90m  access:   \x1b[0m${mode}`);
-    if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
-    xterm.writeln("");
+    if (state.isPublic) {
+      const name = td.display_name || terminalId;
+      xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m— live terminal\x1b[0m");
+      xterm.writeln("");
+      xterm.writeln(`\x1b[1;33mPublic session\x1b[0m — \x1b[1m${name}\x1b[0m`);
+      xterm.writeln(`\x1b[90mThis is a public, read-only session. No encryption.\x1b[0m`);
+      xterm.writeln("");
+      if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
+      xterm.writeln(`\x1b[90m  access:   \x1b[0mread-only`);
+      if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
+      xterm.writeln("");
+    } else {
+      const mode = td.allow_browser_control ? "read/write" : "read-only";
+      xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m— secure terminal sharing\x1b[0m");
+      xterm.writeln("");
+      xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
+      xterm.writeln(`\x1b[90mThe server cannot read any transmitted data.\x1b[0m`);
+      xterm.writeln("");
+      if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
+      xterm.writeln(`\x1b[90m  access:   \x1b[0m${mode}`);
+      if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
+      xterm.writeln("");
+    }
 
     ws.send(JSON.stringify({ event: "request_terminal_dimensions" }));
-    ws.send(JSON.stringify({ event: "new_browser_connected", payload: {} }));
+    if (!state.isPublic) {
+      ws.send(JSON.stringify({ event: "new_browser_connected", payload: {} }));
+    }
 
-    xterm.onData((data) => sendInput(data));
+    if (!state.isPublic) {
+      xterm.onData((data) => sendInput(data));
+    }
     xterm.focus();
     updateBottomBar();
     $id("terminal-dimensions").textContent = `${xterm.cols}x${xterm.rows}`;
@@ -426,6 +456,52 @@ async function connect(terminalId, bootstrapKeyB64) {
   });
 }
 
+// ---- Live Sessions ----
+
+async function fetchSessions() {
+  const container = $id("live-sessions");
+  if (!container) return;
+
+  try {
+    const baseUrl = getServerBaseUrl();
+    const resp = await fetch(`${baseUrl}api/sessions`);
+    if (!resp.ok) return;
+    const sessions = await resp.json();
+
+    if (sessions.length === 0) {
+      container.innerHTML = '<p class="no-sessions">No live sessions right now.</p>';
+      $id("live-count").textContent = "";
+      return;
+    }
+
+    $id("live-count").textContent = `(${sessions.length})`;
+
+    container.innerHTML = sessions.map((s) => {
+      const started = new Date(s.broadcast_start_time_iso);
+      const elapsed = formatElapsed(Date.now() - started.getTime());
+      const viewers = s.viewer_count === 1 ? "1 viewer" : `${s.viewer_count} viewers`;
+      return `<a href="/s/${s.terminal_id}" class="session-card">
+        <div class="session-name">${escapeHtml(s.display_name)}</div>
+        <div class="session-meta">
+          <span>${escapeHtml(s.command)}</span>
+          <span>${viewers}</span>
+          <span>${elapsed}</span>
+        </div>
+      </a>`;
+    }).join("");
+  } catch (e) {
+    console.error("failed to fetch sessions:", e);
+  }
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+setInterval(fetchSessions, 5000);
+
 // ---- Init ----
 
 function init() {
@@ -435,6 +511,7 @@ function init() {
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
   const host = `${window.location.protocol}//${window.location.hostname}`;
   $id("share-command").textContent = `termpair share --host "${host}" --port ${port}`;
+  $id("share-command-public").textContent = `termpair share --public --host "${host}" --port ${port}`;
 
   if (!window.isSecureContext) {
     $id("secure-warning").style.display = "block";
@@ -450,6 +527,8 @@ function init() {
   }
   if (terminalId && bootstrapKeyB64) {
     connect(terminalId, bootstrapKeyB64);
+  } else if (terminalId && !bootstrapKeyB64) {
+    connect(terminalId, null);
   }
 
   $id("connect-form").addEventListener("submit", (e) => {
@@ -460,6 +539,8 @@ function init() {
     if (!key) { toast("Secret key cannot be empty"); return; }
     connect(tid, key);
   });
+
+  fetchSessions();
 
   // theme
   const saved = localStorage.getItem("termpair-theme") || "dark";

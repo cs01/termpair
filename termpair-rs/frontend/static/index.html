@@ -34,6 +34,14 @@
         <strong>Error:</strong> TermPair requires a secure context (HTTPS or localhost).
       </div>
 
+      <section id="live-section" aria-labelledby="live-heading">
+        <h2 id="live-heading">Live Sessions <span id="live-count"></span></h2>
+        <p>Public sessions you can watch right now.</p>
+        <div id="live-sessions">
+          <p class="no-sessions">No live sessions right now.</p>
+        </div>
+      </section>
+
       <section aria-labelledby="how-heading">
         <h2 id="how-heading">How It Works</h2>
         <div class="steps">
@@ -61,13 +69,15 @@
 
       <section aria-labelledby="share-heading">
         <h2 id="share-heading">Share a Terminal</h2>
-        <p>Start sharing with this server:</p>
+        <p>Share publicly (anyone can watch):</p>
+        <pre><code id="share-command-public"></code></pre>
+        <p>Share privately (end-to-end encrypted):</p>
         <pre><code id="share-command"></code></pre>
         <p>This opens a new shell session. Everything you type is encrypted and broadcast to connected browsers. Press <kbd>Ctrl+D</kbd> or type <code>exit</code> to stop sharing.</p>
       </section>
 
       <section aria-labelledby="connect-heading">
-        <h2 id="connect-heading">Connect to a Terminal</h2>
+        <h2 id="connect-heading">Connect to a Private Terminal</h2>
         <p>If someone shared a terminal link with you, just open it. Or enter the details manually:</p>
         <form id="connect-form">
           <label for="input-terminal-id">Terminal ID</label>

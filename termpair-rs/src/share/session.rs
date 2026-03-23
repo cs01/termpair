@@ -118,12 +118,22 @@ fn get_terminal_size() -> (u16, u16) {
     (24, 80)
 }
 
-pub async fn broadcast_terminal(
-    cmd: Vec<String>,
-    url: String,
-    allow_browser_control: bool,
-    open_browser: bool,
-) -> Result<(), String> {
+pub struct ShareOptions {
+    pub cmd: Vec<String>,
+    pub url: String,
+    pub allow_browser_control: bool,
+    pub open_browser: bool,
+    pub is_public: bool,
+}
+
+pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
+    let ShareOptions {
+        cmd,
+        url,
+        allow_browser_control,
+        open_browser,
+        is_public,
+    } = opts;
     let (rows, cols) = get_terminal_size();
 
     let pty_system = native_pty_system();
@@ -164,16 +174,14 @@ pub async fn broadcast_terminal(
             .map_err(|e| format!("failed to take writer: {}", e))?
     };
 
-    run_parent(
-        master,
-        reader,
-        writer,
+    let opts = ShareOptions {
         cmd,
         url,
         allow_browser_control,
         open_browser,
-    )
-    .await?;
+        is_public,
+    };
+    run_parent(master, reader, writer, opts).await?;
 
     let _ = child.kill();
     let _ = child.wait();
@@ -184,11 +192,15 @@ async fn run_parent(
     master: Arc<Mutex<Box<dyn portable_pty::MasterPty + Send>>>,
     reader: Box<dyn Read + Send>,
     writer: Box<dyn Write + Send>,
-    cmd: Vec<String>,
-    url: String,
-    allow_browser_control: bool,
-    open_browser: bool,
+    opts: ShareOptions,
 ) -> Result<(), String> {
+    let ShareOptions {
+        cmd,
+        url,
+        allow_browser_control,
+        open_browser,
+        is_public,
+    } = opts;
     let (rows, cols) = get_terminal_size();
 
     let ws_url = url.replace("http", "ws");
@@ -211,6 +223,7 @@ async fn run_parent(
         "command": cmd.join(" "),
         "broadcast_start_time_iso": now,
         "subprotocol_version": SUBPROTOCOL_VERSION,
+        "is_public": is_public,
     });
 
     ws_tx
@@ -248,23 +261,37 @@ async fn run_parent(
         .ok_or("missing terminal_id")?
         .to_string();
 
-    let secret_key_b64url = BASE64URL.encode(&aes_keys.bootstrap_key);
-    let share_url = format!("{}s/{}#{}", url, terminal_id, secret_key_b64url);
-    let public_url = format!("{}s/{}", url, terminal_id);
-
     let dashes: String = "-".repeat(cols as usize);
     eprintln!("{}", dashes);
-    eprintln!("\x1b[1m\x1b[0;32mConnection established with end-to-end encryption\x1b[0m");
-    eprintln!();
-    eprintln!("Shareable link (full):  {}", share_url);
-    eprintln!("Public viewer link:     {}", public_url);
-    eprintln!("Secret key:             {}", secret_key_b64url);
-    eprintln!();
-    eprintln!("Type 'exit' or close terminal to stop sharing.");
-    eprintln!("{}", dashes);
 
-    if open_browser {
-        let _ = open::that(&share_url);
+    if is_public {
+        let public_url = format!("{}s/{}", url, terminal_id);
+        eprintln!("\x1b[1m\x1b[0;33mPublic session — no encryption, read-only for viewers\x1b[0m");
+        eprintln!();
+        eprintln!("Shareable link:  {}", public_url);
+        eprintln!();
+        eprintln!("Type 'exit' or close terminal to stop sharing.");
+        eprintln!("{}", dashes);
+
+        if open_browser {
+            let _ = open::that(&public_url);
+        }
+    } else {
+        let secret_key_b64url = BASE64URL.encode(&aes_keys.bootstrap_key);
+        let share_url = format!("{}s/{}#{}", url, terminal_id, secret_key_b64url);
+        let public_url = format!("{}s/{}", url, terminal_id);
+        eprintln!("\x1b[1m\x1b[0;32mConnection established with end-to-end encryption\x1b[0m");
+        eprintln!();
+        eprintln!("Shareable link (full):  {}", share_url);
+        eprintln!("Public viewer link:     {}", public_url);
+        eprintln!("Secret key:             {}", secret_key_b64url);
+        eprintln!();
+        eprintln!("Type 'exit' or close terminal to stop sharing.");
+        eprintln!("{}", dashes);
+
+        if open_browser {
+            let _ = open::that(&share_url);
+        }
     }
 
     let _raw_guard =
@@ -397,33 +424,49 @@ async fn run_parent(
         while let Some(msg) = outgoing_rx.recv().await {
             if let Some(raw_b64) = msg.strip_prefix("__pty_raw:") {
                 if let Ok(plaintext_bytes) = BASE64.decode(raw_b64) {
-                    match aes_keys.encrypt(&plaintext_bytes) {
-                        Ok(encrypted) => {
-                            let ws_msg = json!({
-                                "event": "new_output",
-                                "payload": BASE64.encode(&encrypted),
-                            });
-                            if ws_tx
-                                .send(tokio_tungstenite::tungstenite::Message::Text(
-                                    ws_msg.to_string().into(),
-                                ))
-                                .await
-                                .is_err()
-                            {
-                                break;
-                            }
-                            if aes_keys.need_rotation() {
-                                if let Ok(rotation_msg) = aes_keys.rotate_keys() {
-                                    let _ = ws_tx
-                                        .send(tokio_tungstenite::tungstenite::Message::Text(
-                                            rotation_msg.into(),
-                                        ))
-                                        .await;
+                    if is_public {
+                        let ws_msg = json!({
+                            "event": "new_output",
+                            "payload": BASE64.encode(&plaintext_bytes),
+                        });
+                        if ws_tx
+                            .send(tokio_tungstenite::tungstenite::Message::Text(
+                                ws_msg.to_string().into(),
+                            ))
+                            .await
+                            .is_err()
+                        {
+                            break;
+                        }
+                    } else {
+                        match aes_keys.encrypt(&plaintext_bytes) {
+                            Ok(encrypted) => {
+                                let ws_msg = json!({
+                                    "event": "new_output",
+                                    "payload": BASE64.encode(&encrypted),
+                                });
+                                if ws_tx
+                                    .send(tokio_tungstenite::tungstenite::Message::Text(
+                                        ws_msg.to_string().into(),
+                                    ))
+                                    .await
+                                    .is_err()
+                                {
+                                    break;
+                                }
+                                if aes_keys.need_rotation() {
+                                    if let Ok(rotation_msg) = aes_keys.rotate_keys() {
+                                        let _ = ws_tx
+                                            .send(tokio_tungstenite::tungstenite::Message::Text(
+                                                rotation_msg.into(),
+                                            ))
+                                            .await;
+                                    }
                                 }
                             }
-                        }
-                        Err(e) => {
-                            tracing::error!("encryption error: {}", e);
+                            Err(e) => {
+                                tracing::error!("encryption error: {}", e);
+                            }
                         }
                     }
                 }
@@ -432,7 +475,7 @@ async fn run_parent(
                     let event = parsed["event"].as_str().unwrap_or("");
                     match event {
                         "command" => {
-                            if allow_browser_control {
+                            if allow_browser_control && !is_public {
                                 if let Some(payload) = parsed["payload"].as_str() {
                                     if let Ok(encrypted_bytes) = BASE64.decode(payload) {
                                         if let Ok(decrypted) = aes_keys.decrypt(&encrypted_bytes) {
@@ -472,22 +515,27 @@ async fn run_parent(
                                 .await;
                         }
                         "request_key_rotation" => {
-                            if let Ok(rotation_msg) = aes_keys.rotate_keys() {
-                                let _ = ws_tx
-                                    .send(tokio_tungstenite::tungstenite::Message::Text(
-                                        rotation_msg.into(),
-                                    ))
-                                    .await;
+                            if !is_public {
+                                if let Ok(rotation_msg) = aes_keys.rotate_keys() {
+                                    let _ = ws_tx
+                                        .send(tokio_tungstenite::tungstenite::Message::Text(
+                                            rotation_msg.into(),
+                                        ))
+                                        .await;
+                                }
                             }
                         }
                         "new_browser_connected" => {
-                            num_browsers += 1;
-                            if let Ok(keys_msg) = aes_keys.build_aes_keys_message(num_browsers) {
-                                let _ = ws_tx
-                                    .send(tokio_tungstenite::tungstenite::Message::Text(
-                                        keys_msg.into(),
-                                    ))
-                                    .await;
+                            if !is_public {
+                                num_browsers += 1;
+                                if let Ok(keys_msg) = aes_keys.build_aes_keys_message(num_browsers)
+                                {
+                                    let _ = ws_tx
+                                        .send(tokio_tungstenite::tungstenite::Message::Text(
+                                            keys_msg.into(),
+                                        ))
+                                        .await;
+                                }
                             }
                         }
                         "fatal_error" => {

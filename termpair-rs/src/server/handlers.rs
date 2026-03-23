@@ -9,7 +9,7 @@ use serde::Deserialize;
 use tokio::sync::{broadcast, mpsc, watch, RwLock};
 
 use crate::constants::{SUBPROTOCOL_VERSION, TERMPAIR_VERSION};
-use crate::types::{TerminalInfo, WsMessage};
+use crate::types::{PublicSession, TerminalInfo, WsMessage};
 
 use super::terminal::{Terminal, TerminalId, Terminals};
 use super::AppState;
@@ -44,6 +44,8 @@ pub async fn get_terminal(
                 command: terminal.command.clone(),
                 broadcast_start_time_iso: terminal.broadcast_start_time_iso.clone(),
                 termpair_version: TERMPAIR_VERSION.to_string(),
+                is_public: terminal.is_public,
+                display_name: terminal.display_name.clone(),
             };
             Json(info).into_response()
         }
@@ -93,6 +95,12 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
     let (broadcast_tx, _) = broadcast::channel::<String>(256);
     let (closed_tx, closed_rx) = watch::channel(false);
 
+    let display_name = if init_data.is_public {
+        crate::names::generate_name()
+    } else {
+        String::new()
+    };
+
     let terminal = Arc::new(Terminal {
         terminal_tx,
         broadcast_tx: broadcast_tx.clone(),
@@ -104,6 +112,8 @@ async fn handle_terminal_ws(socket: WebSocket, terminals: Terminals) {
         command: init_data.command,
         broadcast_start_time_iso: init_data.broadcast_start_time_iso,
         browser_count: RwLock::new(0),
+        is_public: init_data.is_public,
+        display_name,
     });
 
     {
@@ -248,6 +258,30 @@ async fn handle_browser_ws(socket: WebSocket, terminal_id: String, terminals: Te
         drop(count);
         broadcast_num_clients(&terminal, num).await;
     }
+}
+
+pub async fn get_sessions(State(terminals): State<Terminals>) -> Json<Vec<PublicSession>> {
+    let terms = terminals.read().await;
+    let mut sessions: Vec<PublicSession> = Vec::new();
+    for (id, terminal) in terms.iter() {
+        if !terminal.is_public {
+            continue;
+        }
+        let rows = *terminal.rows.read().await;
+        let cols = *terminal.cols.read().await;
+        let viewer_count = *terminal.browser_count.read().await;
+        sessions.push(PublicSession {
+            terminal_id: id.clone(),
+            display_name: terminal.display_name.clone(),
+            command: terminal.command.clone(),
+            cols,
+            rows,
+            allow_browser_control: terminal.allow_browser_control,
+            broadcast_start_time_iso: terminal.broadcast_start_time_iso.clone(),
+            viewer_count,
+        });
+    }
+    Json(sessions)
 }
 
 async fn broadcast_num_clients(terminal: &Terminal, num: usize) {
