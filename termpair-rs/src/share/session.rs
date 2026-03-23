@@ -611,6 +611,15 @@ async fn run_parent(
                                         .await;
                                 }
                             }
+                            if let Ok(m) = master_for_resize.lock() {
+                                let (rows, cols) = get_terminal_size();
+                                let _ = m.resize(portable_pty::PtySize {
+                                    rows,
+                                    cols,
+                                    pixel_width: 0,
+                                    pixel_height: 0,
+                                });
+                            }
                         }
                         "fatal_error" => {
                             let payload = parsed["payload"].as_str().unwrap_or("unknown");

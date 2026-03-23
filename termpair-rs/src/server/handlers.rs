@@ -299,6 +299,13 @@ async fn handle_browser_ws_inner(socket: WebSocket, terminal_id: String, termina
         let num = *count;
         drop(count);
         broadcast_num_clients(&terminal, num).await;
+        let notify = WsMessage {
+            event: "new_browser_connected".into(),
+            payload: serde_json::json!({}),
+        };
+        if let Ok(json) = serde_json::to_string(&notify) {
+            let _ = terminal.terminal_tx.send(json).await;
+        }
     }
 
     {
