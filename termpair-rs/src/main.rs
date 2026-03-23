@@ -86,7 +86,29 @@ enum Commands {
 #[command(
     name = "sharemyclaude",
     about = "share your Claude Code session live in the browser",
-    version = constants::TERMPAIR_VERSION
+    version = constants::TERMPAIR_VERSION,
+    after_long_help = "\
+INSTALL:
+  curl -fsSL https://raw.githubusercontent.com/cs01/sharemyclaude/main/install.sh | sh
+
+USAGE EXAMPLES:
+  sharemyclaude                  Private session (end-to-end encrypted)
+  sharemyclaude --public         Public session (listed on sharemyclau.de, read-only, no encryption)
+  sharemyclaude --public -- --dangerously-skip-permissions
+  sharemyclaude -- --model sonnet
+
+  Use -- to separate sharemyclaude flags from claude flags.
+
+HOW IT WORKS:
+  1. Launches Claude Code inside a shared terminal
+  2. Terminal output is encrypted and relayed through the server via WebSocket
+  3. Browsers decrypt and render the terminal in real-time
+  4. The server is a blind relay and never sees your data (for private sessions)
+
+LINKS:
+  Website:    https://sharemyclau.de
+  GitHub:     https://github.com/cs01/sharemyclaude
+  Powered by: https://github.com/cs01/termpair"
 )]
 struct ShareMyClaudeArgs {
     #[arg(long, help = "make session publicly listed (no encryption, read-only)")]
@@ -112,8 +134,6 @@ struct ShareMyClaudeArgs {
         help = "override server port"
     )]
     port: u16,
-    #[arg(long, help = "print runnable instructions for AI agents (markdown)")]
-    skill: bool,
     #[arg(last = true)]
     claude_args: Vec<String>,
 }
@@ -177,11 +197,6 @@ async fn run_share(
 
 async fn run_sharemyclaude() {
     let args = ShareMyClaudeArgs::parse();
-
-    if args.skill {
-        print!("{}", share::skill::SKILL_TEXT);
-        return;
-    }
 
     if which::which(constants::SHAREMYCLAUDE_CMD).is_err() {
         eprintln!("error: claude not found. install Claude Code first:");
