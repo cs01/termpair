@@ -46,10 +46,10 @@ download() {
 verify_checksum() {
   archive="$1"; expected_name="$2"; checksums_file="$3"
 
-  expected=$(grep "$expected_name" "$checksums_file" | awk '{print $1}')
+  expected=$(grep -F "$expected_name" "$checksums_file" | awk '{print $1}')
   if [ -z "$expected" ]; then
-    echo "warning: no checksum found for $expected_name, skipping verification" >&2
-    return 0
+    echo "error: no checksum found for $expected_name in checksums file" >&2
+    exit 1
   fi
 
   if command -v sha256sum >/dev/null 2>&1; then
@@ -57,8 +57,8 @@ verify_checksum() {
   elif command -v shasum >/dev/null 2>&1; then
     actual=$(shasum -a 256 "$archive" | awk '{print $1}')
   else
-    echo "warning: no sha256sum or shasum found, skipping verification" >&2
-    return 0
+    echo "error: neither sha256sum nor shasum found, cannot verify integrity" >&2
+    exit 1
   fi
 
   if [ "$actual" != "$expected" ]; then
@@ -87,11 +87,14 @@ main() {
   trap 'rm -rf "$tmp"' EXIT
 
   download "$url" "$tmp/${archive_name}"
-  download "$checksums_url" "$tmp/sha256sums.txt" 2>/dev/null && \
-    verify_checksum "$tmp/${archive_name}" "$archive_name" "$tmp/sha256sums.txt" || \
-    echo "warning: could not download checksums, skipping verification" >&2
+  download "$checksums_url" "$tmp/sha256sums.txt" || {
+    echo "error: could not download checksums, aborting installation" >&2
+    exit 1
+  }
+  verify_checksum "$tmp/${archive_name}" "$archive_name" "$tmp/sha256sums.txt"
 
-  tar xzf "$tmp/${archive_name}" -C "$tmp"
+  tar xzf "$tmp/${archive_name}" -C "$tmp" --no-same-owner --no-same-permissions 2>/dev/null || \
+    tar xzf "$tmp/${archive_name}" -C "$tmp"
 
   if [ -w "$INSTALL_DIR" ]; then
     mv "$tmp/termpair" "$INSTALL_DIR/termpair"

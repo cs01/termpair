@@ -33,13 +33,10 @@ async function importAesKey(rawKeyData, usages) {
 
 function ivFromInteger(count) {
   const iv = new Uint8Array(IV_LENGTH);
-  const a = [];
-  a.unshift(count & 255);
-  while (count >= 256) {
-    count = count >>> 8;
-    a.unshift(count & 255);
+  for (let i = 0; i < 8 && count > 0; i++) {
+    iv[i] = count & 0xff;
+    count = Math.floor(count / 256);
   }
-  iv.set(a);
   return iv;
 }
 
@@ -258,6 +255,11 @@ function handleNumClients(data) {
 async function handleAesKeys(data) {
   try {
     const { terminalId, bootstrapKeyB64 } = getParams();
+    if (!bootstrapKeyB64) {
+      toast("No encryption key found in URL. Cannot decrypt.");
+      setStatus("Key Error");
+      return;
+    }
     const bootstrapKeyData = base64urlToBytes(bootstrapKeyB64);
     const bootstrapKey = await importAesKey(bootstrapKeyData, ["decrypt"]);
 
@@ -291,6 +293,8 @@ async function handleKeyRotation(data) {
     );
     state.aesKeys.unix = await importAesKey(newUnixRaw, ["decrypt"]);
     state.aesKeys.browser = await importAesKey(newBrowserRaw, ["encrypt"]);
+    state.aesKeys.ivCount = parseInt(data.payload.iv_count, 10) || 0;
+    state.aesKeys.maxIvCount = parseInt(data.payload.max_iv_count, 10) || state.aesKeys.maxIvCount;
   } catch (e) {
     console.error("key rotation failed:", e);
     toast("AES key rotation failed");
