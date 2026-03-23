@@ -210,7 +210,6 @@ button[type="submit"]:hover { background: var(--accent-hover); }
 button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 #terminal-view {
-  flex: 1;
   display: flex;
   justify-content: center;
   padding: 1rem;
