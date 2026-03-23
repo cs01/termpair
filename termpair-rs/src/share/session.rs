@@ -397,10 +397,12 @@ async fn run_parent(
 
     {
         let mut stdout = std::io::stdout().lock();
-        let _ = write!(stdout, "\x1b[1;{}r", pty_rows);
+        let _ = write!(stdout, "\x1b[2J\x1b[H\x1b[1;{}r", pty_rows);
         write_status_bar(&mut stdout, is_public, 0, &open_url);
         let _ = stdout.flush();
     }
+
+    let last_output = Arc::new(AtomicU64::new(0));
 
     let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<String>(256);
 
@@ -408,29 +410,27 @@ async fn run_parent(
     let reader = Arc::new(Mutex::new(reader));
     let pty_read_task = {
         let reader = reader.clone();
-        let num_browsers = num_browsers.clone();
-        let open_url = open_url.clone();
+        let last_output = last_output.clone();
         tokio::task::spawn_blocking(move || {
             let mut buf = vec![0u8; MAX_READ_BYTES];
             let mut reader = match reader.lock() {
                 Ok(r) => r,
                 Err(_) => return,
             };
+            let start = std::time::Instant::now();
             loop {
                 match reader.read(&mut buf) {
                     Ok(0) => break,
                     Ok(n) => {
                         let output = buf[..n].to_vec();
+                        last_output.store(
+                            start.elapsed().as_millis() as u64,
+                            Ordering::Relaxed,
+                        );
 
                         {
                             let mut stdout = std::io::stdout().lock();
                             let _ = stdout.write_all(&output);
-                            write_status_bar(
-                                &mut stdout,
-                                is_public,
-                                num_browsers.load(Ordering::Relaxed),
-                                &open_url,
-                            );
                             let _ = stdout.flush();
                         }
 
@@ -445,6 +445,35 @@ async fn run_parent(
                         ));
                     }
                     Err(_) => break,
+                }
+            }
+        })
+    };
+
+    let (redraw_tx, mut redraw_rx) = mpsc::channel::<()>(4);
+    let status_bar_task = {
+        let num_browsers = num_browsers.clone();
+        let open_url = open_url.clone();
+        let last_output = last_output.clone();
+        tokio::spawn(async move {
+            let start = std::time::Instant::now();
+            loop {
+                tokio::select! {
+                    _ = redraw_rx.recv() => {}
+                    _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {}
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+                let now_ms = start.elapsed().as_millis() as u64;
+                let last_ms = last_output.load(Ordering::Relaxed);
+                if now_ms.saturating_sub(last_ms) > 100 {
+                    let mut stdout = std::io::stdout().lock();
+                    write_status_bar(
+                        &mut stdout,
+                        is_public,
+                        num_browsers.load(Ordering::Relaxed),
+                        &open_url,
+                    );
+                    let _ = stdout.flush();
                 }
             }
         })
@@ -474,8 +503,7 @@ async fn run_parent(
     let resize_task = {
         let outgoing_tx_resize = outgoing_tx.clone();
         let master_resize = master.clone();
-        let num_browsers = num_browsers.clone();
-        let open_url = open_url.clone();
+        let redraw_tx = redraw_tx.clone();
         let mut sigwinch =
             tokio::signal::unix::signal(tokio::signal::unix::SignalKind::window_change())
                 .map_err(|e| format!("signal handler failed: {}", e))?;
@@ -494,14 +522,9 @@ async fn run_parent(
                 {
                     let mut stdout = std::io::stdout().lock();
                     let _ = write!(stdout, "\x1b[1;{}r", pty_rows);
-                    write_status_bar(
-                        &mut stdout,
-                        is_public,
-                        num_browsers.load(Ordering::Relaxed),
-                        &open_url,
-                    );
                     let _ = stdout.flush();
                 }
+                let _ = redraw_tx.send(()).await;
                 let msg = json!({"event": "resize", "payload": {"rows": pty_rows, "cols": cols}});
                 let _ = outgoing_tx_resize.send(msg.to_string()).await;
             }
@@ -512,8 +535,7 @@ async fn run_parent(
     let resize_task = {
         let outgoing_tx_resize = outgoing_tx.clone();
         let master_resize = master.clone();
-        let num_browsers = num_browsers.clone();
-        let open_url = open_url.clone();
+        let redraw_tx = redraw_tx.clone();
         tokio::spawn(async move {
             let mut last_size = get_terminal_size();
             loop {
@@ -534,14 +556,9 @@ async fn run_parent(
                     {
                         let mut stdout = std::io::stdout().lock();
                         let _ = write!(stdout, "\x1b[1;{}r", pty_rows);
-                        write_status_bar(
-                            &mut stdout,
-                            is_public,
-                            num_browsers.load(Ordering::Relaxed),
-                            &open_url,
-                        );
                         let _ = stdout.flush();
                     }
+                    let _ = redraw_tx.send(()).await;
                     let msg =
                         json!({"event": "resize", "payload": {"rows": pty_rows, "cols": cols}});
                     let _ = outgoing_tx_resize.send(msg.to_string()).await;
@@ -672,8 +689,9 @@ async fn run_parent(
                             }
                         }
                         "new_browser_connected" => {
-                            let count = num_browsers.fetch_add(1, Ordering::Relaxed) + 1;
                             if !is_public {
+                                let count =
+                                    num_browsers.load(Ordering::Relaxed).max(1);
                                 if let Ok(keys_msg) = aes_keys.build_aes_keys_message(count) {
                                     let _ = ws_tx
                                         .send(tokio_tungstenite::tungstenite::Message::Text(
@@ -682,15 +700,11 @@ async fn run_parent(
                                         .await;
                                 }
                             }
-                            {
-                                let mut stdout = std::io::stdout().lock();
-                                write_status_bar(
-                                    &mut stdout,
-                                    is_public,
-                                    count,
-                                    &open_url,
-                                );
-                                let _ = stdout.flush();
+                        }
+                        "num_clients" => {
+                            if let Some(n) = parsed["payload"].as_u64() {
+                                num_browsers.store(n, Ordering::Relaxed);
+                                let _ = redraw_tx.send(()).await;
                             }
                         }
                         "fatal_error" => {
@@ -719,6 +733,7 @@ async fn run_parent(
 
     stdin_task.abort();
     resize_task.abort();
+    status_bar_task.abort();
 
     {
         let (rows, _) = get_terminal_size();
