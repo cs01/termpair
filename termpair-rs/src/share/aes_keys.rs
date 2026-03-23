@@ -71,17 +71,20 @@ impl AesKeys {
         let encrypted_unix = self.encrypt(&new_unix_key)?;
         let encrypted_browser = self.encrypt(&new_browser_key)?;
 
+        self.unix_key = new_unix_key;
+        self.browser_key = new_browser_key;
+        self.message_count = 0;
+
+        let max_iv = ROTATION_THRESHOLD - self.browser_rotation_buffer;
         let msg = json!({
             "event": "aes_key_rotation",
             "payload": {
                 "b64_aes_secret_unix_key": BASE64.encode(&encrypted_unix),
                 "b64_aes_secret_browser_key": BASE64.encode(&encrypted_browser),
+                "iv_count": 0,
+                "max_iv_count": max_iv,
             }
         });
-
-        self.unix_key = new_unix_key;
-        self.browser_key = new_browser_key;
-        self.message_count = 0;
 
         Ok(msg.to_string())
     }
