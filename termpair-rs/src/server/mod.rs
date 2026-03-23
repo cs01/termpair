@@ -1,6 +1,10 @@
 pub mod handlers;
 pub mod terminal;
 
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::routing::{get, Router};
 use rust_embed::Embed;
@@ -8,51 +12,76 @@ use tower_http::cors::CorsLayer;
 
 use self::terminal::Terminals;
 
+#[derive(Clone)]
+pub struct AppState {
+    pub terminals: Terminals,
+    pub static_dir: Option<Arc<PathBuf>>,
+}
+
 #[derive(Embed)]
 #[folder = "frontend/static/"]
 struct FrontendAssets;
 
-async fn serve_frontend(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
+fn try_read_static_dir(
+    static_dir: &Option<Arc<PathBuf>>,
+    filename: &str,
+) -> Option<(String, Vec<u8>)> {
+    let dir = static_dir.as_ref()?;
+    let file_path = dir.join(filename);
+    if !file_path.starts_with(dir.as_ref()) {
+        return None;
+    }
+    let data = std::fs::read(&file_path).ok()?;
+    let mime = mime_guess::from_path(filename)
+        .first_or_octet_stream()
+        .to_string();
+    Some((mime, data))
+}
+
+fn resolve_static(static_dir: &Option<Arc<PathBuf>>, filename: &str) -> Option<(String, Vec<u8>)> {
+    if let Some(result) = try_read_static_dir(static_dir, filename) {
+        return Some(result);
+    }
+    FrontendAssets::get(filename).map(|content| {
+        let mime = mime_guess::from_path(filename)
+            .first_or_octet_stream()
+            .to_string();
+        (mime, content.data.to_vec())
+    })
+}
+
+async fn serve_frontend(
+    State(state): State<AppState>,
+    uri: axum::http::Uri,
+) -> impl axum::response::IntoResponse {
     let path = uri.path().trim_start_matches('/');
     let path = if path.is_empty() { "index.html" } else { path };
 
-    match FrontendAssets::get(path) {
-        Some(content) => {
-            let mime = mime_guess::from_path(path).first_or_octet_stream();
-            (
-                [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                content.data.to_vec(),
-            )
-                .into_response()
-        }
-        None => {
-            if let Some(content) = FrontendAssets::get("index.html") {
-                let mime = mime_guess::from_path("index.html").first_or_octet_stream();
-                (
-                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                    content.data.to_vec(),
-                )
-                    .into_response()
-            } else {
-                axum::http::StatusCode::NOT_FOUND.into_response()
-            }
-        }
+    if let Some((mime, data)) = resolve_static(&state.static_dir, path) {
+        return ([(axum::http::header::CONTENT_TYPE, mime)], data).into_response();
     }
+
+    if let Some((mime, data)) = resolve_static(&state.static_dir, "index.html") {
+        return ([(axum::http::header::CONTENT_TYPE, mime)], data).into_response();
+    }
+
+    axum::http::StatusCode::NOT_FOUND.into_response()
 }
 
-async fn serve_index() -> impl axum::response::IntoResponse {
-    match FrontendAssets::get("index.html") {
-        Some(content) => (
-            [(axum::http::header::CONTENT_TYPE, "text/html")],
-            content.data.to_vec(),
-        )
-            .into_response(),
+async fn serve_index(State(state): State<AppState>) -> impl axum::response::IntoResponse {
+    match resolve_static(&state.static_dir, "index.html") {
+        Some((mime, data)) => ([(axum::http::header::CONTENT_TYPE, mime)], data).into_response(),
         None => axum::http::StatusCode::NOT_FOUND.into_response(),
     }
 }
 
-pub fn create_app(terminals: Terminals) -> Router {
+pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
     let cors = CorsLayer::very_permissive();
+
+    let state = AppState {
+        terminals,
+        static_dir: static_dir.map(Arc::new),
+    };
 
     Router::new()
         .route("/ping", get(handlers::ping))
@@ -65,5 +94,5 @@ pub fn create_app(terminals: Terminals) -> Router {
         .route("/s/{terminal_id}", get(serve_index))
         .fallback(serve_frontend)
         .layer(cors)
-        .with_state(terminals)
+        .with_state(state)
 }
