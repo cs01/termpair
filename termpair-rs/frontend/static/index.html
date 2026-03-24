@@ -122,6 +122,26 @@
     <div id="terminal-view" style="display:none">
       <div id="terminal" role="application" aria-label="Shared terminal"></div>
     </div>
+
+    <button id="chat-toggle" style="display:none" onclick="toggleChat()" title="Chat" aria-label="Toggle chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span id="chat-badge" style="display:none">0</span>
+    </button>
+
+    <div id="chat-sidebar" style="display:none">
+      <div id="chat-header">
+        <span>Chat</span>
+        <input id="chat-name" placeholder="Your name" maxlength="20" autocomplete="off">
+        <button onclick="toggleChat()" aria-label="Close chat">&times;</button>
+      </div>
+      <div id="chat-messages"></div>
+      <form id="chat-form" onsubmit="return handleChatSubmit(event)">
+        <input id="chat-input" placeholder="Type a message..." maxlength="500" autocomplete="off">
+        <button type="submit" aria-label="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
   </main>
 
   <footer id="bottombar">
