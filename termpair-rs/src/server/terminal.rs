@@ -26,6 +26,100 @@ pub fn new_terminals() -> Terminals {
     Arc::new(RwLock::new(HashMap::new()))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn connection_tracker_allows_within_limit() {
+        let tracker = ConnectionTracker::new(3);
+        let ip: IpAddr = "1.2.3.4".parse().unwrap();
+        assert!(tracker.try_add(ip).await);
+        assert!(tracker.try_add(ip).await);
+        assert!(tracker.try_add(ip).await);
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_rejects_over_limit() {
+        let tracker = ConnectionTracker::new(2);
+        let ip: IpAddr = "1.2.3.4".parse().unwrap();
+        assert!(tracker.try_add(ip).await);
+        assert!(tracker.try_add(ip).await);
+        assert!(!tracker.try_add(ip).await);
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_separate_ips() {
+        let tracker = ConnectionTracker::new(1);
+        let ip1: IpAddr = "1.2.3.4".parse().unwrap();
+        let ip2: IpAddr = "5.6.7.8".parse().unwrap();
+        assert!(tracker.try_add(ip1).await);
+        assert!(!tracker.try_add(ip1).await);
+        assert!(tracker.try_add(ip2).await);
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_remove_allows_new() {
+        let tracker = ConnectionTracker::new(1);
+        let ip: IpAddr = "1.2.3.4".parse().unwrap();
+        assert!(tracker.try_add(ip).await);
+        assert!(!tracker.try_add(ip).await);
+        tracker.remove(ip).await;
+        assert!(tracker.try_add(ip).await);
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_remove_nonexistent() {
+        let tracker = ConnectionTracker::new(5);
+        let ip: IpAddr = "1.2.3.4".parse().unwrap();
+        tracker.remove(ip).await;
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_remove_cleans_up_map() {
+        let tracker = ConnectionTracker::new(5);
+        let ip: IpAddr = "1.2.3.4".parse().unwrap();
+        tracker.try_add(ip).await;
+        tracker.remove(ip).await;
+        let map = tracker.connections.lock().await;
+        assert!(!map.contains_key(&ip));
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_partial_remove() {
+        let tracker = ConnectionTracker::new(3);
+        let ip: IpAddr = "1.2.3.4".parse().unwrap();
+        tracker.try_add(ip).await;
+        tracker.try_add(ip).await;
+        tracker.remove(ip).await;
+        let map = tracker.connections.lock().await;
+        assert_eq!(*map.get(&ip).unwrap(), 1);
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_zero_limit() {
+        let tracker = ConnectionTracker::new(0);
+        let ip: IpAddr = "1.2.3.4".parse().unwrap();
+        assert!(!tracker.try_add(ip).await);
+    }
+
+    #[tokio::test]
+    async fn connection_tracker_ipv6() {
+        let tracker = ConnectionTracker::new(2);
+        let ip: IpAddr = "::1".parse().unwrap();
+        assert!(tracker.try_add(ip).await);
+        assert!(tracker.try_add(ip).await);
+        assert!(!tracker.try_add(ip).await);
+    }
+
+    #[tokio::test]
+    async fn new_terminals_is_empty() {
+        let terminals = new_terminals();
+        let map = terminals.read().await;
+        assert!(map.is_empty());
+    }
+}
+
 pub struct ConnectionTracker {
     connections: Mutex<HashMap<IpAddr, usize>>,
     max_per_ip: usize,
