@@ -49,6 +49,12 @@ enum Commands {
             help = "directory of static files to serve instead of the built-in frontend"
         )]
         static_dir: Option<String>,
+        #[arg(
+            long,
+            default_value = "termpair",
+            help = "frontend theme (termpair, sharemyclaude)"
+        )]
+        theme: String,
     },
     #[command(about = "share your terminal session with one or more browsers", version = constants::TERMPAIR_VERSION)]
     Share {
@@ -254,6 +260,7 @@ async fn main() {
             certfile,
             keyfile,
             static_dir,
+            theme,
         } => {
             let static_path = static_dir.map(|s| {
                 let p = std::path::PathBuf::from(&s);
@@ -264,7 +271,7 @@ async fn main() {
                 p.canonicalize().unwrap_or(p)
             });
             let terminals = server::terminal::new_terminals();
-            let app = server::create_app(terminals, static_path);
+            let app = server::create_app(terminals, static_path, &theme);
 
             let addr = format!("{}:{}", host, port);
 

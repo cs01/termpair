@@ -170,7 +170,12 @@ function showTerminal() {
   $id("landing").style.display = "none";
   $id("terminal-view").style.display = "flex";
   $id("status-bar").style.display = "flex";
-  $id("chat-toggle").style.display = "flex";
+  $id("chat-sidebar").style.display = "flex";
+  var isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    $id("chat-sidebar").style.display = "none";
+    $id("chat-bar").style.display = "flex";
+  }
   if (!state.chatName) {
     state.chatName = generateChatName();
     $id("chat-name").value = state.chatName;
@@ -401,17 +406,20 @@ function generateChatName() {
 }
 
 function toggleChat() {
-  state.chatOpen = !state.chatOpen;
   var sidebar = $id("chat-sidebar");
-  var toggle = $id("chat-toggle");
-  if (state.chatOpen) {
+  var chatBar = $id("chat-bar");
+  var isVisible = sidebar.style.display !== "none";
+  if (isVisible) {
+    sidebar.style.display = "none";
+    if (chatBar) chatBar.style.display = "flex";
+    state.chatOpen = false;
+  } else {
     sidebar.style.display = "flex";
+    if (chatBar) chatBar.style.display = "none";
+    state.chatOpen = true;
     state.chatUnread = 0;
     $id("chat-badge").style.display = "none";
-    var input = $id("chat-input");
-    setTimeout(function() { input.focus(); }, 100);
-  } else {
-    sidebar.style.display = "none";
+    setTimeout(function() { $id("chat-input").focus(); }, 100);
   }
 }
 
@@ -677,7 +685,64 @@ setInterval(fetchSessions, 5000);
 
 // ---- Init ----
 
-function init() {
+async function applyThemeConfig() {
+  try {
+    const baseUrl = getServerBaseUrl();
+    const resp = await fetch(`${baseUrl}api/theme`);
+    if (!resp.ok) return;
+    var cfg = await resp.json();
+    if (cfg.name === "termpair") return;
+
+    if (cfg.cssVars) {
+      var root = document.documentElement;
+      Object.keys(cfg.cssVars).forEach(function(k) { root.style.setProperty(k, cfg.cssVars[k]); });
+    }
+    if (cfg.logoHtml) {
+      var logo = document.querySelector(".logo");
+      if (logo) logo.innerHTML = cfg.logoHtml;
+    }
+    if (cfg.heroLogoHtml) {
+      var heroWrap = document.querySelector(".hero-logo-wrap");
+      if (heroWrap) heroWrap.innerHTML = cfg.heroLogoHtml;
+    }
+    if (cfg.tagline) {
+      var tagline = document.querySelector(".hero-tagline");
+      if (tagline) tagline.textContent = cfg.tagline;
+    }
+    if (cfg.appName) document.title = cfg.appName;
+    if (cfg.githubUrl) {
+      var ghLink = document.querySelector(".topbar-right a[aria-label*='GitHub']");
+      if (ghLink) ghLink.href = cfg.githubUrl;
+    }
+    if (cfg.installCmd) {
+      var installCode = document.querySelector("#quickstart .code-block code");
+      if (installCode) installCode.textContent = cfg.installCmd;
+    }
+    var features = document.querySelector("[data-section='features']");
+    if (features && cfg.showFeatures === false) features.style.display = "none";
+    var callout = document.querySelector("[data-section='callout']");
+    if (callout && cfg.showCallout === false) callout.style.display = "none";
+    var disclaimer = $id("disclaimer");
+    if (disclaimer && cfg.showDisclaimer) {
+      disclaimer.textContent = cfg.disclaimerText || "";
+      disclaimer.style.display = "block";
+    }
+    if (cfg.footerLinks) {
+      var footerEl = document.querySelector(".footer-links");
+      if (footerEl) {
+        footerEl.innerHTML = cfg.footerLinks.map(function(l) { return '<a href="' + l.url + '">' + l.text + '</a>'; }).join(" &middot; ");
+      }
+    }
+    var themeSelect = $id("theme-select");
+    if (themeSelect && cfg.name !== "termpair") themeSelect.style.display = "none";
+  } catch (e) {
+    console.warn("theme config error:", e);
+  }
+}
+
+async function init() {
+  await applyThemeConfig();
+
   const baseUrl = getServerBaseUrl().replace(/\/$/, "");
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
   $id("share-command").textContent = `termpair share --host "${baseUrl}" --port ${port}`;
@@ -712,13 +777,13 @@ function init() {
 
   fetchSessions();
 
-  // theme
-  const saved = localStorage.getItem("termpair-theme") || "dark";
+  var saved = localStorage.getItem("termpair-theme") || "dark";
   setTheme(saved);
-  $id("theme-select").value = saved;
-  $id("theme-select").addEventListener("change", (e) => {
-    setTheme(e.target.value);
-  });
+  var sel = $id("theme-select");
+  if (sel) {
+    sel.value = saved;
+    sel.addEventListener("change", (e) => { setTheme(e.target.value); });
+  }
 }
 
 function setTheme(theme) {
@@ -731,5 +796,8 @@ function setTheme(theme) {
     state.xterm.options.theme = { background: bg, foreground: fg, cursor };
   }
 }
+
+window.toggleChat = toggleChat;
+window.handleChatSubmit = handleChatSubmit;
 
 document.addEventListener("DOMContentLoaded", init);

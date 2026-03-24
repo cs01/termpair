@@ -1,6 +1,7 @@
 pub mod handlers;
 pub mod signing;
 pub mod terminal;
+pub mod themes;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -20,6 +21,7 @@ pub struct AppState {
     pub static_dir: Option<Arc<PathBuf>>,
     pub connections: Arc<ConnectionTracker>,
     pub signing_key: Arc<[u8; 32]>,
+    pub theme_config: Arc<serde_json::Value>,
 }
 
 #[derive(Embed)]
@@ -94,8 +96,13 @@ async fn serve_index(
     }
 }
 
-pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
+async fn get_theme(State(state): State<AppState>) -> impl IntoResponse {
+    axum::response::Json(state.theme_config.as_ref().clone())
+}
+
+pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>, theme: &str) -> Router {
     let signing_key = signing::load_signing_key();
+    let theme_config = themes::get_theme_config(theme);
     let state = AppState {
         terminals,
         static_dir: static_dir.map(Arc::new),
@@ -103,9 +110,11 @@ pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
             crate::constants::MAX_CONNECTIONS_PER_IP,
         )),
         signing_key: Arc::new(signing_key),
+        theme_config: Arc::new(theme_config),
     };
 
     Router::new()
+        .route("/api/theme", get(get_theme))
         .route("/api/sessions", get(handlers::get_sessions))
         .route("/ping", get(handlers::ping))
         .route("/terminal/{terminal_id}", get(handlers::get_terminal))
