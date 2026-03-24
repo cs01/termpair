@@ -1,17 +1,17 @@
 <p align="center">
-<img src="https://github.com/cs01/termpair/raw/main/termpair/frontend_src/src/logo.png"/>
-<br>
+<img src="logo.svg" width="300" alt="TermPair"/>
+<br><br>
 View and control remote terminals from your browser with end-to-end encryption
 <br><br>
 <a href="https://github.com/cs01/termpair/actions/workflows/ci.yml">
 <img src="https://github.com/cs01/termpair/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
 </p>
 
-> Originally written in Python, rewritten in Rust for single-binary distribution.
-
 <p align="center">
-<a href="https://github.com/cs01/termpair/raw/main/termpair_browser.gif">
-<img src="https://github.com/cs01/termpair/raw/main/termpair_browser.gif"/></a>
+<img src="termpair_share.png" width="500" alt="termpair share command"/>
+</p>
+<p align="center">
+<img src="termpair_browser.png" width="600" alt="termpair browser view"/>
 </p>
 
 ## Features
@@ -22,7 +22,7 @@ View and control remote terminals from your browser with end-to-end encryption
 * Multiple browsers can connect simultaneously
 * Read-only or read-write browser permissions
 * Single static binary with frontend embedded, no runtime dependencies
-* Terminal dimensions synced to the browser in real time
+* Automatic reconnection on server restarts
 
 ## Installation
 
@@ -32,11 +32,11 @@ View and control remote terminals from your browser with end-to-end encryption
 curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | sh
 ```
 
-Installs the latest binary to `/usr/local/bin`. Customize with environment variables:
+Installs to `~/.local/bin`. Customize with environment variables:
 
 ```
-INSTALL_DIR=~/.local/bin sh     # custom install directory
-VERSION=v0.5.0 sh               # specific version
+INSTALL_DIR=/usr/local/bin sh    # custom install directory
+VERSION=v1.1.0 sh               # specific version
 ```
 
 ### GitHub Releases
@@ -49,7 +49,7 @@ Download a prebuilt binary from the [releases page](https://github.com/cs01/term
 git clone https://github.com/cs01/termpair.git
 cd termpair/termpair-rs
 cargo build --release
-cp target/release/termpair /usr/local/bin/
+cp target/release/termpair ~/.local/bin/
 ```
 
 ## Usage
@@ -176,12 +176,13 @@ $ termpair serve [OPTIONS]
 
 $ termpair share [OPTIONS]
       --cmd <CMD>     command to run [default: $SHELL]
-  -p, --port <PORT>   server port [default: 8000]
-      --host <HOST>   server URL [default: http://localhost]
+  -p, --port <PORT>   server port [default: 443]
+      --host <HOST>   server URL [default: https://chadsmith.dev/termpair]
   -r, --read-only     prevent browsers from typing
   -b, --open-browser  open the share link in a browser
+      --public        public session (no encryption, read-only)
 ```
 
 ## See Also
 
-**[sharemyclaude](https://github.com/cs01/sharemyclaude)** — share your Claude Code session with a browser. Built on termpair, with a public relay server so you can share instantly without self-hosting.
+**[sharemyclaude](https://github.com/cs01/sharemyclaude)** -- share your Claude Code session with a browser. Built on termpair, with a public relay server so you can share instantly without self-hosting.
