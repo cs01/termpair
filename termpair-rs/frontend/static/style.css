@@ -133,9 +133,11 @@ code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace
 .copy-btn {
   position: absolute; top: 0.5rem; right: 0.5rem;
   background: var(--border); border: none; border-radius: 4px;
-  color: var(--text-muted); cursor: pointer; padding: 0.25rem 0.5rem;
-  font-size: 0.875rem; line-height: 1;
+  color: var(--text-muted); cursor: pointer; padding: 0.35rem 0.5rem;
+  font-size: 0.75rem; line-height: 1;
+  display: flex; align-items: center; gap: 0.3rem;
 }
+.copy-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .copy-btn:hover { color: var(--text); background: var(--accent); }
 p code { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.15rem 0.35rem; font-size: 0.85em; }
 kbd { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.1rem 0.4rem; font-size: 0.85em; font-family: inherit; }
