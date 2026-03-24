@@ -64,6 +64,12 @@ impl AesKeys {
         Ok(max)
     }
 
+    pub fn reset_keys(&mut self) {
+        self.unix_key = encryption::generate_key();
+        self.browser_key = encryption::generate_key();
+        self.message_count = 0;
+    }
+
     pub fn rotate_keys(&mut self) -> Result<String, String> {
         let new_unix_key = encryption::generate_key();
         let new_browser_key = encryption::generate_key();

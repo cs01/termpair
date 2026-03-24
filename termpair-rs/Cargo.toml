@@ -19,6 +19,9 @@ clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 aes-gcm = "0.10"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
 zeroize = "1"
 rand = "0.8"
 base64 = "0.22"
@@ -32,6 +35,8 @@ http = "1"
 chrono = "0.4"
 open = "5"
 shell-words = "1"
+urlencoding = "2"
+dirs = "6"
 axum-server = { version = "0.7", features = ["tls-rustls"] }
 which = "7"
 

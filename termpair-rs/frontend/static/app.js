@@ -394,80 +394,104 @@ async function connect(terminalId, bootstrapKeyB64) {
 
   setupKeyHandler(xterm);
 
-  const wsUrl = `${httpToWs(baseUrl)}connect_browser_to_terminal?terminal_id=${encodeURIComponent(terminalId)}`;
-  const ws = new WebSocket(wsUrl);
-  state.ws = ws;
+  let firstConnect = true;
+  let reconnectAttempt = 0;
+  let reconnectStartTime = null;
+  const MAX_RECONNECT_DELAY = 30000;
+  const MAX_RECONNECT_TIME = 300000;
 
-  setStatus("Connecting...");
+  function connectWs() {
+    const wsUrl = `${httpToWs(baseUrl)}connect_browser_to_terminal?terminal_id=${encodeURIComponent(terminalId)}`;
+    const ws = new WebSocket(wsUrl);
+    state.ws = ws;
 
-  ws.addEventListener("open", () => {
-    setStatus("Connected");
-
-    const td = state.terminalData;
-    const startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
-    const elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
-
-    if (state.isPublic) {
-      const name = td.display_name || terminalId;
-      xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m— live terminal\x1b[0m");
-      xterm.writeln("");
-      xterm.writeln(`\x1b[1;33mPublic session\x1b[0m — \x1b[1m${name}\x1b[0m`);
-      xterm.writeln(`\x1b[90mThis is a public, read-only session. No encryption.\x1b[0m`);
-      xterm.writeln("");
-      if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
-      xterm.writeln(`\x1b[90m  access:   \x1b[0mread-only`);
-      if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
-      xterm.writeln("");
-    } else {
-      const mode = td.allow_browser_control ? "read/write" : "read-only";
-      xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m— secure terminal sharing\x1b[0m");
-      xterm.writeln("");
-      xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
-      xterm.writeln(`\x1b[90mThe server cannot read any transmitted data.\x1b[0m`);
-      xterm.writeln("");
-      if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
-      xterm.writeln(`\x1b[90m  access:   \x1b[0m${mode}`);
-      if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
-      xterm.writeln("");
+    if (firstConnect) {
+      setStatus("Connecting...");
     }
 
-    ws.send(JSON.stringify({ event: "request_terminal_dimensions" }));
-    if (!state.isPublic) {
-      ws.send(JSON.stringify({ event: "new_browser_connected", payload: {} }));
-    }
+    ws.addEventListener("open", () => {
+      reconnectAttempt = 0;
+      reconnectStartTime = null;
+      setStatus("Connected");
 
-    if (!state.isPublic) {
-      xterm.onData((data) => sendInput(data));
-    }
-    xterm.focus();
-    updateBottomBar();
-    $id("terminal-dimensions").textContent = `${xterm.cols}x${xterm.rows}`;
-  });
+      if (firstConnect) {
+        firstConnect = false;
+        const td = state.terminalData;
+        const startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
+        const elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
 
-  ws.addEventListener("message", async (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      await handleMessage(data);
-    } catch (e) {
-      console.error("failed to parse message:", e);
-    }
-  });
+        if (state.isPublic) {
+          const name = td.display_name || terminalId;
+          xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m\u2014 live terminal\x1b[0m");
+          xterm.writeln("");
+          xterm.writeln(`\x1b[1;33mPublic session\x1b[0m \u2014 \x1b[1m${name}\x1b[0m`);
+          xterm.writeln(`\x1b[90mThis is a public, read-only session. No encryption.\x1b[0m`);
+          xterm.writeln("");
+          if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
+          xterm.writeln(`\x1b[90m  access:   \x1b[0mread-only`);
+          if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
+          xterm.writeln("");
+        } else {
+          const mode = td.allow_browser_control ? "read/write" : "read-only";
+          xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
+          xterm.writeln("");
+          xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
+          xterm.writeln(`\x1b[90mThe server cannot read any transmitted data.\x1b[0m`);
+          xterm.writeln("");
+          if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
+          xterm.writeln(`\x1b[90m  access:   \x1b[0m${mode}`);
+          if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
+          xterm.writeln("");
+        }
 
-  ws.addEventListener("close", () => {
-    setStatus("Disconnected");
-    const td = state.terminalData;
-    const startedAt = td && td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
-    const duration = startedAt ? ` after ${formatElapsed(Date.now() - startedAt.getTime())}` : "";
-    xterm.writeln("");
-    xterm.writeln(`\x1b[1;31mTerminal session has ended${duration}\x1b[0m`);
-    $id("client-count").textContent = "";
-  });
+        if (!state.isPublic) {
+          xterm.onData((data) => sendInput(data));
+        }
+      }
 
-  ws.addEventListener("error", (event) => {
-    console.error("websocket error:", event);
-    toast("WebSocket connection error");
-    setStatus("Error");
-  });
+      ws.send(JSON.stringify({ event: "request_terminal_dimensions" }));
+      if (!state.isPublic) {
+        ws.send(JSON.stringify({ event: "new_browser_connected", payload: {} }));
+      }
+
+      xterm.focus();
+      updateBottomBar();
+      $id("terminal-dimensions").textContent = `${xterm.cols}x${xterm.rows}`;
+    });
+
+    ws.addEventListener("message", async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        await handleMessage(data);
+      } catch (e) {
+        console.error("failed to parse message:", e);
+      }
+    });
+
+    ws.addEventListener("close", () => {
+      if (!reconnectStartTime) reconnectStartTime = Date.now();
+      if (Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
+        setStatus("Disconnected");
+        const td = state.terminalData;
+        const startedAt = td && td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
+        const duration = startedAt ? ` after ${formatElapsed(Date.now() - startedAt.getTime())}` : "";
+        xterm.writeln("");
+        xterm.writeln(`\x1b[1;31mTerminal session has ended${duration}\x1b[0m`);
+        $id("client-count").textContent = "";
+        return;
+      }
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempt), MAX_RECONNECT_DELAY);
+      reconnectAttempt++;
+      setStatus(`Reconnecting (${reconnectAttempt})...`);
+      setTimeout(connectWs, delay);
+    });
+
+    ws.addEventListener("error", (event) => {
+      console.error("websocket error:", event);
+    });
+  }
+
+  connectWs();
 }
 
 // ---- Live Sessions ----
