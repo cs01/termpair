@@ -66,6 +66,12 @@ async fn serve_frontend(
         return ([(header::CONTENT_TYPE, mime)], data).into_response();
     }
 
+    if let Some(sub) = path.strip_prefix("s/") {
+        if let Some((mime, data)) = resolve_static(&state.static_dir, sub) {
+            return ([(header::CONTENT_TYPE, mime)], data).into_response();
+        }
+    }
+
     if let Some((mime, data)) = resolve_static(&state.static_dir, "index.html") {
         return ([(header::CONTENT_TYPE, mime)], data).into_response();
     }
@@ -117,7 +123,7 @@ pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("content-security-policy"),
             header::HeaderValue::from_static(
-                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
             ),
         ))
         .with_state(state)
