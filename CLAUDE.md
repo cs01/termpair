@@ -21,8 +21,8 @@ monitor CI, and merge when green. You have push access to feature branches and m
 2. Make changes, run `cargo test && cargo fmt --check && cargo clippy` in `termpair-rs/`, commit
 3. `git push origin <branch>` — push to remote
 4. `gh pr create` — open a PR
-5. `gh pr checks <number>` — monitor CI
-6. When CI is green: `gh pr merge <number> --squash --delete-branch` — merge to main
+5. `gh pr checks <number>` — monitor CI. **NEVER merge before all checks pass.**
+6. When ALL CI checks are green: `gh pr merge <number> --squash --delete-branch` — merge to main
 7. Clean up: return to repo root and `git worktree remove .worktrees/<name>`
 8. Pull main and continue with next task
 
