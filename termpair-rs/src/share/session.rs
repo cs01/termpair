@@ -240,8 +240,7 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
     run_parent(master, reader, writer, opts).await?;
 
     let _ = child.kill();
-    let _ = child.wait();
-    Ok(())
+    std::process::exit(0);
 }
 
 async fn run_parent(
@@ -375,6 +374,8 @@ async fn run_parent(
         let _ = write!(stdout, "\x1b[2J\x1b[H");
         let _ = stdout.flush();
     }
+
+    let start_time = std::time::Instant::now();
 
     let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<String>(256);
 
@@ -622,6 +623,15 @@ async fn run_parent(
                                         .await;
                                 }
                             }
+                            if let Ok(m) = master_for_resize.lock() {
+                                let (rows, cols) = get_terminal_size();
+                                let _ = m.resize(portable_pty::PtySize {
+                                    rows,
+                                    cols,
+                                    pixel_width: 0,
+                                    pixel_height: 0,
+                                });
+                            }
                         }
                         "num_clients" => {
                             if let Some(n) = parsed["payload"].as_u64() {
@@ -646,11 +656,11 @@ async fn run_parent(
         }
     });
 
-    tokio::select! {
-        _ = pty_read_task => {},
-        _ = main_loop_task => {},
-        _ = ws_recv_task => {},
-    }
+    let reason = tokio::select! {
+        _ = pty_read_task => "pty closed",
+        _ = main_loop_task => "send loop ended",
+        _ = ws_recv_task => "server connection lost",
+    };
 
     stdin_task.abort();
     resize_task.abort();
@@ -665,13 +675,23 @@ async fn run_parent(
 
     drop(_raw_guard);
 
+    let elapsed = start_time.elapsed();
+    let secs = elapsed.as_secs();
+    let duration_str = if secs < 60 {
+        format!("{}s", secs)
+    } else if secs < 3600 {
+        format!("{}m {}s", secs / 60, secs % 60)
+    } else {
+        format!("{}h {}m", secs / 3600, (secs % 3600) / 60)
+    };
+
     let (_, cols) = get_terminal_size();
     let d = "\x1b[90m";
     let r = "\x1b[0m";
     let bar: String = "\u{2501}".repeat(cols as usize);
     eprintln!();
     eprintln!("{d}{bar}{r}");
-    eprintln!("Session ended.");
+    eprintln!("Session ended after {duration_str} ({reason}).");
     eprintln!("{d}{bar}{r}");
 
     std::process::exit(0);
