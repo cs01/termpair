@@ -79,7 +79,15 @@ async fn serve_frontend(
     axum::http::StatusCode::NOT_FOUND.into_response()
 }
 
-async fn serve_index(State(state): State<AppState>) -> impl axum::response::IntoResponse {
+async fn serve_index(
+    State(state): State<AppState>,
+    axum::extract::Path(terminal_id): axum::extract::Path<String>,
+) -> impl axum::response::IntoResponse {
+    if terminal_id.contains('.') {
+        if let Some((mime, data)) = resolve_static(&state.static_dir, &terminal_id) {
+            return ([(header::CONTENT_TYPE, mime)], data).into_response();
+        }
+    }
     match resolve_static(&state.static_dir, "index.html") {
         Some((mime, data)) => ([(header::CONTENT_TYPE, mime)], data).into_response(),
         None => axum::http::StatusCode::NOT_FOUND.into_response(),
