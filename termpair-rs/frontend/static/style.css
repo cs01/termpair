@@ -521,7 +521,16 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   flex-direction: column;
 }
 
-.chat-mobile-toggle { display: none; }
+.chat-minimize {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+.chat-minimize:hover { color: var(--text); }
 
 #chat-header {
   display: flex;
@@ -678,7 +687,6 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
     animation: chat-slide-up 0.2s ease;
   }
   #chat-sidebar[style*="display: none"] ~ #chat-bar { display: flex; }
-  .chat-mobile-toggle { display: block !important; }
 
   @keyframes chat-slide-up {
     from { transform: translateY(100%); }

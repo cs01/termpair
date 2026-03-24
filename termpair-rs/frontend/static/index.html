@@ -127,10 +127,10 @@
         <div id="chat-header">
           <span>Chat</span>
           <input id="chat-name" placeholder="Your name" maxlength="20" autocomplete="off">
-          <button class="chat-mobile-toggle" onclick="toggleChat()" aria-label="Minimize chat">&#x25BC;</button>
+          <button class="chat-minimize" onclick="window.toggleChat()" aria-label="Minimize chat">&#x25BC;</button>
         </div>
         <div id="chat-messages"></div>
-        <form id="chat-form" onsubmit="return handleChatSubmit(event)">
+        <form id="chat-form" onsubmit="return window.handleChatSubmit(event)">
           <input id="chat-input" placeholder="Type a message..." maxlength="500" autocomplete="off">
           <button type="submit" aria-label="Send">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -139,7 +139,7 @@
       </div>
     </div>
 
-    <div id="chat-bar" style="display:none" onclick="toggleChat()">
+    <div id="chat-bar" style="display:none" onclick="window.toggleChat()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Chat <span id="chat-badge" style="display:none">0</span>
     </div>
