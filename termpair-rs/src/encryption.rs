@@ -88,4 +88,96 @@ mod tests {
         assert_eq!(decrypt(&key, &enc0).unwrap(), plaintext);
         assert_eq!(decrypt(&key, &enc1).unwrap(), plaintext);
     }
+
+    #[test]
+    fn encrypt_decrypt_empty_data() {
+        let key = generate_key();
+        let encrypted = encrypt(0, &key, b"").unwrap();
+        let decrypted = decrypt(&key, &encrypted).unwrap();
+        assert_eq!(decrypted, b"");
+    }
+
+    #[test]
+    fn encrypt_decrypt_large_data() {
+        let key = generate_key();
+        let plaintext = vec![0xAB; 64 * 1024];
+        let encrypted = encrypt(0, &key, &plaintext).unwrap();
+        let decrypted = decrypt(&key, &encrypted).unwrap();
+        assert_eq!(decrypted, plaintext);
+    }
+
+    #[test]
+    fn ciphertext_includes_iv_prefix() {
+        let key = generate_key();
+        let encrypted = encrypt(42, &key, b"test").unwrap();
+        assert!(encrypted.len() > IV_LENGTH);
+        let expected_iv = iv_from_count(42);
+        assert_eq!(&encrypted[..IV_LENGTH], &expected_iv);
+    }
+
+    #[test]
+    fn decrypt_too_short_fails() {
+        let key = generate_key();
+        let short = vec![0u8; IV_LENGTH - 1];
+        assert!(decrypt(&key, &short).is_err());
+    }
+
+    #[test]
+    fn decrypt_truncated_ciphertext_fails() {
+        let key = generate_key();
+        let encrypted = encrypt(0, &key, b"hello").unwrap();
+        let truncated = &encrypted[..encrypted.len() - 1];
+        assert!(decrypt(&key, truncated).is_err());
+    }
+
+    #[test]
+    fn decrypt_tampered_ciphertext_fails() {
+        let key = generate_key();
+        let mut encrypted = encrypt(0, &key, b"hello").unwrap();
+        let last = encrypted.len() - 1;
+        encrypted[last] ^= 0xFF;
+        assert!(decrypt(&key, &encrypted).is_err());
+    }
+
+    #[test]
+    fn invalid_key_length_fails() {
+        let short_key = vec![0u8; 8];
+        assert!(encrypt(0, &short_key, b"test").is_err());
+        assert!(decrypt(&short_key, &vec![0u8; 32]).is_err());
+    }
+
+    #[test]
+    fn generate_key_length() {
+        let key = generate_key();
+        assert_eq!(key.len(), KEY_LENGTH_BYTES);
+    }
+
+    #[test]
+    fn generate_key_unique() {
+        let k1 = generate_key();
+        let k2 = generate_key();
+        assert_ne!(*k1, *k2);
+    }
+
+    #[test]
+    fn iv_from_count_zero() {
+        let iv = iv_from_count(0);
+        assert_eq!(iv, [0u8; IV_LENGTH]);
+    }
+
+    #[test]
+    fn iv_from_count_max_u64() {
+        let iv = iv_from_count(u64::MAX);
+        let mut expected = [0u8; IV_LENGTH];
+        expected[..8].copy_from_slice(&u64::MAX.to_le_bytes());
+        assert_eq!(iv, expected);
+    }
+
+    #[test]
+    fn encrypt_at_high_message_count() {
+        let key = generate_key();
+        let encrypted = encrypt(1_000_000, &key, b"high count").unwrap();
+        let decrypted = decrypt(&key, &encrypted).unwrap();
+        assert_eq!(decrypted, b"high count");
+    }
 }

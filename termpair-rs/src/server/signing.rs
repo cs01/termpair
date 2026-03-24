@@ -98,4 +98,79 @@ mod tests {
         let token = create_reconnect_token(&key1, "test");
         assert!(!verify_reconnect_token(&key2, "test", &token));
     }
+
+    #[test]
+    fn test_empty_terminal_id() {
+        let key = [42u8; 32];
+        let token = create_reconnect_token(&key, "");
+        assert!(verify_reconnect_token(&key, "", &token));
+        assert!(!verify_reconnect_token(&key, "x", &token));
+    }
+
+    #[test]
+    fn test_token_is_hex() {
+        let key = [42u8; 32];
+        let token = create_reconnect_token(&key, "test");
+        assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_token_length() {
+        let key = [42u8; 32];
+        let token = create_reconnect_token(&key, "test");
+        assert_eq!(token.len(), 64);
+    }
+
+    #[test]
+    fn test_deterministic() {
+        let key = [42u8; 32];
+        let t1 = create_reconnect_token(&key, "abc");
+        let t2 = create_reconnect_token(&key, "abc");
+        assert_eq!(t1, t2);
+    }
+
+    #[test]
+    fn test_different_ids_different_tokens() {
+        let key = [42u8; 32];
+        let t1 = create_reconnect_token(&key, "session1");
+        let t2 = create_reconnect_token(&key, "session2");
+        assert_ne!(t1, t2);
+    }
+
+    #[test]
+    fn test_verify_empty_token_fails() {
+        let key = [42u8; 32];
+        assert!(!verify_reconnect_token(&key, "test", ""));
+    }
+
+    #[test]
+    fn test_verify_garbage_token_fails() {
+        let key = [42u8; 32];
+        assert!(!verify_reconnect_token(&key, "test", "not_a_real_token"));
+    }
+
+    #[test]
+    fn test_constant_time_eq_equal() {
+        assert!(constant_time_eq(b"hello", b"hello"));
+    }
+
+    #[test]
+    fn test_constant_time_eq_different() {
+        assert!(!constant_time_eq(b"hello", b"world"));
+    }
+
+    #[test]
+    fn test_constant_time_eq_different_length() {
+        assert!(!constant_time_eq(b"short", b"longer"));
+    }
+
+    #[test]
+    fn test_constant_time_eq_empty() {
+        assert!(constant_time_eq(b"", b""));
+    }
+
+    #[test]
+    fn test_constant_time_eq_one_bit_diff() {
+        assert!(!constant_time_eq(b"\x00", b"\x01"));
+    }
 }

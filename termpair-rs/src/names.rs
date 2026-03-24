@@ -20,3 +20,44 @@ pub fn generate_name() -> String {
     let noun = NOUNS[rng.gen_range(0..NOUNS.len())];
     format!("{}-{}", adj, noun)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generate_name_format() {
+        let name = generate_name();
+        let parts: Vec<&str> = name.split('-').collect();
+        assert_eq!(parts.len(), 2);
+        assert!(ADJECTIVES.contains(&parts[0]));
+        assert!(NOUNS.contains(&parts[1]));
+    }
+
+    #[test]
+    fn generate_name_not_empty() {
+        let name = generate_name();
+        assert!(!name.is_empty());
+        assert!(name.len() > 3);
+    }
+
+    #[test]
+    fn generate_name_variety() {
+        let names: std::collections::HashSet<String> = (0..20).map(|_| generate_name()).collect();
+        assert!(names.len() > 1);
+    }
+
+    #[test]
+    fn adjectives_all_lowercase() {
+        for adj in ADJECTIVES {
+            assert_eq!(*adj, adj.to_lowercase());
+        }
+    }
+
+    #[test]
+    fn nouns_all_lowercase() {
+        for noun in NOUNS {
+            assert_eq!(*noun, noun.to_lowercase());
+        }
+    }
+}
