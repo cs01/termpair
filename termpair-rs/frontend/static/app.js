@@ -480,7 +480,8 @@ async function connect(terminalId, bootstrapKeyB64) {
         $id("client-count").textContent = "";
         return;
       }
-      const delay = Math.min(1000 * Math.pow(2, reconnectAttempt), MAX_RECONNECT_DELAY);
+      const base = Math.min(1000 * Math.pow(2, reconnectAttempt), MAX_RECONNECT_DELAY);
+      const delay = base * (0.5 + Math.random() * 0.5);
       reconnectAttempt++;
       setStatus(`Reconnecting (${reconnectAttempt})...`);
       setTimeout(connectWs, delay);

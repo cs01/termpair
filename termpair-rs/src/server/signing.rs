@@ -43,6 +43,11 @@ pub fn load_signing_key() -> [u8; 32] {
     OsRng.fill_bytes(&mut key);
     let _ = std::fs::create_dir_all(&key_dir);
     if std::fs::write(&key_path, hex::encode(key)).is_ok() {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&key_path, std::fs::Permissions::from_mode(0o600));
+        }
         tracing::info!("generated signing key at {}", key_path.display());
     } else {
         tracing::warn!(
