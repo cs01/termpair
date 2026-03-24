@@ -400,27 +400,9 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   font-weight: 700;
 }
 
-.arch-diagram {
-  font-size: 0.7rem;
-  line-height: 1.3;
-  overflow-x: auto;
-}
-
-.encryption-list {
-  padding-left: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0.5rem 0 1rem;
-}
-
-.encryption-list li {
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.encryption-list li strong {
-  color: var(--text);
+.learn-more {
+  text-align: center;
+  margin-top: 1rem;
 }
 
 @keyframes toast-in {

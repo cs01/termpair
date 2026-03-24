@@ -110,32 +110,7 @@
         </ul>
       </section>
 
-      <section aria-labelledby="arch-heading">
-        <h2 id="arch-heading">Architecture</h2>
-        <pre class="arch-diagram"><code>┌─────────────────┐                                    ┌─────────────────┐
-│                 │    encrypted terminal output        │                 │
-│  Terminal       │───────────────────────────────────▶│  Browser(s)     │
-│  (termpair      │         ┌───────────────┐          │  (xterm.js +    │
-│   share)        │◀────────│  Server       │─────────▶│   Web Crypto)   │
-│                 │         │  (blind relay) │          │                 │
-│  - forks pty    │    encrypted browser input          │  - decrypts     │
-│  - encrypts I/O │         │  never sees   │          │    output       │
-│  - manages keys │         │  plaintext    │          │  - encrypts     │
-│                 │         └───────────────┘          │    input        │
-└─────────────────┘                                    └─────────────────┘</code></pre>
-        <p>The server is a blind relay &mdash; it routes encrypted WebSocket messages without access to keys or plaintext. The terminal client forks a PTY, encrypts all output with AES-128-GCM, and decrypts browser input. Browsers decrypt and render with <a href="https://xtermjs.org/">xterm.js</a> + <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API">Web Crypto API</a>.</p>
-      </section>
-
-      <section aria-labelledby="encryption-heading">
-        <h2 id="encryption-heading">Encryption</h2>
-        <p>Three AES-128-GCM keys are created per session:</p>
-        <ol class="encryption-list">
-          <li><strong>Output key</strong> &mdash; encrypts terminal output before sending to the server</li>
-          <li><strong>Input key</strong> &mdash; encrypts browser input before sending to the server</li>
-          <li><strong>Bootstrap key</strong> &mdash; delivered via the URL hash fragment (never sent to the server), used to securely exchange the output and input keys</li>
-        </ol>
-        <p>Keys are rotated after 2<sup>20</sup> messages. IVs are monotonic counters to prevent reuse.</p>
-      </section>
+      <p class="learn-more">Learn more about the architecture and encryption on <a href="https://github.com/cs01/termpair">GitHub</a>.</p>
     </div>
 
     <div id="terminal-view" style="display:none">
