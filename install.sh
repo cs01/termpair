@@ -2,7 +2,7 @@
 set -eu
 
 REPO="cs01/termpair"
-INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 
 detect_platform() {
   os="$(uname -s)"
@@ -96,15 +96,33 @@ main() {
   tar xzf "$tmp/${archive_name}" -C "$tmp" --no-same-owner --no-same-permissions 2>/dev/null || \
     tar xzf "$tmp/${archive_name}" -C "$tmp"
 
-  if [ -w "$INSTALL_DIR" ]; then
-    mv "$tmp/termpair" "$INSTALL_DIR/termpair"
-  else
-    echo "Installing to ${INSTALL_DIR} (requires sudo)..."
-    sudo mv "$tmp/termpair" "$INSTALL_DIR/termpair"
+  mkdir -p "$INSTALL_DIR"
+  mv "$tmp/termpair" "$INSTALL_DIR/termpair"
+  chmod +x "$INSTALL_DIR/termpair"
+
+  echo ""
+  echo "Installed termpair to ${INSTALL_DIR}/termpair"
+
+  in_path=false
+  case ":$PATH:" in
+    *":${INSTALL_DIR}:"*) in_path=true ;;
+  esac
+
+  if [ "$in_path" = false ]; then
+    echo ""
+    echo "Add ${INSTALL_DIR} to your PATH:"
+    echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""
+    echo ""
+    echo "To make it permanent, add that line to your ~/.bashrc or ~/.zshrc"
   fi
 
-  chmod +x "$INSTALL_DIR/termpair"
-  echo "Installed termpair to ${INSTALL_DIR}/termpair"
+  echo ""
+  echo "Quick start:"
+  echo "  termpair share                  # private encrypted session"
+  echo "  termpair share --public         # public session (read-only, no encryption)"
+  echo "  termpair share --read-only      # private, viewers can't type"
+  echo "  termpair serve --port 8000      # run your own server"
+  echo ""
 }
 
 main
