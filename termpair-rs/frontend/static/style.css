@@ -127,6 +127,16 @@ pre {
 }
 
 code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; }
+
+.code-block { position: relative; }
+.code-block pre { margin-bottom: 1rem; padding-right: 3rem; }
+.copy-btn {
+  position: absolute; top: 0.5rem; right: 0.5rem;
+  background: var(--border); border: none; border-radius: 4px;
+  color: var(--text-muted); cursor: pointer; padding: 0.25rem 0.5rem;
+  font-size: 0.875rem; line-height: 1;
+}
+.copy-btn:hover { color: var(--text); background: var(--accent); }
 p code { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.15rem 0.35rem; font-size: 0.85em; }
 kbd { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.1rem 0.4rem; font-size: 0.85em; font-family: inherit; }
 

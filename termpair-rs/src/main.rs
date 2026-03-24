@@ -57,13 +57,13 @@ enum Commands {
         #[arg(
             short,
             long,
-            default_value = "8000",
+            default_value_t = constants::TERMPAIR_PORT,
             help = "port the server is running on"
         )]
         port: u16,
         #[arg(
             long,
-            default_value = "http://localhost",
+            default_value = constants::TERMPAIR_HOST,
             help = "URL of the termpair server"
         )]
         host: String,

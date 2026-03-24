@@ -18,6 +18,9 @@ pub const MAX_MESSAGES_PER_KEY: u64 = ROTATION_THRESHOLD * 2;
 pub const MAX_COMMAND_INPUT_BYTES: usize = 4096;
 pub const MAX_CONNECTIONS_PER_IP: usize = 20;
 
+pub const TERMPAIR_HOST: &str = "https://chadsmith.dev/termpair";
+pub const TERMPAIR_PORT: u16 = 443;
+
 pub const SHAREMYCLAUDE_HOST: &str = "https://sharemyclau.de";
 pub const SHAREMYCLAUDE_PORT: u16 = 443;
 pub const SHAREMYCLAUDE_CMD: &str = "claude";
