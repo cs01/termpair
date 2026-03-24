@@ -2,6 +2,7 @@ use hmac::{Hmac, Mac};
 use rand::rngs::OsRng;
 use rand::RngCore;
 use sha2::Sha256;
+use subtle::ConstantTimeEq;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -66,17 +67,9 @@ pub fn create_reconnect_token(signing_key: &[u8; 32], terminal_id: &str) -> Stri
 
 pub fn verify_reconnect_token(signing_key: &[u8; 32], terminal_id: &str, token: &str) -> bool {
     let expected = create_reconnect_token(signing_key, terminal_id);
-    constant_time_eq(expected.as_bytes(), token.as_bytes())
-}
-
-fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
-    if a.len() != b.len() {
-        return false;
-    }
-    a.iter()
-        .zip(b.iter())
-        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
-        == 0
+    let a = expected.as_bytes();
+    let b = token.as_bytes();
+    a.len() == b.len() && a.ct_eq(b).into()
 }
 
 #[cfg(test)]

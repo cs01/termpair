@@ -249,20 +249,19 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #terminal-view {
   display: flex;
-  justify-content: center;
-  padding: 1rem;
+  padding: 0;
   gap: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 #terminal {
   border: 1px solid var(--border);
-  border-radius: 8px;
   padding: 0.75rem;
   background: var(--terminal-bg);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  width: fit-content;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 #bottombar {
