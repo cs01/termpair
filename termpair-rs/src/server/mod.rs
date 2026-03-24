@@ -64,15 +64,16 @@ fn inject_theme_into_html(html: Vec<u8>, theme_config: &serde_json::Value) -> Ve
     let html_str = String::from_utf8_lossy(&html);
     let json = serde_json::to_string(theme_config).unwrap_or_default();
     let encoded = json.replace('&', "&amp;").replace('"', "&quot;");
-    let meta = format!(
-        "<meta name=\"termpair-theme\" content=\"{}\">",
-        encoded
-    );
+    let meta = format!("<meta name=\"termpair-theme\" content=\"{}\">", encoded);
     let injected = html_str.replace("</head>", &format!("{}</head>", meta));
     injected.into_bytes()
 }
 
-fn serve_with_theme(mime: String, data: Vec<u8>, theme: &serde_json::Value) -> axum::response::Response {
+fn serve_with_theme(
+    mime: String,
+    data: Vec<u8>,
+    theme: &serde_json::Value,
+) -> axum::response::Response {
     if mime.contains("html") {
         let injected = inject_theme_into_html(data, theme);
         ([(header::CONTENT_TYPE, mime)], injected).into_response()
