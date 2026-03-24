@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#5ba3ff"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="10" width="56" height="56" rx="12" fill="#151515" stroke="#2a2a2a" stroke-width="2"/>
+  <text x="32" y="52" font-size="36" text-anchor="middle" fill="url(#g)" font-family="'SF Mono','Fira Code','Cascadia Code',Consolas,monospace" font-weight="bold">&gt;_</text>
+  <text x="80" y="52" font-size="44" fill="#e5e5e5" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-weight="700" letter-spacing="-1">TermPair</text>
+</svg>
