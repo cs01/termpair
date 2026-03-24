@@ -468,9 +468,10 @@ async function connect(terminalId, bootstrapKeyB64) {
       }
     });
 
-    ws.addEventListener("close", () => {
+    ws.addEventListener("close", (event) => {
+      const sessionEnded = event.code === 1000 || event.code === 1001;
       if (!reconnectStartTime) reconnectStartTime = Date.now();
-      if (Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
+      if (sessionEnded || Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
         setStatus("Disconnected");
         const td = state.terminalData;
         const startedAt = td && td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
