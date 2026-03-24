@@ -170,6 +170,7 @@ pub struct ShareOptions {
     pub open_browser: bool,
     pub is_public: bool,
     pub yes: bool,
+    pub reconnect_timeout: u64,
 }
 
 pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
@@ -180,6 +181,7 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
         open_browser,
         is_public,
         yes,
+        reconnect_timeout,
     } = opts;
     let (rows, cols) = get_terminal_size();
 
@@ -229,71 +231,72 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
             .map_err(|e| format!("failed to take writer: {}", e))?
     };
 
-    let opts = ShareOptions {
-        cmd,
-        url,
-        allow_browser_control,
-        open_browser,
-        is_public,
-        yes,
-    };
-    run_parent(master, reader, writer, opts).await?;
+    run_parent(
+        master,
+        reader,
+        writer,
+        ShareOptions {
+            cmd,
+            url,
+            allow_browser_control,
+            open_browser,
+            is_public,
+            yes,
+            reconnect_timeout,
+        },
+    )
+    .await?;
 
     let _ = child.kill();
     let _ = child.wait();
     Ok(())
 }
 
-async fn run_parent(
-    master: Arc<Mutex<Box<dyn portable_pty::MasterPty + Send>>>,
-    reader: Box<dyn Read + Send>,
-    writer: Box<dyn Write + Send>,
-    opts: ShareOptions,
-) -> Result<(), String> {
-    let ShareOptions {
-        cmd,
-        url,
-        allow_browser_control,
-        open_browser,
-        is_public,
-        yes,
-    } = opts;
-    let (rows, cols) = get_terminal_size();
+use std::collections::VecDeque;
+use std::sync::atomic::AtomicBool;
+use tokio_tungstenite::tungstenite;
 
-    let ws_url = if url.starts_with("https://") {
-        url.replacen("https://", "wss://", 1)
-    } else if url.starts_with("http://") {
-        url.replacen("http://", "ws://", 1)
+struct WsConnection {
+    ws_tx: futures_util::stream::SplitSink<
+        tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+        tungstenite::Message,
+    >,
+    ws_rx: futures_util::stream::SplitStream<
+        tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+    >,
+    terminal_id: String,
+    reconnect_token: String,
+}
+
+async fn ws_connect(
+    ws_endpoint: &str,
+    init_msg: &serde_json::Value,
+    terminal_id: Option<&str>,
+    reconnect_token: Option<&str>,
+) -> Result<WsConnection, String> {
+    let url = if let (Some(tid), Some(token)) = (terminal_id, reconnect_token) {
+        format!(
+            "{}?terminal_id={}&reconnect_token={}",
+            ws_endpoint,
+            urlencoding::encode(tid),
+            urlencoding::encode(token)
+        )
     } else {
-        return Err("url must start with http:// or https://".into());
+        ws_endpoint.to_string()
     };
-    let ws_endpoint = format!("{}connect_to_terminal", ws_url);
 
-    let (ws_stream, _) = tokio_tungstenite::connect_async(&ws_endpoint)
+    let (ws_stream, _) = tokio_tungstenite::connect_async(&url)
         .await
-        .map_err(|e| format!("connection refused. is the termpair server running? {}", e))?;
+        .map_err(|e| format!("connection failed: {}", e))?;
 
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-    let mut aes_keys = AesKeys::new();
-    let num_browsers = Arc::new(AtomicU64::new(0));
-    let pty_rows = rows.saturating_sub(1).max(1);
-
-    let now = chrono::Utc::now().to_rfc3339();
-    let init_msg = json!({
-        "rows": pty_rows,
-        "cols": cols,
-        "allow_browser_control": allow_browser_control,
-        "command": cmd.join(" "),
-        "broadcast_start_time_iso": now,
-        "subprotocol_version": SUBPROTOCOL_VERSION,
-        "is_public": is_public,
-    });
-
     ws_tx
-        .send(tokio_tungstenite::tungstenite::Message::Text(
-            init_msg.to_string().into(),
-        ))
+        .send(tungstenite::Message::Text(init_msg.to_string().into()))
         .await
         .map_err(|e| format!("failed to send init: {}", e))?;
 
@@ -320,10 +323,70 @@ async fn run_parent(
         return Err(format!("unexpected event: {}", event));
     }
 
-    let terminal_id = resp_json["payload"]
+    let tid = resp_json["payload"]["terminal_id"]
         .as_str()
         .ok_or("missing terminal_id")?
         .to_string();
+    let token = resp_json["payload"]["reconnect_token"]
+        .as_str()
+        .ok_or("missing reconnect_token")?
+        .to_string();
+
+    Ok(WsConnection {
+        ws_tx,
+        ws_rx,
+        terminal_id: tid,
+        reconnect_token: token,
+    })
+}
+
+async fn run_parent(
+    master: Arc<Mutex<Box<dyn portable_pty::MasterPty + Send>>>,
+    reader: Box<dyn Read + Send>,
+    writer: Box<dyn Write + Send>,
+    opts: ShareOptions,
+) -> Result<(), String> {
+    let ShareOptions {
+        cmd,
+        url,
+        allow_browser_control,
+        open_browser,
+        is_public,
+        yes,
+        reconnect_timeout,
+    } = opts;
+    let (rows, cols) = get_terminal_size();
+
+    let ws_url = if url.starts_with("https://") {
+        url.replacen("https://", "wss://", 1)
+    } else if url.starts_with("http://") {
+        url.replacen("http://", "ws://", 1)
+    } else {
+        return Err("url must start with http:// or https://".into());
+    };
+    let ws_endpoint = format!("{}connect_to_terminal", ws_url);
+
+    let mut aes_keys = AesKeys::new();
+    let num_browsers = Arc::new(AtomicU64::new(0));
+    let pty_rows = rows.saturating_sub(1).max(1);
+
+    let broadcast_start_time = chrono::Utc::now().to_rfc3339();
+    let init_msg = json!({
+        "rows": pty_rows,
+        "cols": cols,
+        "allow_browser_control": allow_browser_control,
+        "command": cmd.join(" "),
+        "broadcast_start_time_iso": broadcast_start_time,
+        "subprotocol_version": SUBPROTOCOL_VERSION,
+        "is_public": is_public,
+    });
+
+    let conn = ws_connect(&ws_endpoint, &init_msg, None, None)
+        .await
+        .map_err(|e| format!("connection refused. is the termpair server running? {}", e))?;
+
+    let terminal_id = conn.terminal_id;
+    let reconnect_token_value = conn.reconnect_token;
 
     let d = "\x1b[90m";
     let r = "\x1b[0m";
@@ -380,9 +443,12 @@ async fn run_parent(
 
     let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<String>(256);
 
+    let pty_alive = Arc::new(AtomicBool::new(true));
+
     let outgoing_tx_pty = outgoing_tx.clone();
     let reader = Arc::new(Mutex::new(reader));
-    let pty_read_task = {
+    let pty_alive_clone = pty_alive.clone();
+    let mut pty_read_task = {
         let reader = reader.clone();
         tokio::task::spawn_blocking(move || {
             let mut buf = vec![0u8; MAX_READ_BYTES];
@@ -415,6 +481,7 @@ async fn run_parent(
                     Err(_) => break,
                 }
             }
+            pty_alive_clone.store(false, Ordering::Relaxed);
         })
     };
 
@@ -492,89 +559,132 @@ async fn run_parent(
         })
     };
 
-    let outgoing_tx_ws_recv = outgoing_tx.clone();
-    let ws_recv_task = tokio::spawn(async move {
+    let mut ws_tx = conn.ws_tx;
+    let ws_rx = conn.ws_rx;
+
+    let (ws_msg_tx, mut ws_msg_rx) = mpsc::channel::<String>(256);
+
+    let outgoing_tx_ws_recv = ws_msg_tx.clone();
+    let mut ws_recv_handle = tokio::spawn(async move {
+        let mut ws_rx = ws_rx;
         while let Some(Ok(msg)) = ws_rx.next().await {
             if let Ok(text) = msg.into_text() {
-                let _ = outgoing_tx_ws_recv
-                    .send(format!("__from_browser:{}", text))
-                    .await;
+                if outgoing_tx_ws_recv.send(text.to_string()).await.is_err() {
+                    break;
+                }
             }
         }
     });
 
     let writer_for_browser = writer.clone();
     let master_for_resize = master.clone();
-    let main_loop_task = tokio::spawn(async move {
-        while let Some(msg) = outgoing_rx.recv().await {
-            if let Some(raw_b64) = msg.strip_prefix("__pty_raw:") {
-                if let Ok(plaintext_bytes) = BASE64.decode(raw_b64) {
-                    if is_public {
-                        let ws_msg = json!({
-                            "event": "new_output",
-                            "payload": BASE64.encode(&plaintext_bytes),
-                        });
-                        if ws_tx
-                            .send(tokio_tungstenite::tungstenite::Message::Text(
-                                ws_msg.to_string().into(),
-                            ))
-                            .await
-                            .is_err()
-                        {
-                            break;
+
+    const MAX_BUFFER_BYTES: usize = 65536;
+
+    loop {
+        let mut buffer: VecDeque<String> = VecDeque::new();
+        let mut buffer_bytes: usize = 0;
+        let mut ws_disconnected = false;
+
+        loop {
+            tokio::select! {
+                biased;
+                result = &mut pty_read_task, if !pty_read_task.is_finished() => {
+                    let _ = result;
+                    break;
+                }
+                msg = outgoing_rx.recv() => {
+                    let Some(msg) = msg else { break; };
+                    if let Some(raw_b64) = msg.strip_prefix("__pty_raw:") {
+                        if ws_disconnected {
+                            let msg_len = raw_b64.len();
+                            while buffer_bytes + msg_len > MAX_BUFFER_BYTES && !buffer.is_empty() {
+                                if let Some(old) = buffer.pop_front() {
+                                    buffer_bytes = buffer_bytes.saturating_sub(old.len());
+                                }
+                            }
+                            buffer.push_back(raw_b64.to_string());
+                            buffer_bytes += msg_len;
+                            continue;
                         }
-                    } else {
-                        match aes_keys.encrypt(&plaintext_bytes) {
-                            Ok(encrypted) => {
+                        if let Ok(plaintext_bytes) = BASE64.decode(raw_b64) {
+                            if is_public {
                                 let ws_msg = json!({
                                     "event": "new_output",
-                                    "payload": BASE64.encode(&encrypted),
+                                    "payload": BASE64.encode(&plaintext_bytes),
                                 });
                                 if ws_tx
-                                    .send(tokio_tungstenite::tungstenite::Message::Text(
-                                        ws_msg.to_string().into(),
-                                    ))
+                                    .send(tungstenite::Message::Text(ws_msg.to_string().into()))
                                     .await
                                     .is_err()
                                 {
-                                    break;
+                                    ws_disconnected = true;
+                                    continue;
                                 }
-                                if aes_keys.need_rotation() {
-                                    if let Ok(rotation_msg) = aes_keys.rotate_keys() {
-                                        let _ = ws_tx
-                                            .send(tokio_tungstenite::tungstenite::Message::Text(
-                                                rotation_msg.into(),
-                                            ))
-                                            .await;
+                            } else {
+                                match aes_keys.encrypt(&plaintext_bytes) {
+                                    Ok(encrypted) => {
+                                        let ws_msg = json!({
+                                            "event": "new_output",
+                                            "payload": BASE64.encode(&encrypted),
+                                        });
+                                        if ws_tx
+                                            .send(tungstenite::Message::Text(ws_msg.to_string().into()))
+                                            .await
+                                            .is_err()
+                                        {
+                                            ws_disconnected = true;
+                                            continue;
+                                        }
+                                        if aes_keys.need_rotation() {
+                                            if let Ok(rotation_msg) = aes_keys.rotate_keys() {
+                                                let _ = ws_tx
+                                                    .send(tungstenite::Message::Text(rotation_msg.into()))
+                                                    .await;
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("encryption error: {}", e);
                                     }
                                 }
                             }
-                            Err(e) => {
-                                tracing::error!("encryption error: {}", e);
-                            }
+                        }
+                    } else {
+                        if ws_disconnected {
+                            continue;
+                        }
+                        if ws_tx
+                            .send(tungstenite::Message::Text(msg.into()))
+                            .await
+                            .is_err()
+                        {
+                            ws_disconnected = true;
                         }
                     }
                 }
-            } else if let Some(browser_msg) = msg.strip_prefix("__from_browser:") {
-                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(browser_msg) {
-                    let event = parsed["event"].as_str().unwrap_or("");
-                    match event {
-                        "command" => {
-                            if allow_browser_control && !is_public {
-                                if let Some(payload) = parsed["payload"].as_str() {
-                                    if let Ok(encrypted_bytes) = BASE64.decode(payload) {
-                                        if let Ok(decrypted) = aes_keys.decrypt(&encrypted_bytes) {
-                                            if let Ok(data) =
-                                                serde_json::from_slice::<serde_json::Value>(
-                                                    &decrypted,
-                                                )
-                                            {
-                                                if let Some(input) = data["data"].as_str() {
-                                                    if input.len() <= MAX_COMMAND_INPUT_BYTES {
-                                                        if let Ok(mut w) = writer_for_browser.lock()
-                                                        {
-                                                            let _ = w.write_all(input.as_bytes());
-                                                            let _ = w.flush();
+                msg = ws_msg_rx.recv() => {
+                    let Some(text) = msg else {
+                        ws_disconnected = true;
+                        continue;
+                    };
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
+                        let event = parsed["event"].as_str().unwrap_or("");
+                        match event {
+                            "command" => {
+                                if allow_browser_control && !is_public {
+                                    if let Some(payload) = parsed["payload"].as_str() {
+                                        if let Ok(encrypted_bytes) = BASE64.decode(payload) {
+                                            if let Ok(decrypted) = aes_keys.decrypt(&encrypted_bytes) {
+                                                if let Ok(data) =
+                                                    serde_json::from_slice::<serde_json::Value>(&decrypted)
+                                                {
+                                                    if let Some(input) = data["data"].as_str() {
+                                                        if input.len() <= MAX_COMMAND_INPUT_BYTES {
+                                                            if let Ok(mut w) = writer_for_browser.lock() {
+                                                                let _ = w.write_all(input.as_bytes());
+                                                                let _ = w.flush();
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -583,75 +693,162 @@ async fn run_parent(
                                     }
                                 }
                             }
-                        }
-                        "request_terminal_dimensions" => {
-                            let (rows, cols) = get_terminal_size();
-                            let pty_rows = rows.saturating_sub(1).max(1);
-                            if let Ok(m) = master_for_resize.lock() {
-                                let _ = m.resize(PtySize {
-                                    rows: pty_rows,
-                                    cols,
-                                    pixel_width: 0,
-                                    pixel_height: 0,
-                                });
+                            "request_terminal_dimensions" => {
+                                let (rows, cols) = get_terminal_size();
+                                let pty_rows = rows.saturating_sub(1).max(1);
+                                if let Ok(m) = master_for_resize.lock() {
+                                    let _ = m.resize(PtySize {
+                                        rows: pty_rows,
+                                        cols,
+                                        pixel_width: 0,
+                                        pixel_height: 0,
+                                    });
+                                }
+                                let resize_msg = json!({"event": "resize", "payload": {"rows": pty_rows, "cols": cols}});
+                                let _ = ws_tx
+                                    .send(tungstenite::Message::Text(resize_msg.to_string().into()))
+                                    .await;
                             }
-                            let resize_msg = json!({"event": "resize", "payload": {"rows": pty_rows, "cols": cols}});
-                            let _ = ws_tx
-                                .send(tokio_tungstenite::tungstenite::Message::Text(
-                                    resize_msg.to_string().into(),
-                                ))
-                                .await;
-                        }
-                        "request_key_rotation" => {
-                            if !is_public {
-                                if let Ok(rotation_msg) = aes_keys.rotate_keys() {
-                                    let _ = ws_tx
-                                        .send(tokio_tungstenite::tungstenite::Message::Text(
-                                            rotation_msg.into(),
-                                        ))
-                                        .await;
+                            "request_key_rotation" => {
+                                if !is_public {
+                                    if let Ok(rotation_msg) = aes_keys.rotate_keys() {
+                                        let _ = ws_tx
+                                            .send(tungstenite::Message::Text(rotation_msg.into()))
+                                            .await;
+                                    }
                                 }
                             }
-                        }
-                        "new_browser_connected" => {
-                            if !is_public {
-                                let count = num_browsers.load(Ordering::Relaxed).max(1);
-                                if let Ok(keys_msg) = aes_keys.build_aes_keys_message(count) {
-                                    let _ = ws_tx
-                                        .send(tokio_tungstenite::tungstenite::Message::Text(
-                                            keys_msg.into(),
-                                        ))
-                                        .await;
+                            "new_browser_connected" => {
+                                if !is_public {
+                                    let count = num_browsers.load(Ordering::Relaxed).max(1);
+                                    if let Ok(keys_msg) = aes_keys.build_aes_keys_message(count) {
+                                        let _ = ws_tx
+                                            .send(tungstenite::Message::Text(keys_msg.into()))
+                                            .await;
+                                    }
                                 }
                             }
-                        }
-                        "num_clients" => {
-                            if let Some(n) = parsed["payload"].as_u64() {
-                                num_browsers.store(n, Ordering::Relaxed);
+                            "num_clients" => {
+                                if let Some(n) = parsed["payload"].as_u64() {
+                                    num_browsers.store(n, Ordering::Relaxed);
+                                }
                             }
+                            "fatal_error" => {
+                                let payload = parsed["payload"].as_str().unwrap_or("unknown");
+                                tracing::error!("fatal error from server: {}", payload);
+                                break;
+                            }
+                            _ => {}
                         }
-                        "fatal_error" => {
-                            let payload = parsed["payload"].as_str().unwrap_or("unknown");
-                            tracing::error!("fatal error from server: {}", payload);
-                            break;
-                        }
-                        _ => {}
                     }
                 }
-            } else if ws_tx
-                .send(tokio_tungstenite::tungstenite::Message::Text(msg.into()))
-                .await
-                .is_err()
-            {
-                break;
+                _ = &mut ws_recv_handle => {
+                    ws_disconnected = true;
+                    if !pty_alive.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    continue;
+                }
             }
         }
-    });
 
-    tokio::select! {
-        _ = pty_read_task => {},
-        _ = main_loop_task => {},
-        _ = ws_recv_task => {},
+        if !pty_alive.load(Ordering::Relaxed) || reconnect_timeout == 0 {
+            break;
+        }
+
+        let reconnect_start = std::time::Instant::now();
+        let timeout_dur = std::time::Duration::from_secs(reconnect_timeout);
+        let mut attempt = 0u32;
+
+        {
+            let mut stderr = std::io::stderr();
+            let _ = write!(
+                stderr,
+                "\r\n\x1b[1;33mServer disconnected. Reconnecting...\x1b[0m\r\n"
+            );
+            let _ = stderr.flush();
+        }
+
+        let reconnected = loop {
+            if reconnect_start.elapsed() >= timeout_dur {
+                break false;
+            }
+            if !pty_alive.load(Ordering::Relaxed) {
+                break false;
+            }
+
+            let delay = std::time::Duration::from_secs(1u64 << attempt.min(4))
+                .min(std::time::Duration::from_secs(30));
+            tokio::time::sleep(delay).await;
+            attempt += 1;
+
+            match ws_connect(
+                &ws_endpoint,
+                &init_msg,
+                Some(&terminal_id),
+                Some(&reconnect_token_value),
+            )
+            .await
+            {
+                Ok(new_conn) => {
+                    ws_tx = new_conn.ws_tx;
+
+                    if !is_public {
+                        aes_keys.reset_keys();
+                    }
+
+                    for raw_b64 in buffer.drain(..) {
+                        if let Ok(plaintext_bytes) = BASE64.decode(&raw_b64) {
+                            if is_public {
+                                let ws_msg = json!({
+                                    "event": "new_output",
+                                    "payload": BASE64.encode(&plaintext_bytes),
+                                });
+                                let _ = ws_tx
+                                    .send(tungstenite::Message::Text(ws_msg.to_string().into()))
+                                    .await;
+                            } else {
+                                if let Ok(encrypted) = aes_keys.encrypt(&plaintext_bytes) {
+                                    let ws_msg = json!({
+                                        "event": "new_output",
+                                        "payload": BASE64.encode(&encrypted),
+                                    });
+                                    let _ = ws_tx
+                                        .send(tungstenite::Message::Text(ws_msg.to_string().into()))
+                                        .await;
+                                }
+                            }
+                        }
+                    }
+                    let _ = buffer_bytes;
+
+                    let new_ws_msg_tx = ws_msg_tx.clone();
+                    ws_recv_handle = tokio::spawn(async move {
+                        let mut ws_rx = new_conn.ws_rx;
+                        while let Some(Ok(msg)) = ws_rx.next().await {
+                            if let Ok(text) = msg.into_text() {
+                                if new_ws_msg_tx.send(text.to_string()).await.is_err() {
+                                    break;
+                                }
+                            }
+                        }
+                    });
+
+                    {
+                        let mut stderr = std::io::stderr();
+                        let _ = write!(stderr, "\r\n\x1b[1;32mReconnected!\x1b[0m\r\n");
+                        let _ = stderr.flush();
+                    }
+
+                    break true;
+                }
+                Err(_) => continue,
+            }
+        };
+
+        if !reconnected {
+            break;
+        }
     }
 
     stdin_task.abort();

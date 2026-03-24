@@ -33,6 +33,12 @@ pub struct TerminalIdQuery {
     pub terminal_id: String,
 }
 
+#[derive(Deserialize)]
+pub struct TerminalConnectQuery {
+    pub terminal_id: Option<String>,
+    pub reconnect_token: Option<String>,
+}
+
 pub async fn get_terminal(
     State(state): State<AppState>,
     axum::extract::Path(terminal_id): axum::extract::Path<String>,
@@ -62,13 +68,25 @@ pub async fn get_terminal(
 pub async fn ws_connect_terminal(
     ws: WebSocketUpgrade,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Query(params): Query<TerminalConnectQuery>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let ip = addr.ip();
     let connections = state.connections.clone();
+    let signing_key = state.signing_key.clone();
     ws.max_frame_size(MAX_WS_FRAME_BYTES)
         .max_message_size(MAX_WS_FRAME_BYTES)
-        .on_upgrade(move |socket| handle_terminal_ws(socket, state.terminals, ip, connections))
+        .on_upgrade(move |socket| {
+            handle_terminal_ws(
+                socket,
+                state.terminals,
+                ip,
+                connections,
+                signing_key,
+                params.terminal_id,
+                params.reconnect_token,
+            )
+        })
 }
 
 async fn handle_terminal_ws(
@@ -76,17 +94,33 @@ async fn handle_terminal_ws(
     terminals: Terminals,
     ip: std::net::IpAddr,
     connections: Arc<super::terminal::ConnectionTracker>,
+    signing_key: Arc<[u8; 32]>,
+    requested_id: Option<String>,
+    reconnect_token: Option<String>,
 ) {
     if !connections.try_add(ip).await {
         return;
     }
 
-    let result = handle_terminal_ws_inner(socket, terminals.clone()).await;
+    let result = handle_terminal_ws_inner(
+        socket,
+        terminals.clone(),
+        &signing_key,
+        requested_id,
+        reconnect_token,
+    )
+    .await;
     connections.remove(ip).await;
     result
 }
 
-async fn handle_terminal_ws_inner(socket: WebSocket, terminals: Terminals) {
+async fn handle_terminal_ws_inner(
+    socket: WebSocket,
+    terminals: Terminals,
+    signing_key: &[u8; 32],
+    requested_id: Option<String>,
+    reconnect_token: Option<String>,
+) {
     let (mut ws_tx, mut ws_rx) = socket.split();
 
     let init_msg = match ws_rx.next().await {
@@ -115,7 +149,38 @@ async fn handle_terminal_ws_inner(socket: WebSocket, terminals: Terminals) {
         return;
     }
 
-    let terminal_id = generate_terminal_id();
+    let terminal_id = if let (Some(ref id), Some(ref token)) = (&requested_id, &reconnect_token) {
+        if !super::signing::verify_reconnect_token(signing_key, id, token) {
+            let err = WsMessage {
+                event: "fatal_error".into(),
+                payload: serde_json::Value::String("invalid reconnect token".into()),
+            };
+            if let Ok(json) = serde_json::to_string(&err) {
+                let _ = ws_tx.send(Message::Text(json.into())).await;
+            }
+            let _ = ws_tx.close().await;
+            return;
+        }
+        let terms = terminals.read().await;
+        if terms.contains_key(id.as_str()) {
+            let err = WsMessage {
+                event: "fatal_error".into(),
+                payload: serde_json::Value::String("terminal_id already in use".into()),
+            };
+            drop(terms);
+            if let Ok(json) = serde_json::to_string(&err) {
+                let _ = ws_tx.send(Message::Text(json.into())).await;
+            }
+            let _ = ws_tx.close().await;
+            return;
+        }
+        drop(terms);
+        id.clone()
+    } else {
+        generate_terminal_id()
+    };
+
+    let reconnect_token = super::signing::create_reconnect_token(signing_key, &terminal_id);
 
     let (terminal_tx, mut terminal_rx) = mpsc::channel::<String>(256);
     let (broadcast_tx, _) = broadcast::channel::<String>(256);
@@ -162,7 +227,10 @@ async fn handle_terminal_ws_inner(socket: WebSocket, terminals: Terminals) {
 
     let start_msg = WsMessage {
         event: "start_broadcast".into(),
-        payload: serde_json::Value::String(terminal_id.clone()),
+        payload: serde_json::json!({
+            "terminal_id": terminal_id,
+            "reconnect_token": reconnect_token,
+        }),
     };
     let start_json = match serde_json::to_string(&start_msg) {
         Ok(j) => j,

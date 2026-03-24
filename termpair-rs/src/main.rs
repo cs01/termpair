@@ -82,6 +82,12 @@ enum Commands {
         public: bool,
         #[arg(short, long, help = "skip confirmation prompt and start immediately")]
         yes: bool,
+        #[arg(
+            long,
+            default_value = "300",
+            help = "seconds to retry reconnecting after server disconnect (0 = disable)"
+        )]
+        reconnect_timeout: u64,
     },
 }
 
@@ -177,6 +183,7 @@ fn build_share_url(host: &str, port: u16) -> String {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_share(
     cmd_parts: Vec<String>,
     host: String,
@@ -185,6 +192,7 @@ async fn run_share(
     open_browser: bool,
     public: bool,
     yes: bool,
+    reconnect_timeout: u64,
 ) {
     let url = build_share_url(&host, port);
     let allow_browser_control = if public { false } else { !read_only };
@@ -195,6 +203,7 @@ async fn run_share(
         open_browser,
         is_public: public,
         yes,
+        reconnect_timeout,
     };
     if let Err(e) = share::broadcast_terminal(opts).await {
         eprintln!("error: {}", e);
@@ -222,6 +231,7 @@ async fn run_sharemyclaude() {
         args.open_browser,
         args.public,
         args.yes,
+        300,
     )
     .await;
 }
@@ -351,10 +361,21 @@ async fn main() {
             open_browser,
             public,
             yes,
+            reconnect_timeout,
         } => {
             let cmd_parts: Vec<String> =
                 shell_words::split(&cmd).unwrap_or_else(|_| vec![cmd.clone()]);
-            run_share(cmd_parts, host, port, read_only, open_browser, public, yes).await;
+            run_share(
+                cmd_parts,
+                host,
+                port,
+                read_only,
+                open_browser,
+                public,
+                yes,
+                reconnect_timeout,
+            )
+            .await;
         }
     }
 }

@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod signing;
 pub mod terminal;
 
 use std::path::PathBuf;
@@ -18,6 +19,7 @@ pub struct AppState {
     pub terminals: Terminals,
     pub static_dir: Option<Arc<PathBuf>>,
     pub connections: Arc<ConnectionTracker>,
+    pub signing_key: Arc<[u8; 32]>,
 }
 
 #[derive(Embed)]
@@ -79,12 +81,14 @@ async fn serve_index(State(state): State<AppState>) -> impl axum::response::Into
 }
 
 pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>) -> Router {
+    let signing_key = signing::load_signing_key();
     let state = AppState {
         terminals,
         static_dir: static_dir.map(Arc::new),
         connections: Arc::new(ConnectionTracker::new(
             crate::constants::MAX_CONNECTIONS_PER_IP,
         )),
+        signing_key: Arc::new(signing_key),
     };
 
     Router::new()
