@@ -2,6 +2,7 @@ use hmac::{Hmac, Mac};
 use rand::rngs::OsRng;
 use rand::RngCore;
 use sha2::Sha256;
+use subtle::ConstantTimeEq;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -66,17 +67,9 @@ pub fn create_reconnect_token(signing_key: &[u8; 32], terminal_id: &str) -> Stri
 
 pub fn verify_reconnect_token(signing_key: &[u8; 32], terminal_id: &str, token: &str) -> bool {
     let expected = create_reconnect_token(signing_key, terminal_id);
-    constant_time_eq(expected.as_bytes(), token.as_bytes())
-}
-
-fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
-    if a.len() != b.len() {
-        return false;
-    }
-    a.iter()
-        .zip(b.iter())
-        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
-        == 0
+    let a = expected.as_bytes();
+    let b = token.as_bytes();
+    a.len() == b.len() && a.ct_eq(b).into()
 }
 
 #[cfg(test)]
@@ -147,30 +140,5 @@ mod tests {
     fn test_verify_garbage_token_fails() {
         let key = [42u8; 32];
         assert!(!verify_reconnect_token(&key, "test", "not_a_real_token"));
-    }
-
-    #[test]
-    fn test_constant_time_eq_equal() {
-        assert!(constant_time_eq(b"hello", b"hello"));
-    }
-
-    #[test]
-    fn test_constant_time_eq_different() {
-        assert!(!constant_time_eq(b"hello", b"world"));
-    }
-
-    #[test]
-    fn test_constant_time_eq_different_length() {
-        assert!(!constant_time_eq(b"short", b"longer"));
-    }
-
-    #[test]
-    fn test_constant_time_eq_empty() {
-        assert!(constant_time_eq(b"", b""));
-    }
-
-    #[test]
-    fn test_constant_time_eq_one_bit_diff() {
-        assert!(!constant_time_eq(b"\x00", b"\x01"));
     }
 }

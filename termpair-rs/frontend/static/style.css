@@ -249,17 +249,18 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #terminal-view {
   display: flex;
-  justify-content: center;
-  padding: 1rem;
+  padding: 0;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 #terminal {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.75rem;
+  padding: 0.5rem;
   background: var(--terminal-bg);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  width: fit-content;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
 }
 
 #bottombar {
@@ -477,63 +478,59 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   line-height: 1.5;
 }
 
-#chat-toggle {
+#chat-bar {
+  display: none;
   position: fixed;
-  bottom: 4rem;
-  right: 1.5rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 99;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  border: none;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  display: flex;
+  font-size: 0.85rem;
+  color: var(--text-muted);
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  transition: background 0.15s, transform 0.15s;
+  gap: 0.5rem;
 }
-#chat-toggle:hover { background: var(--accent-hover); transform: scale(1.05); }
-#chat-toggle svg { width: 22px; height: 22px; }
+#chat-bar svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 #chat-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
   background: var(--error);
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  display: flex;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 4px;
+  margin-left: 0.25rem;
 }
 
 #chat-sidebar {
-  position: fixed;
-  right: 0;
-  top: 2.75rem;
-  bottom: 0;
   width: 320px;
-  max-width: 100vw;
-  z-index: 100;
+  min-width: 320px;
+  flex-shrink: 0;
   background: var(--bg);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  animation: chat-slide-in 0.2s ease;
 }
 
-@keyframes chat-slide-in {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+.chat-minimize {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
 }
+.chat-minimize:hover { color: var(--text); }
 
 #chat-header {
   display: flex;
@@ -625,14 +622,18 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #chat-form {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   gap: 0.4rem;
   padding: 0.5rem 0.75rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
+  align-items: center;
 }
 
 #chat-input {
   flex: 1;
+  min-width: 0;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -662,6 +663,36 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 }
 #chat-form button[type="submit"] svg { width: 16px; height: 16px; }
 #chat-form button[type="submit"]:hover { background: var(--accent-hover); }
+
+.disclaimer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 1.5rem;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  #chat-sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    height: 50vh;
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    animation: chat-slide-up 0.2s ease;
+  }
+  #chat-sidebar[style*="display: none"] ~ #chat-bar { display: flex; }
+
+  @keyframes chat-slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(0.5rem); }

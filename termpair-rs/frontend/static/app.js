@@ -170,7 +170,12 @@ function showTerminal() {
   $id("landing").style.display = "none";
   $id("terminal-view").style.display = "flex";
   $id("status-bar").style.display = "flex";
-  $id("chat-toggle").style.display = "flex";
+  $id("chat-sidebar").style.display = "flex";
+  var isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    $id("chat-sidebar").style.display = "none";
+    $id("chat-bar").style.display = "flex";
+  }
   if (!state.chatName) {
     state.chatName = generateChatName();
     $id("chat-name").value = state.chatName;
@@ -401,17 +406,20 @@ function generateChatName() {
 }
 
 function toggleChat() {
-  state.chatOpen = !state.chatOpen;
   var sidebar = $id("chat-sidebar");
-  var toggle = $id("chat-toggle");
-  if (state.chatOpen) {
+  var chatBar = $id("chat-bar");
+  var isVisible = sidebar.style.display !== "none";
+  if (isVisible) {
+    sidebar.style.display = "none";
+    if (chatBar) chatBar.style.display = "flex";
+    state.chatOpen = false;
+  } else {
     sidebar.style.display = "flex";
+    if (chatBar) chatBar.style.display = "none";
+    state.chatOpen = true;
     state.chatUnread = 0;
     $id("chat-badge").style.display = "none";
-    var input = $id("chat-input");
-    setTimeout(function() { input.focus(); }, 100);
-  } else {
-    sidebar.style.display = "none";
+    setTimeout(function() { $id("chat-input").focus(); }, 100);
   }
 }
 
@@ -677,7 +685,63 @@ setInterval(fetchSessions, 5000);
 
 // ---- Init ----
 
+function applyThemeConfig() {
+  try {
+    var meta = document.querySelector('meta[name="termpair-theme"]');
+    if (!meta) return;
+    var cfg = JSON.parse(meta.getAttribute("content"));
+    if (!cfg || cfg.name === "termpair") return;
+
+    if (cfg.cssVars) {
+      var root = document.documentElement;
+      Object.keys(cfg.cssVars).forEach(function(k) { root.style.setProperty(k, cfg.cssVars[k]); });
+    }
+    if (cfg.logoHtml) {
+      var logo = document.querySelector(".logo");
+      if (logo) logo.innerHTML = cfg.logoHtml;
+    }
+    if (cfg.heroLogoHtml) {
+      var heroWrap = document.querySelector(".hero-logo-wrap");
+      if (heroWrap) heroWrap.innerHTML = cfg.heroLogoHtml;
+    }
+    if (cfg.tagline) {
+      var tagline = document.querySelector(".hero-tagline");
+      if (tagline) tagline.textContent = cfg.tagline;
+    }
+    if (cfg.appName) document.title = cfg.appName;
+    if (cfg.githubUrl) {
+      var ghLink = document.querySelector(".topbar-right a[aria-label*='GitHub']");
+      if (ghLink) ghLink.href = cfg.githubUrl;
+    }
+    if (cfg.installCmd) {
+      var installCode = document.querySelector("#quickstart .code-block code");
+      if (installCode) installCode.textContent = cfg.installCmd;
+    }
+    var features = document.querySelector("[data-section='features']");
+    if (features && cfg.showFeatures === false) features.style.display = "none";
+    var callout = document.querySelector("[data-section='callout']");
+    if (callout && cfg.showCallout === false) callout.style.display = "none";
+    var disclaimer = $id("disclaimer");
+    if (disclaimer && cfg.showDisclaimer) {
+      disclaimer.textContent = cfg.disclaimerText || "";
+      disclaimer.style.display = "block";
+    }
+    if (cfg.footerLinks) {
+      var footerEl = document.querySelector(".footer-links");
+      if (footerEl) {
+        footerEl.innerHTML = cfg.footerLinks.map(function(l) { return '<a href="' + l.url + '">' + l.text + '</a>'; }).join(" &middot; ");
+      }
+    }
+    var themeSelect = $id("theme-select");
+    if (themeSelect && cfg.name !== "termpair") themeSelect.style.display = "none";
+  } catch (e) {
+    console.warn("theme config error:", e);
+  }
+}
+
 function init() {
+  applyThemeConfig();
+
   const baseUrl = getServerBaseUrl().replace(/\/$/, "");
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
   $id("share-command").textContent = `termpair share --host "${baseUrl}" --port ${port}`;
@@ -712,13 +776,32 @@ function init() {
 
   fetchSessions();
 
-  // theme
-  const saved = localStorage.getItem("termpair-theme") || "dark";
+  var saved = localStorage.getItem("termpair-theme") || "dark";
   setTheme(saved);
-  $id("theme-select").value = saved;
-  $id("theme-select").addEventListener("change", (e) => {
-    setTheme(e.target.value);
+  var sel = $id("theme-select");
+  if (sel) {
+    sel.value = saved;
+    sel.addEventListener("change", (e) => { setTheme(e.target.value); });
+  }
+
+  var copyIcon = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy';
+  document.querySelectorAll(".copy-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var text = btn.previousElementSibling.textContent.trim();
+      navigator.clipboard.writeText(text);
+      btn.innerHTML = "Copied!";
+      setTimeout(function() { btn.innerHTML = copyIcon; }, 1500);
+    });
   });
+
+  var chatMinBtn = $id("chat-minimize-btn");
+  if (chatMinBtn) chatMinBtn.addEventListener("click", toggleChat);
+
+  var chatForm = $id("chat-form");
+  if (chatForm) chatForm.addEventListener("submit", handleChatSubmit);
+
+  var chatBar = $id("chat-bar");
+  if (chatBar) chatBar.addEventListener("click", toggleChat);
 }
 
 function setTheme(theme) {
