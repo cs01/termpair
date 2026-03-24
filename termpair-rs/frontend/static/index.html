@@ -28,12 +28,14 @@
   <main id="app">
     <div id="landing" class="content">
       <div class="hero">
-        <svg class="hero-logo" viewBox="0 0 400 80" aria-label="TermPair">
-          <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5ba3ff"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs>
-          <rect x="4" y="10" width="56" height="56" rx="12" fill="#151515" stroke="#2a2a2a" stroke-width="2"/>
-          <text x="32" y="52" font-size="36" text-anchor="middle" fill="url(#g)" font-family="'SF Mono','Fira Code','Cascadia Code',Consolas,monospace" font-weight="bold">&gt;_</text>
-          <text x="80" y="52" font-size="44" fill="currentColor" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-weight="700" letter-spacing="-1">TermPair</text>
-        </svg>
+        <div class="hero-logo-wrap">
+          <svg class="hero-icon" viewBox="0 0 56 56" aria-hidden="true">
+            <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5ba3ff"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs>
+            <rect width="56" height="56" rx="12" fill="#151515" stroke="#2a2a2a" stroke-width="2"/>
+            <text x="28" y="40" font-size="30" text-anchor="middle" fill="url(#g)" font-family="'SF Mono','Fira Code','Cascadia Code',Consolas,monospace" font-weight="bold">&gt;_</text>
+          </svg>
+          <span class="hero-title">TermPair</span>
+        </div>
         <p class="hero-tagline">View and control remote terminals from your browser with end-to-end encryption</p>
       </div>
 
