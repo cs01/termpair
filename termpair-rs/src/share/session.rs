@@ -240,7 +240,8 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
     run_parent(master, reader, writer, opts).await?;
 
     let _ = child.kill();
-    std::process::exit(0);
+    let _ = child.wait();
+    Ok(())
 }
 
 async fn run_parent(
@@ -331,7 +332,7 @@ async fn run_parent(
 
     let open_url = if is_public {
         let public_url = format!("{}s/{}", url, terminal_id);
-        eprintln!("\x1b[1;31m\u{25cf} Public session{r}");
+        eprintln!("\x1b[1;31m\u{25cf} Public Share My Claude session{r}");
         eprintln!();
         eprintln!("  {d}Link:{r}       \x1b[4m{}{r}", public_url);
         eprintln!("  {d}Encryption:{r} none");
@@ -340,7 +341,7 @@ async fn run_parent(
     } else {
         let secret_key_b64url = BASE64URL.encode(&aes_keys.bootstrap_key);
         let share_url = format!("{}s/{}#{}", url, terminal_id, secret_key_b64url);
-        eprintln!("\x1b[1;33m\u{25cf} Private session{r}");
+        eprintln!("\x1b[1;33m\u{25cf} Private Share My Claude session{r}");
         eprintln!();
         eprintln!("  {d}Link:{r}       \x1b[4m{}{r}", share_url);
         eprintln!("  {d}Encryption:{r} AES-128-GCM {d}(key is in the URL fragment){r}");
@@ -623,15 +624,6 @@ async fn run_parent(
                                         .await;
                                 }
                             }
-                            if let Ok(m) = master_for_resize.lock() {
-                                let (rows, cols) = get_terminal_size();
-                                let _ = m.resize(portable_pty::PtySize {
-                                    rows,
-                                    cols,
-                                    pixel_width: 0,
-                                    pixel_height: 0,
-                                });
-                            }
                         }
                         "num_clients" => {
                             if let Some(n) = parsed["payload"].as_u64() {
@@ -656,11 +648,11 @@ async fn run_parent(
         }
     });
 
-    let reason = tokio::select! {
-        _ = pty_read_task => "pty closed",
-        _ = main_loop_task => "send loop ended",
-        _ = ws_recv_task => "server connection lost",
-    };
+    tokio::select! {
+        _ = pty_read_task => {},
+        _ = main_loop_task => {},
+        _ = ws_recv_task => {},
+    }
 
     stdin_task.abort();
     resize_task.abort();
@@ -675,30 +667,24 @@ async fn run_parent(
 
     drop(_raw_guard);
 
-    let elapsed = start_time.elapsed();
-    let secs = elapsed.as_secs();
-    let duration_str = if secs < 60 {
-        format!("{}s", secs)
-    } else if secs < 3600 {
-        format!("{}m {}s", secs / 60, secs % 60)
-    } else {
-        format!("{}h {}m", secs / 3600, (secs % 3600) / 60)
-    };
-
     let (_, cols) = get_terminal_size();
     let d = "\x1b[90m";
     let r = "\x1b[0m";
     let bar: String = "\u{2501}".repeat(cols as usize);
+    let duration = start_time.elapsed();
+    let duration_str = format!(
+        "{}h {}m {}s",
+        duration.as_secs() / 3600,
+        (duration.as_secs() % 3600) / 60,
+        duration.as_secs() % 60
+    );
     eprintln!();
     eprintln!("{d}{bar}{r}");
-    eprintln!("Session ended after {duration_str} ({reason}).");
+    let session_type = if is_public { "Public" } else { "Private" };
+    eprintln!("\x1b[1;33m✦ {session_type} Share My Claude session ended{r}");
+    eprintln!("  {d}Session ID:{r}  {}", terminal_id);
+    eprintln!("  {d}Duration:{r}    {}", duration_str);
     eprintln!("{d}{bar}{r}");
 
-    #[cfg(unix)]
-    unsafe {
-        nix::libc::_exit(0);
-    }
-
-    #[cfg(windows)]
     std::process::exit(0);
 }
