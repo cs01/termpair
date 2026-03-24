@@ -71,8 +71,34 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-r
   font-size: 1.1rem;
   color: var(--text);
   letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
 }
 .logo:hover { opacity: 0.8; text-decoration: none; }
+
+.logo-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  animation: logo-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.logo-text {
+  display: inline-block;
+  animation: logo-slide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+@keyframes logo-pop {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes logo-slide {
+  from { transform: translateX(-1rem); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
 
 .topbar-right {
   display: flex;
@@ -133,9 +159,11 @@ code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace
 .copy-btn {
   position: absolute; top: 0.5rem; right: 0.5rem;
   background: var(--border); border: none; border-radius: 4px;
-  color: var(--text-muted); cursor: pointer; padding: 0.25rem 0.5rem;
-  font-size: 0.875rem; line-height: 1;
+  color: var(--text-muted); cursor: pointer; padding: 0.35rem 0.5rem;
+  font-size: 0.75rem; line-height: 1;
+  display: flex; align-items: center; gap: 0.3rem;
 }
+.copy-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .copy-btn:hover { color: var(--text); background: var(--accent); }
 p code { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.15rem 0.35rem; font-size: 0.85em; }
 kbd { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.1rem 0.4rem; font-size: 0.85em; font-family: inherit; }
@@ -349,6 +377,104 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   font-size: 0.9rem;
   color: var(--text-muted);
   font-weight: 400;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.hero-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.hero-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  animation: hero-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -1px;
+  font-family: 'Inter', 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  animation: hero-slide 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+.hero-tagline {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 32rem;
+  margin: 0 auto 1rem;
+  animation: hero-fade 0.6s ease 0.5s both;
+}
+
+@keyframes hero-pop {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes hero-slide {
+  from { transform: translateX(-1.5rem); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes hero-fade {
+  from { transform: translateY(0.5rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0;
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.feature-list li {
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.feature-list li::before {
+  content: "\2713";
+  position: absolute;
+  left: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.learn-more {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.callout {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-top: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 @keyframes toast-in {

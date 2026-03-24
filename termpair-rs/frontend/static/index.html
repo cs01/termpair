@@ -11,13 +11,12 @@
 </head>
 <body>
   <header id="topbar" role="banner">
-    <a href="./" class="logo" aria-label="TermPair home">TermPair</a>
+    <a href="./" class="logo" aria-label="TermPair home"><svg class="logo-icon" viewBox="0 0 56 56"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5ba3ff"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs><rect width="56" height="56" rx="12" fill="#151515" stroke="#2a2a2a" stroke-width="2"/><text x="28" y="40" font-size="30" text-anchor="middle" fill="url(#lg)" font-family="'SF Mono','Fira Code','Cascadia Code',Consolas,monospace" font-weight="bold">&gt;_</text></svg><span class="logo-text">TermPair</span></a>
     <div class="topbar-right">
       <select id="theme-select" aria-label="Theme">
         <option value="dark">Dark</option>
         <option value="light">Light</option>
       </select>
-      <span id="version"></span>
       <a href="https://github.com/cs01/termpair" aria-label="TermPair on GitHub">
         <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.463 2 11.97c0 4.404 2.865 8.14 6.839 9.458.5.092.682-.216.682-.48 0-.236-.008-.864-.013-1.695-2.782.602-3.369-1.337-3.369-1.337-.454-1.151-1.11-1.458-1.11-1.458-.908-.618.069-.606.069-.606 1.003.07 1.531 1.027 1.531 1.027.892 1.524 2.341 1.084 2.91.828.092-.643.35-1.083.636-1.332-2.22-.251-4.555-1.107-4.555-4.927 0-1.088.39-1.979 1.029-2.675-.103-.252-.446-1.266.098-2.638 0 0 .84-.268 2.75 1.022A9.606 9.606 0 0112 6.82c.85.004 1.705.114 2.504.336 1.909-1.29 2.747-1.022 2.747-1.022.546 1.372.202 2.386.1 2.638.64.696 1.028 1.587 1.028 2.675 0 3.83-2.339 4.673-4.566 4.92.359.307.678.915.678 1.846 0 1.332-.012 2.407-.012 2.734 0 .267.18.577.688.48C19.137 20.107 22 16.373 22 11.969 22 6.463 17.522 2 12 2z"/>
@@ -28,8 +27,17 @@
 
   <main id="app">
     <div id="landing" class="content">
-      <h1>Welcome to TermPair</h1>
-      <p>Securely share terminals in real-time with end-to-end encryption. The server acts as a blind relay &mdash; it routes encrypted WebSocket messages but never sees your data. Encryption keys are exchanged via the URL hash fragment, which is never sent to the server.</p>
+      <div class="hero">
+        <div class="hero-logo-wrap">
+          <svg class="hero-icon" viewBox="0 0 56 56" aria-hidden="true">
+            <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5ba3ff"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs>
+            <rect width="56" height="56" rx="12" fill="#151515" stroke="#2a2a2a" stroke-width="2"/>
+            <text x="28" y="40" font-size="30" text-anchor="middle" fill="url(#g)" font-family="'SF Mono','Fira Code','Cascadia Code',Consolas,monospace" font-weight="bold">&gt;_</text>
+          </svg>
+          <span class="hero-title">TermPair</span>
+        </div>
+        <p class="hero-tagline">View and control remote terminals from your browser with end-to-end encryption</p>
+      </div>
 
       <div id="secure-warning" class="warning" role="alert" style="display:none">
         <strong>Error:</strong> TermPair requires a secure context (HTTPS or localhost).
@@ -64,16 +72,16 @@
 
       <section id="quickstart" aria-labelledby="install-heading">
         <h2 id="install-heading">Install</h2>
-        <div class="code-block"><pre><code>curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | sh</code></pre><button class="copy-btn" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent.trim());this.textContent='Copied!';setTimeout(()=>this.textContent='\u2398',1500)" title="Copy to clipboard">&#x2398;</button></div>
+        <div class="code-block"><pre><code>curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | sh</code></pre><button class="copy-btn" onclick="var b=this;navigator.clipboard.writeText(b.previousElementSibling.textContent.trim());b.innerHTML='Copied!';setTimeout(function(){b.innerHTML='<svg viewBox=&quot;0 0 24 24&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot;/><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;/></svg>Copy'},1500)" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
         <p>Or download a binary from <a href="https://github.com/cs01/termpair/releases">GitHub Releases</a>. Available for Linux, macOS, and Windows.</p>
       </section>
 
       <section aria-labelledby="share-heading">
         <h2 id="share-heading">Share a Terminal</h2>
         <p>Share publicly (anyone can watch):</p>
-        <pre><code id="share-command-public"></code></pre>
+        <div class="code-block"><pre><code id="share-command-public"></code></pre><button class="copy-btn" onclick="var b=this;navigator.clipboard.writeText(b.previousElementSibling.textContent.trim());b.innerHTML='Copied!';setTimeout(function(){b.innerHTML='<svg viewBox=&quot;0 0 24 24&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot;/><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;/></svg>Copy'},1500)" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
         <p>Share privately (end-to-end encrypted):</p>
-        <pre><code id="share-command"></code></pre>
+        <div class="code-block"><pre><code id="share-command"></code></pre><button class="copy-btn" onclick="var b=this;navigator.clipboard.writeText(b.previousElementSibling.textContent.trim());b.innerHTML='Copied!';setTimeout(function(){b.innerHTML='<svg viewBox=&quot;0 0 24 24&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot;/><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;/></svg>Copy'},1500)" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
         <p>This opens a new shell session. Everything you type is encrypted and broadcast to connected browsers. Press <kbd>Ctrl+D</kbd> or type <code>exit</code> to stop sharing.</p>
       </section>
 
@@ -88,6 +96,27 @@
           <button type="submit">Connect</button>
         </form>
       </section>
+
+      <hr class="divider">
+
+      <section aria-labelledby="features-heading">
+        <h2 id="features-heading">Features</h2>
+        <ul class="feature-list">
+          <li>End-to-end encrypted with AES-128-GCM &mdash; the server never sees plaintext</li>
+          <li>Share terminals in real time (Linux, macOS, Windows)</li>
+          <li>Type from the terminal or browser; both are kept in sync</li>
+          <li>Multiple browsers can connect simultaneously</li>
+          <li>Read-only or read-write browser permissions</li>
+          <li>Single static binary with frontend embedded, no runtime dependencies</li>
+          <li>Automatic reconnection on server restarts</li>
+        </ul>
+      </section>
+
+      <p class="learn-more">Learn more about the architecture and encryption on <a href="https://github.com/cs01/termpair">GitHub</a>.</p>
+
+      <div class="callout">
+        Sharing Claude Code? Try <a href="https://chadsmith.dev/sharemyclaude/">Share My Claude</a> &mdash; built on TermPair, with a public relay so you can share instantly.
+      </div>
     </div>
 
     <div id="terminal-view" style="display:none">

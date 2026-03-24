@@ -3,8 +3,6 @@
 <br><br>
 View and control remote terminals from your browser with end-to-end encryption
 <br><br>
-<a href="https://github.com/cs01/termpair/actions/workflows/ci.yml">
-<img src="https://github.com/cs01/termpair/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
 </p>
 
 <p align="center">
