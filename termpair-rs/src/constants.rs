@@ -1,4 +1,4 @@
-pub const TERMPAIR_VERSION: &str = "1.1.1";
+pub const TERMPAIR_VERSION: &str = "1.2.0";
 pub const SUBPROTOCOL_VERSION: &str = "4";
 pub const MAX_READ_BYTES: usize = 2048;
 pub const IV_LENGTH: usize = 12;

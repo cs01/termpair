@@ -434,10 +434,17 @@ async fn handle_browser_ws_inner(socket: WebSocket, terminal_id: String, termina
         match msg {
             Message::Text(text) => {
                 if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
-                    if ws_msg.event == "command" && !terminal.allow_browser_control {
-                        continue;
+                    match ws_msg.event.as_str() {
+                        "chat" => {
+                            let _ = terminal.broadcast_tx.send(text.to_string());
+                        }
+                        "command" if !terminal.allow_browser_control => {
+                            continue;
+                        }
+                        _ => {
+                            let _ = terminal.terminal_tx.send(text.to_string()).await;
+                        }
                     }
-                    let _ = terminal.terminal_tx.send(text.to_string()).await;
                 }
             }
             Message::Close(_) => break,

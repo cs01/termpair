@@ -1,6 +1,6 @@
 "use strict";
 
-const TERMPAIR_VERSION = "1.1.1";
+const TERMPAIR_VERSION = "1.2.0";
 const IV_LENGTH = 12;
 
 const $ = (sel) => document.querySelector(sel);
@@ -96,6 +96,11 @@ const state = {
   terminalId: null,
   status: null,
   isPublic: false,
+  chatName: null,
+  chatOpen: false,
+  chatMessages: [],
+  chatUnread: 0,
+  chatIvCount: 0,
 };
 
 // ---- URL parsing ----
@@ -165,6 +170,15 @@ function showTerminal() {
   $id("landing").style.display = "none";
   $id("terminal-view").style.display = "flex";
   $id("status-bar").style.display = "flex";
+  $id("chat-toggle").style.display = "flex";
+  if (!state.chatName) {
+    state.chatName = generateChatName();
+    $id("chat-name").value = state.chatName;
+  }
+  $id("chat-name").addEventListener("change", function() {
+    state.chatName = this.value.trim() || generateChatName();
+    this.value = state.chatName;
+  });
 }
 
 // ---- Terminal setup ----
@@ -203,6 +217,9 @@ async function handleMessage(data) {
       break;
     case "aes_key_rotation":
       await handleKeyRotation(data);
+      break;
+    case "chat":
+      await handleChatMessage(data);
       break;
     case "error":
       toast("Error: " + (data.payload || "unknown"));
@@ -265,7 +282,7 @@ async function handleAesKeys(data) {
 
     const unixKeyEncrypted = base64ToBytes(data.payload.b64_bootstrap_unix_aes_key);
     const unixKeyRaw = await aesDecrypt(bootstrapKey, unixKeyEncrypted);
-    state.aesKeys.unix = await importAesKey(unixKeyRaw, ["decrypt"]);
+    state.aesKeys.unix = await importAesKey(unixKeyRaw, ["encrypt", "decrypt"]);
 
     const browserKeyEncrypted = base64ToBytes(data.payload.b64_bootstrap_browser_aes_key);
     const browserKeyRaw = await aesDecrypt(bootstrapKey, browserKeyEncrypted);
@@ -291,7 +308,7 @@ async function handleKeyRotation(data) {
       state.aesKeys.unix,
       base64ToBytes(data.payload.b64_aes_secret_browser_key)
     );
-    state.aesKeys.unix = await importAesKey(newUnixRaw, ["decrypt"]);
+    state.aesKeys.unix = await importAesKey(newUnixRaw, ["encrypt", "decrypt"]);
     state.aesKeys.browser = await importAesKey(newBrowserRaw, ["encrypt"]);
     state.aesKeys.ivCount = parseInt(data.payload.iv_count, 10) || 0;
     state.aesKeys.maxIvCount = parseInt(data.payload.max_iv_count, 10) || state.aesKeys.maxIvCount;
@@ -368,6 +385,108 @@ function formatElapsed(ms) {
   if (m < 60) return `${m}m ${s % 60}s`;
   const h = Math.floor(m / 60);
   return `${h}h ${m % 60}m`;
+}
+
+// ---- Chat ----
+
+const CHAT_ADJECTIVES = ["brave","calm","clever","cosmic","daring","eager","fierce","golden","keen","lively","mighty","noble","quick","sharp","swift","vivid","warm","wild","wise","steady"];
+const CHAT_NOUNS = ["aurora","badger","canyon","comet","crane","eagle","falcon","fox","glacier","hawk","jade","lark","luna","maple","nebula","oak","otter","raven","sage","wolf"];
+const CHAT_IV_OFFSET = 10000000;
+const CHAT_MAX_MESSAGES = 200;
+
+function generateChatName() {
+  var adj = CHAT_ADJECTIVES[Math.floor(Math.random() * CHAT_ADJECTIVES.length)];
+  var noun = CHAT_NOUNS[Math.floor(Math.random() * CHAT_NOUNS.length)];
+  return adj + "-" + noun;
+}
+
+function toggleChat() {
+  state.chatOpen = !state.chatOpen;
+  var sidebar = $id("chat-sidebar");
+  var toggle = $id("chat-toggle");
+  if (state.chatOpen) {
+    sidebar.style.display = "flex";
+    state.chatUnread = 0;
+    $id("chat-badge").style.display = "none";
+    var input = $id("chat-input");
+    setTimeout(function() { input.focus(); }, 100);
+  } else {
+    sidebar.style.display = "none";
+  }
+}
+
+async function handleChatMessage(data) {
+  var chatData;
+  if (state.isPublic) {
+    chatData = data.payload;
+  } else {
+    if (!state.aesKeys.unix) return;
+    try {
+      var encrypted = base64ToBytes(data.payload);
+      var decrypted = await aesDecrypt(state.aesKeys.unix, encrypted);
+      chatData = JSON.parse(new TextDecoder().decode(decrypted));
+    } catch (e) {
+      console.error("chat decrypt error:", e);
+      return;
+    }
+  }
+  if (!chatData || !chatData.message) return;
+  var isSelf = chatData.sender === state.chatName;
+  state.chatMessages.push(chatData);
+  if (state.chatMessages.length > CHAT_MAX_MESSAGES) {
+    state.chatMessages.shift();
+    var el = $id("chat-messages").firstChild;
+    if (el) el.remove();
+  }
+  renderChatMessage(chatData, isSelf);
+  if (!state.chatOpen) {
+    state.chatUnread++;
+    var badge = $id("chat-badge");
+    badge.textContent = state.chatUnread > 99 ? "99+" : state.chatUnread;
+    badge.style.display = "flex";
+  }
+}
+
+function renderChatMessage(msg, isSelf) {
+  var container = $id("chat-messages");
+  var div = document.createElement("div");
+  div.className = "chat-msg" + (isSelf ? " self" : "");
+  var time = new Date(msg.timestamp);
+  var timeStr = time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0");
+  div.innerHTML = '<div class="chat-sender">' + escapeHtml(msg.sender) + '</div><div class="chat-text">' + escapeHtml(msg.message) + '</div><div class="chat-time">' + timeStr + '</div>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(str) {
+  var div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function sendChatMessage(text) {
+  if (!state.ws || !text.trim()) return;
+  var payload = { sender: state.chatName, message: text.trim(), timestamp: Date.now() };
+  var msg;
+  if (state.isPublic) {
+    msg = JSON.stringify({ event: "chat", payload: payload });
+  } else {
+    if (!state.aesKeys.unix) return;
+    state.chatIvCount++;
+    var encrypted = await aesEncrypt(state.aesKeys.unix, JSON.stringify(payload), CHAT_IV_OFFSET + state.chatIvCount);
+    msg = JSON.stringify({ event: "chat", payload: encrypted });
+  }
+  state.ws.send(msg);
+}
+
+function handleChatSubmit(e) {
+  e.preventDefault();
+  var input = $id("chat-input");
+  if (input.value.trim()) {
+    sendChatMessage(input.value);
+    input.value = "";
+  }
+  return false;
 }
 
 // ---- Connection ----
