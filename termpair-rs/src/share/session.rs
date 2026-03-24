@@ -742,7 +742,7 @@ async fn run_parent(
                         }
                     }
                 }
-                _ = &mut ws_recv_handle => {
+                _ = &mut ws_recv_handle, if !ws_recv_handle.is_finished() => {
                     ws_disconnected = true;
                     if !pty_alive.load(Ordering::Relaxed) {
                         break;
