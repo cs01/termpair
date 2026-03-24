@@ -34,7 +34,7 @@ Installs to `~/.local/bin`. Customize with environment variables:
 
 ```
 INSTALL_DIR=/usr/local/bin sh    # custom install directory
-VERSION=v1.1.0 sh               # specific version
+VERSION=v1.1.1 sh               # specific version
 ```
 
 ### GitHub Releases
