@@ -1,6 +1,6 @@
 "use strict";
 
-const TERMPAIR_VERSION = "1.0.0";
+const TERMPAIR_VERSION = "1.1.0";
 const IV_LENGTH = 12;
 
 const $ = (sel) => document.querySelector(sel);
