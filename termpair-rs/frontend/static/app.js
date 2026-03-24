@@ -558,8 +558,6 @@ setInterval(fetchSessions, 5000);
 // ---- Init ----
 
 function init() {
-  $id("version").textContent = `v${TERMPAIR_VERSION}`;
-
   const baseUrl = getServerBaseUrl();
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
   const host = `${window.location.protocol}//${window.location.hostname}`;

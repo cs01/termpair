@@ -17,7 +17,6 @@
         <option value="dark">Dark</option>
         <option value="light">Light</option>
       </select>
-      <span id="version"></span>
       <a href="https://github.com/cs01/termpair" aria-label="TermPair on GitHub">
         <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.463 2 11.97c0 4.404 2.865 8.14 6.839 9.458.5.092.682-.216.682-.48 0-.236-.008-.864-.013-1.695-2.782.602-3.369-1.337-3.369-1.337-.454-1.151-1.11-1.458-1.11-1.458-.908-.618.069-.606.069-.606 1.003.07 1.531 1.027 1.531 1.027.892 1.524 2.341 1.084 2.91.828.092-.643.35-1.083.636-1.332-2.22-.251-4.555-1.107-4.555-4.927 0-1.088.39-1.979 1.029-2.675-.103-.252-.446-1.266.098-2.638 0 0 .84-.268 2.75 1.022A9.606 9.606 0 0112 6.82c.85.004 1.705.114 2.504.336 1.909-1.29 2.747-1.022 2.747-1.022.546 1.372.202 2.386.1 2.638.64.696 1.028 1.587 1.028 2.675 0 3.83-2.339 4.673-4.566 4.92.359.307.678.915.678 1.846 0 1.332-.012 2.407-.012 2.734 0 .267.18.577.688.48C19.137 20.107 22 16.373 22 11.969 22 6.463 17.522 2 12 2z"/>
@@ -28,8 +27,15 @@
 
   <main id="app">
     <div id="landing" class="content">
-      <h1>Welcome to TermPair</h1>
-      <p>Securely share terminals in real-time with end-to-end encryption. The server acts as a blind relay &mdash; it routes encrypted WebSocket messages but never sees your data. Encryption keys are exchanged via the URL hash fragment, which is never sent to the server.</p>
+      <div class="hero">
+        <svg class="hero-logo" viewBox="0 0 400 80" aria-label="TermPair">
+          <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5ba3ff"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs>
+          <rect x="4" y="10" width="56" height="56" rx="12" fill="#151515" stroke="#2a2a2a" stroke-width="2"/>
+          <text x="32" y="52" font-size="36" text-anchor="middle" fill="url(#g)" font-family="'SF Mono','Fira Code','Cascadia Code',Consolas,monospace" font-weight="bold">&gt;_</text>
+          <text x="80" y="52" font-size="44" fill="currentColor" font-family="'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif" font-weight="700" letter-spacing="-1">TermPair</text>
+        </svg>
+        <p class="hero-tagline">View and control remote terminals from your browser with end-to-end encryption</p>
+      </div>
 
       <div id="secure-warning" class="warning" role="alert" style="display:none">
         <strong>Error:</strong> TermPair requires a secure context (HTTPS or localhost).
@@ -87,6 +93,48 @@
           <input type="text" id="input-secret-key" placeholder="e.g. xK7mN2pQ9vR1tY4w8bF3cA" autocomplete="off">
           <button type="submit">Connect</button>
         </form>
+      </section>
+
+      <hr class="divider">
+
+      <section aria-labelledby="features-heading">
+        <h2 id="features-heading">Features</h2>
+        <ul class="feature-list">
+          <li>End-to-end encrypted with AES-128-GCM &mdash; the server never sees plaintext</li>
+          <li>Share terminals in real time (Linux, macOS, Windows)</li>
+          <li>Type from the terminal or browser; both are kept in sync</li>
+          <li>Multiple browsers can connect simultaneously</li>
+          <li>Read-only or read-write browser permissions</li>
+          <li>Single static binary with frontend embedded, no runtime dependencies</li>
+          <li>Automatic reconnection on server restarts</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="arch-heading">
+        <h2 id="arch-heading">Architecture</h2>
+        <pre class="arch-diagram"><code>┌─────────────────┐                                    ┌─────────────────┐
+│                 │    encrypted terminal output        │                 │
+│  Terminal       │───────────────────────────────────▶│  Browser(s)     │
+│  (termpair      │         ┌───────────────┐          │  (xterm.js +    │
+│   share)        │◀────────│  Server       │─────────▶│   Web Crypto)   │
+│                 │         │  (blind relay) │          │                 │
+│  - forks pty    │    encrypted browser input          │  - decrypts     │
+│  - encrypts I/O │         │  never sees   │          │    output       │
+│  - manages keys │         │  plaintext    │          │  - encrypts     │
+│                 │         └───────────────┘          │    input        │
+└─────────────────┘                                    └─────────────────┘</code></pre>
+        <p>The server is a blind relay &mdash; it routes encrypted WebSocket messages without access to keys or plaintext. The terminal client forks a PTY, encrypts all output with AES-128-GCM, and decrypts browser input. Browsers decrypt and render with <a href="https://xtermjs.org/">xterm.js</a> + <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API">Web Crypto API</a>.</p>
+      </section>
+
+      <section aria-labelledby="encryption-heading">
+        <h2 id="encryption-heading">Encryption</h2>
+        <p>Three AES-128-GCM keys are created per session:</p>
+        <ol class="encryption-list">
+          <li><strong>Output key</strong> &mdash; encrypts terminal output before sending to the server</li>
+          <li><strong>Input key</strong> &mdash; encrypts browser input before sending to the server</li>
+          <li><strong>Bootstrap key</strong> &mdash; delivered via the URL hash fragment (never sent to the server), used to securely exchange the output and input keys</li>
+        </ol>
+        <p>Keys are rotated after 2<sup>20</sup> messages. IVs are monotonic counters to prevent reuse.</p>
       </section>
     </div>
 

@@ -351,6 +351,78 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   font-weight: 400;
 }
 
+.hero {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.hero-logo {
+  width: min(320px, 80%);
+  height: auto;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.hero-tagline {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 32rem;
+  margin: 0 auto 1rem;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0;
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.feature-list li {
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.feature-list li::before {
+  content: "\2713";
+  position: absolute;
+  left: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.arch-diagram {
+  font-size: 0.7rem;
+  line-height: 1.3;
+  overflow-x: auto;
+}
+
+.encryption-list {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.encryption-list li {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.encryption-list li strong {
+  color: var(--text);
+}
+
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(0.5rem); }
   to { opacity: 1; transform: translateY(0); }
