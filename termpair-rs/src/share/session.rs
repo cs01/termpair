@@ -694,5 +694,11 @@ async fn run_parent(
     eprintln!("Session ended after {duration_str} ({reason}).");
     eprintln!("{d}{bar}{r}");
 
-    unsafe { nix::libc::_exit(0) };
+    #[cfg(unix)]
+    unsafe {
+        nix::libc::_exit(0);
+    }
+
+    #[cfg(windows)]
+    std::process::exit(0);
 }
