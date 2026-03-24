@@ -332,7 +332,7 @@ async fn run_parent(
 
     let open_url = if is_public {
         let public_url = format!("{}s/{}", url, terminal_id);
-        eprintln!("\x1b[1;31m\u{25cf} Public session{r}");
+        eprintln!("\x1b[1;31m\u{25cf} Public Share My Claude session{r}");
         eprintln!();
         eprintln!("  {d}Link:{r}       \x1b[4m{}{r}", public_url);
         eprintln!("  {d}Encryption:{r} none");
@@ -341,7 +341,7 @@ async fn run_parent(
     } else {
         let secret_key_b64url = BASE64URL.encode(&aes_keys.bootstrap_key);
         let share_url = format!("{}s/{}#{}", url, terminal_id, secret_key_b64url);
-        eprintln!("\x1b[1;33m\u{25cf} Private session{r}");
+        eprintln!("\x1b[1;33m\u{25cf} Private Share My Claude session{r}");
         eprintln!();
         eprintln!("  {d}Link:{r}       \x1b[4m{}{r}", share_url);
         eprintln!("  {d}Encryption:{r} AES-128-GCM {d}(key is in the URL fragment){r}");
@@ -680,7 +680,8 @@ async fn run_parent(
     );
     eprintln!();
     eprintln!("{d}{bar}{r}");
-    eprintln!("\x1b[1;33m✦ Share My Claude session ended{r}");
+    let session_type = if is_public { "Public" } else { "Private" };
+    eprintln!("\x1b[1;33m✦ {session_type} Share My Claude session ended{r}");
     eprintln!("  {d}Session ID:{r}  {}", terminal_id);
     eprintln!("  {d}Duration:{r}    {}", duration_str);
     eprintln!("{d}{bar}{r}");
