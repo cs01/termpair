@@ -71,8 +71,34 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-r
   font-size: 1.1rem;
   color: var(--text);
   letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
 }
 .logo:hover { opacity: 0.8; text-decoration: none; }
+
+.logo-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  animation: logo-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.logo-text {
+  display: inline-block;
+  animation: logo-slide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+@keyframes logo-pop {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes logo-slide {
+  from { transform: translateX(-1rem); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
 
 .topbar-right {
   display: flex;
