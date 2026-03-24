@@ -152,10 +152,10 @@ function loadXtermAssets() {
     if (window.Terminal) { resolve(); return; }
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "xterm.min.css";
+    link.href = "/xterm.min.css";
     document.head.appendChild(link);
     const script = document.createElement("script");
-    script.src = "xterm.min.js";
+    script.src = "/xterm.min.js";
     script.onload = resolve;
     document.body.appendChild(script);
   });
