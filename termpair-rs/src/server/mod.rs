@@ -57,6 +57,30 @@ fn resolve_static(static_dir: &Option<Arc<PathBuf>>, filename: &str) -> Option<(
     })
 }
 
+fn inject_theme_into_html(html: Vec<u8>, theme_config: &serde_json::Value) -> Vec<u8> {
+    if theme_config.get("name").and_then(|v| v.as_str()) == Some("termpair") {
+        return html;
+    }
+    let html_str = String::from_utf8_lossy(&html);
+    let json = serde_json::to_string(theme_config).unwrap_or_default();
+    let encoded = json.replace('&', "&amp;").replace('"', "&quot;");
+    let meta = format!(
+        "<meta name=\"termpair-theme\" content=\"{}\">",
+        encoded
+    );
+    let injected = html_str.replace("</head>", &format!("{}</head>", meta));
+    injected.into_bytes()
+}
+
+fn serve_with_theme(mime: String, data: Vec<u8>, theme: &serde_json::Value) -> axum::response::Response {
+    if mime.contains("html") {
+        let injected = inject_theme_into_html(data, theme);
+        ([(header::CONTENT_TYPE, mime)], injected).into_response()
+    } else {
+        ([(header::CONTENT_TYPE, mime)], data).into_response()
+    }
+}
+
 async fn serve_frontend(
     State(state): State<AppState>,
     uri: axum::http::Uri,
@@ -65,17 +89,17 @@ async fn serve_frontend(
     let path = if path.is_empty() { "index.html" } else { path };
 
     if let Some((mime, data)) = resolve_static(&state.static_dir, path) {
-        return ([(header::CONTENT_TYPE, mime)], data).into_response();
+        return serve_with_theme(mime, data, &state.theme_config);
     }
 
     if let Some(sub) = path.strip_prefix("s/") {
         if let Some((mime, data)) = resolve_static(&state.static_dir, sub) {
-            return ([(header::CONTENT_TYPE, mime)], data).into_response();
+            return serve_with_theme(mime, data, &state.theme_config);
         }
     }
 
     if let Some((mime, data)) = resolve_static(&state.static_dir, "index.html") {
-        return ([(header::CONTENT_TYPE, mime)], data).into_response();
+        return serve_with_theme(mime, data, &state.theme_config);
     }
 
     axum::http::StatusCode::NOT_FOUND.into_response()
@@ -87,11 +111,11 @@ async fn serve_index(
 ) -> impl axum::response::IntoResponse {
     if terminal_id.contains('.') && !terminal_id.contains("..") && !terminal_id.contains('/') {
         if let Some((mime, data)) = resolve_static(&state.static_dir, &terminal_id) {
-            return ([(header::CONTENT_TYPE, mime)], data).into_response();
+            return serve_with_theme(mime, data, &state.theme_config);
         }
     }
     match resolve_static(&state.static_dir, "index.html") {
-        Some((mime, data)) => ([(header::CONTENT_TYPE, mime)], data).into_response(),
+        Some((mime, data)) => serve_with_theme(mime, data, &state.theme_config),
         None => axum::http::StatusCode::NOT_FOUND.into_response(),
     }
 }

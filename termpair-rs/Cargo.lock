@@ -1895,6 +1895,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "shell-words",
+ "subtle",
  "tokio",
  "tokio-tungstenite 0.26.2",
  "tower-http",

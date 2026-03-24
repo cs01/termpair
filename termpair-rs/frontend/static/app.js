@@ -685,13 +685,12 @@ setInterval(fetchSessions, 5000);
 
 // ---- Init ----
 
-async function applyThemeConfig() {
+function applyThemeConfig() {
   try {
-    const baseUrl = getServerBaseUrl();
-    const resp = await fetch(`${baseUrl}api/theme`);
-    if (!resp.ok) return;
-    var cfg = await resp.json();
-    if (cfg.name === "termpair") return;
+    var meta = document.querySelector('meta[name="termpair-theme"]');
+    if (!meta) return;
+    var cfg = JSON.parse(meta.getAttribute("content"));
+    if (!cfg || cfg.name === "termpair") return;
 
     if (cfg.cssVars) {
       var root = document.documentElement;
@@ -740,8 +739,8 @@ async function applyThemeConfig() {
   }
 }
 
-async function init() {
-  await applyThemeConfig();
+function init() {
+  applyThemeConfig();
 
   const baseUrl = getServerBaseUrl().replace(/\/$/, "");
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
