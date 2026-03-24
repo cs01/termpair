@@ -5,6 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use serde_json::json;
 use std::io::{Read, Write};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
@@ -182,10 +183,11 @@ pub async fn broadcast_terminal(opts: ShareOptions) -> Result<(), String> {
     } = opts;
     let (rows, cols) = get_terminal_size();
 
+    let pty_rows = rows.saturating_sub(1).max(1);
     let pty_system = native_pty_system();
     let pair = pty_system
         .openpty(PtySize {
-            rows,
+            rows: pty_rows,
             cols,
             pixel_width: 0,
             pixel_height: 0,
@@ -273,11 +275,12 @@ async fn run_parent(
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
     let mut aes_keys = AesKeys::new();
-    let mut num_browsers: u64 = 0;
+    let num_browsers = Arc::new(AtomicU64::new(0));
+    let pty_rows = rows.saturating_sub(1).max(1);
 
     let now = chrono::Utc::now().to_rfc3339();
     let init_msg = json!({
-        "rows": rows,
+        "rows": pty_rows,
         "cols": cols,
         "allow_browser_control": allow_browser_control,
         "command": cmd.join(" "),
@@ -366,7 +369,14 @@ async fn run_parent(
     let _raw_guard =
         raw_mode::RawModeGuard::enter().map_err(|e| format!("failed to set raw mode: {}", e))?;
 
+    {
+        let mut stdout = std::io::stdout().lock();
+        let _ = write!(stdout, "\x1b[2J\x1b[H");
+        let _ = stdout.flush();
+    }
+
     let start_time = std::time::Instant::now();
+
     let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<String>(256);
 
     let outgoing_tx_pty = outgoing_tx.clone();
@@ -437,15 +447,16 @@ async fn run_parent(
         tokio::spawn(async move {
             while sigwinch.recv().await.is_some() {
                 let (rows, cols) = get_terminal_size();
+                let pty_rows = rows.saturating_sub(1).max(1);
                 if let Ok(m) = master_resize.lock() {
                     let _ = m.resize(PtySize {
-                        rows,
+                        rows: pty_rows,
                         cols,
                         pixel_width: 0,
                         pixel_height: 0,
                     });
                 }
-                let msg = json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
+                let msg = json!({"event": "resize", "payload": {"rows": pty_rows, "cols": cols}});
                 let _ = outgoing_tx_resize.send(msg.to_string()).await;
             }
         })
@@ -463,15 +474,17 @@ async fn run_parent(
                 if current != last_size {
                     last_size = current;
                     let (rows, cols) = current;
+                    let pty_rows = rows.saturating_sub(1).max(1);
                     if let Ok(m) = master_resize.lock() {
                         let _ = m.resize(PtySize {
-                            rows,
+                            rows: pty_rows,
                             cols,
                             pixel_width: 0,
                             pixel_height: 0,
                         });
                     }
-                    let msg = json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
+                    let msg =
+                        json!({"event": "resize", "payload": {"rows": pty_rows, "cols": cols}});
                     let _ = outgoing_tx_resize.send(msg.to_string()).await;
                 }
             }
@@ -572,16 +585,16 @@ async fn run_parent(
                         }
                         "request_terminal_dimensions" => {
                             let (rows, cols) = get_terminal_size();
+                            let pty_rows = rows.saturating_sub(1).max(1);
                             if let Ok(m) = master_for_resize.lock() {
                                 let _ = m.resize(PtySize {
-                                    rows,
+                                    rows: pty_rows,
                                     cols,
                                     pixel_width: 0,
                                     pixel_height: 0,
                                 });
                             }
-                            let resize_msg =
-                                json!({"event": "resize", "payload": {"rows": rows, "cols": cols}});
+                            let resize_msg = json!({"event": "resize", "payload": {"rows": pty_rows, "cols": cols}});
                             let _ = ws_tx
                                 .send(tokio_tungstenite::tungstenite::Message::Text(
                                     resize_msg.to_string().into(),
@@ -601,9 +614,8 @@ async fn run_parent(
                         }
                         "new_browser_connected" => {
                             if !is_public {
-                                num_browsers += 1;
-                                if let Ok(keys_msg) = aes_keys.build_aes_keys_message(num_browsers)
-                                {
+                                let count = num_browsers.load(Ordering::Relaxed).max(1);
+                                if let Ok(keys_msg) = aes_keys.build_aes_keys_message(count) {
                                     let _ = ws_tx
                                         .send(tokio_tungstenite::tungstenite::Message::Text(
                                             keys_msg.into(),
@@ -619,6 +631,11 @@ async fn run_parent(
                                     pixel_width: 0,
                                     pixel_height: 0,
                                 });
+                            }
+                        }
+                        "num_clients" => {
+                            if let Some(n) = parsed["payload"].as_u64() {
+                                num_browsers.store(n, Ordering::Relaxed);
                             }
                         }
                         "fatal_error" => {
@@ -648,9 +665,13 @@ async fn run_parent(
     stdin_task.abort();
     resize_task.abort();
 
-    let _ = std::io::stdout().flush();
+    {
+        let (rows, _) = get_terminal_size();
+        let mut stdout = std::io::stdout();
+        let _ = write!(stdout, "\x1b[r\x1b[{};1H\x1b[2K", rows);
+        let _ = stdout.flush();
+    }
     let _ = std::io::stderr().flush();
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
     drop(_raw_guard);
 
@@ -672,5 +693,6 @@ async fn run_parent(
     eprintln!("{d}{bar}{r}");
     eprintln!("Session ended after {duration_str} ({reason}).");
     eprintln!("{d}{bar}{r}");
-    Ok(())
+
+    std::process::exit(0);
 }
