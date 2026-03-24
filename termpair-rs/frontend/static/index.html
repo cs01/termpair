@@ -72,16 +72,16 @@
 
       <section id="quickstart" aria-labelledby="install-heading">
         <h2 id="install-heading">Install</h2>
-        <div class="code-block"><pre><code>curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | sh</code></pre><button class="copy-btn" onclick="var b=this;navigator.clipboard.writeText(b.previousElementSibling.textContent.trim());b.innerHTML='Copied!';setTimeout(function(){b.innerHTML='<svg viewBox=&quot;0 0 24 24&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot;/><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;/></svg>Copy'},1500)" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
+        <div class="code-block"><pre><code>curl -fsSL https://raw.githubusercontent.com/cs01/termpair/main/install.sh | sh</code></pre><button class="copy-btn" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
         <p>Or download a binary from <a href="https://github.com/cs01/termpair/releases">GitHub Releases</a>. Available for Linux, macOS, and Windows.</p>
       </section>
 
       <section aria-labelledby="share-heading">
         <h2 id="share-heading">Share a Terminal</h2>
         <p>Share publicly (anyone can watch):</p>
-        <div class="code-block"><pre><code id="share-command-public"></code></pre><button class="copy-btn" onclick="var b=this;navigator.clipboard.writeText(b.previousElementSibling.textContent.trim());b.innerHTML='Copied!';setTimeout(function(){b.innerHTML='<svg viewBox=&quot;0 0 24 24&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot;/><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;/></svg>Copy'},1500)" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
+        <div class="code-block"><pre><code id="share-command-public"></code></pre><button class="copy-btn" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
         <p>Share privately (end-to-end encrypted):</p>
-        <div class="code-block"><pre><code id="share-command"></code></pre><button class="copy-btn" onclick="var b=this;navigator.clipboard.writeText(b.previousElementSibling.textContent.trim());b.innerHTML='Copied!';setTimeout(function(){b.innerHTML='<svg viewBox=&quot;0 0 24 24&quot;><rect x=&quot;9&quot; y=&quot;9&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;2&quot;/><path d=&quot;M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1&quot;/></svg>Copy'},1500)" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
+        <div class="code-block"><pre><code id="share-command"></code></pre><button class="copy-btn" title="Copy to clipboard"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
         <p>This opens a new shell session. Everything you type is encrypted and broadcast to connected browsers. Press <kbd>Ctrl+D</kbd> or type <code>exit</code> to stop sharing.</p>
       </section>
 
@@ -127,10 +127,10 @@
         <div id="chat-header">
           <span>Chat</span>
           <input id="chat-name" placeholder="Your name" maxlength="20" autocomplete="off">
-          <button class="chat-minimize" onclick="window.toggleChat()" aria-label="Minimize chat">&#x25BC;</button>
+          <button class="chat-minimize" id="chat-minimize-btn" aria-label="Minimize chat">&#x25BC;</button>
         </div>
         <div id="chat-messages"></div>
-        <form id="chat-form" onsubmit="return window.handleChatSubmit(event)">
+        <form id="chat-form">
           <input id="chat-input" placeholder="Type a message..." maxlength="500" autocomplete="off">
           <button type="submit" aria-label="Send">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -139,7 +139,7 @@
       </div>
     </div>
 
-    <div id="chat-bar" style="display:none" onclick="window.toggleChat()">
+    <div id="chat-bar" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Chat <span id="chat-badge" style="display:none">0</span>
     </div>

@@ -784,6 +784,25 @@ async function init() {
     sel.value = saved;
     sel.addEventListener("change", (e) => { setTheme(e.target.value); });
   }
+
+  var copyIcon = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy';
+  document.querySelectorAll(".copy-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var text = btn.previousElementSibling.textContent.trim();
+      navigator.clipboard.writeText(text);
+      btn.innerHTML = "Copied!";
+      setTimeout(function() { btn.innerHTML = copyIcon; }, 1500);
+    });
+  });
+
+  var chatMinBtn = $id("chat-minimize-btn");
+  if (chatMinBtn) chatMinBtn.addEventListener("click", toggleChat);
+
+  var chatForm = $id("chat-form");
+  if (chatForm) chatForm.addEventListener("submit", handleChatSubmit);
+
+  var chatBar = $id("chat-bar");
+  if (chatBar) chatBar.addEventListener("click", toggleChat);
 }
 
 function setTheme(theme) {
@@ -796,8 +815,5 @@ function setTheme(theme) {
     state.xterm.options.theme = { background: bg, foreground: fg, cursor };
   }
 }
-
-window.toggleChat = toggleChat;
-window.handleChatSubmit = handleChatSubmit;
 
 document.addEventListener("DOMContentLoaded", init);
