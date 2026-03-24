@@ -256,12 +256,11 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 }
 
 #terminal {
-  border: 1px solid var(--border);
-  padding: 0.75rem;
+  padding: 0.5rem;
   background: var(--terminal-bg);
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 #bottombar {
@@ -514,7 +513,8 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #chat-sidebar {
   width: 320px;
-  min-width: 280px;
+  min-width: 320px;
+  flex-shrink: 0;
   background: var(--bg);
   border-left: 1px solid var(--border);
   display: flex;
@@ -613,14 +613,18 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #chat-form {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   gap: 0.4rem;
   padding: 0.5rem 0.75rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
+  align-items: center;
 }
 
 #chat-input {
   flex: 1;
+  min-width: 0;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
