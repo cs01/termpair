@@ -77,9 +77,9 @@
       <section aria-labelledby="share-heading">
         <h2 id="share-heading">Share a Terminal</h2>
         <p>Share publicly (anyone can watch):</p>
-        <pre><code id="share-command-public"></code></pre>
+        <div class="code-block"><pre><code id="share-command-public"></code></pre><button class="copy-btn" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent.trim());this.textContent='Copied!';setTimeout(()=>this.textContent='\u2398',1500)" title="Copy to clipboard">&#x2398;</button></div>
         <p>Share privately (end-to-end encrypted):</p>
-        <pre><code id="share-command"></code></pre>
+        <div class="code-block"><pre><code id="share-command"></code></pre><button class="copy-btn" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent.trim());this.textContent='Copied!';setTimeout(()=>this.textContent='\u2398',1500)" title="Copy to clipboard">&#x2398;</button></div>
         <p>This opens a new shell session. Everything you type is encrypted and broadcast to connected browsers. Press <kbd>Ctrl+D</kbd> or type <code>exit</code> to stop sharing.</p>
       </section>
 
