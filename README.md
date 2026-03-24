@@ -19,6 +19,7 @@ View and control remote terminals from your browser with end-to-end encryption
 * **Zero-knowledge sharing** -- your terminal is end-to-end encrypted (AES-128-GCM). The server is a blind relay that never sees your data.
 * **One command to share** -- run `termpair share`, send the link. Anyone with the link watches your terminal live in their browser.
 * **Let others type** -- viewers can type in your terminal from the browser, or set `--read-only` to keep them watching.
+* **Public or private** -- private sessions are encrypted and link-only. Public sessions (`--public`) are listed on the landing page for anyone to discover and watch.
 * **Survive server restarts** -- if the server goes down, both sides automatically reconnect and resume where they left off.
 * **Single binary, no deps** -- one static binary bundles the server, client, and web frontend. No Node, no Python, no Docker required.
 * **Works anywhere** -- Linux, macOS, Windows. Share any terminal app: your shell, vim, htop, Claude Code, anything with a TTY.
