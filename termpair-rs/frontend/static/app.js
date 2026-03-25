@@ -190,8 +190,7 @@ function showWelcomeBanner(xterm, terminalId) {
     xterm.writeln("");
     xterm.writeln("  " + bar);
     xterm.writeln("");
-    xterm.writeln("  \x1b[1;32m\u25cf Connected\x1b[0m with end-to-end encryption");
-    xterm.writeln("  \x1b[90mThe server cannot read any transmitted data.\x1b[0m");
+    xterm.writeln("  \x1b[1;32m\u25cf Connected\x1b[0m \x1b[90m\u2014 end-to-end encrypted\x1b[0m");
     xterm.writeln("");
     if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
     xterm.writeln("  \x1b[90m  access:   \x1b[0m" + mode);
@@ -291,6 +290,16 @@ async function handleMessage(data) {
     case "chat":
       await handleChatMessage(data);
       break;
+    case "session_ended":
+      state.sessionEnded = true;
+      setStatus("Session ended");
+      showBanner("Session has ended", "ended");
+      if (state.xterm) {
+        state.xterm.writeln("");
+        state.xterm.writeln("\x1b[1;31mSession has ended\x1b[0m");
+      }
+      $id("client-count").textContent = "";
+      break;
     case "error":
       toast("Error: " + (data.payload || "unknown"));
       break;
@@ -360,10 +369,12 @@ async function handleAesKeys(data) {
 
     state.aesKeys.ivCount = parseInt(data.payload.iv_count, 10);
     state.aesKeys.maxIvCount = parseInt(data.payload.max_iv_count, 10);
-    state.broadcastStarted = true;
-    hideBanner();
-    if (state.xterm) {
-      showWelcomeBanner(state.xterm, terminalId);
+    if (!state.broadcastStarted) {
+      state.broadcastStarted = true;
+      hideBanner();
+      if (state.xterm) {
+        showWelcomeBanner(state.xterm, terminalId);
+      }
     }
   } catch (e) {
     console.error("failed to obtain encryption keys:", e);

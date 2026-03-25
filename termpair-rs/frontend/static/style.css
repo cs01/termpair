@@ -249,9 +249,17 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #terminal-view {
   display: flex;
+  flex-direction: column;
   padding: 0;
   gap: 0;
   flex: 1;
+  overflow: hidden;
+}
+
+#terminal-row {
+  display: flex;
+  flex: 1;
+  gap: 0;
   overflow: hidden;
 }
 
