@@ -166,6 +166,7 @@ async fn run_share(
     public: bool,
     yes: bool,
     reconnect_timeout: u64,
+    brand: &str,
 ) {
     let url = build_share_url(&host, port);
     let allow_browser_control = if public { false } else { !read_only };
@@ -177,6 +178,7 @@ async fn run_share(
         is_public: public,
         yes,
         reconnect_timeout,
+        brand: brand.to_string(),
     };
     if let Err(e) = share::broadcast_terminal(opts).await {
         eprintln!("error: {}", e);
@@ -205,6 +207,7 @@ async fn run_sharemyclaude() {
         args.public,
         args.yes,
         300,
+        "Share My Claude",
     )
     .await;
 }
@@ -222,6 +225,7 @@ async fn run_termpair() {
         args.public,
         args.yes,
         args.reconnect_timeout,
+        "TermPair",
     )
     .await;
 }
