@@ -742,8 +742,9 @@ async fn run_parent(
                         }
                     }
                 }
-                _ = &mut ws_recv_handle, if !ws_recv_handle.is_finished() => {
+                _ = &mut ws_recv_handle => {
                     ws_disconnected = true;
+                    ws_recv_handle = tokio::spawn(std::future::pending());
                     if !pty_alive.load(Ordering::Relaxed) {
                         break;
                     }
