@@ -130,18 +130,18 @@ function httpToWs(url) {
 
 function setStatus(status) {
   state.status = status;
-  const bar = $id("status-bar");
-  const text = $id("status-text");
-
-  if (!status) {
-    bar.style.display = "none";
-    return;
+  var banner = $id("session-banner");
+  if (banner && status) {
+    banner.style.display = "block";
+    banner.textContent = status;
+    if (status === "Connected" || status.indexOf("Connected") === 0) {
+      banner.className = "connected";
+    } else if (status === "Session ended" || status === "Connection lost") {
+      banner.className = "ended";
+    } else {
+      banner.className = "waiting";
+    }
   }
-
-  bar.style.display = "flex";
-  text.textContent = status;
-
-  bar.className = status === "Connected" ? "connected" : "disconnected";
 }
 
 function showBanner(text, type) {
@@ -293,11 +293,6 @@ async function handleMessage(data) {
     case "session_ended":
       state.sessionEnded = true;
       setStatus("Session ended");
-      showBanner("Session has ended", "ended");
-      if (state.xterm) {
-        state.xterm.writeln("");
-        state.xterm.writeln("\x1b[1;31mSession has ended\x1b[0m");
-      }
       $id("client-count").textContent = "";
       break;
     case "error":
@@ -613,14 +608,7 @@ async function connect(terminalId, bootstrapKeyB64) {
   $id("terminal").addEventListener("click", function() { xterm.focus(); });
 
   if (!state.broadcastStarted) {
-    showBanner("Waiting for the terminal to start broadcasting...", "waiting");
-    xterm.writeln("");
-    xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
-    xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
-    xterm.writeln("");
-    xterm.writeln("  \x1b[1;33m\u25cf Waiting for terminal to start broadcasting...\x1b[0m");
-    xterm.writeln("  \x1b[90mThe session exists but the terminal hasn't started sharing yet.\x1b[0m");
-    xterm.writeln("");
+    setStatus("Waiting for terminal to start...");
   }
 
   setupKeyHandler(xterm);
@@ -643,7 +631,7 @@ async function connect(terminalId, bootstrapKeyB64) {
     ws.addEventListener("open", () => {
       reconnectAttempt = 0;
       reconnectStartTime = null;
-      setStatus("Connected");
+      setStatus(state.isPublic ? "Connected — public session" : "Connected — end-to-end encrypted");
 
       if (firstConnect) {
         firstConnect = false;
@@ -682,17 +670,7 @@ async function connect(terminalId, bootstrapKeyB64) {
       if (!reconnectStartTime) reconnectStartTime = Date.now();
       if (cleanClose || Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
         state.sessionEnded = true;
-        var statusMsg = cleanClose ? "Session ended" : "Connection lost";
-        setStatus(statusMsg);
-        const td = state.terminalData;
-        const startedAt = td && td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
-        const duration = startedAt ? " after " + formatElapsed(Date.now() - startedAt.getTime()) : "";
-        var bannerText = cleanClose
-          ? "Session has ended" + duration
-          : "Connection lost" + duration + " — not reconnecting";
-        showBanner(bannerText, "ended");
-        xterm.writeln("");
-        xterm.writeln(`\x1b[1;31m${bannerText}\x1b[0m`);
+        setStatus("Session ended");
         $id("client-count").textContent = "";
         return;
       }
