@@ -783,6 +783,14 @@ function applyThemeConfig() {
       var installCode = document.querySelector("#quickstart .code-block code");
       if (installCode) installCode.textContent = cfg.installCmd;
     }
+    if (cfg.shareCmd) {
+      var sc = $id("share-command");
+      if (sc) sc.textContent = cfg.shareCmd;
+    }
+    if (cfg.shareCmdPublic) {
+      var scp = $id("share-command-public");
+      if (scp) scp.textContent = cfg.shareCmdPublic;
+    }
     var features = document.querySelector("[data-section='features']");
     if (features && cfg.showFeatures === false) features.style.display = "none";
     var callout = document.querySelector("[data-section='callout']");
