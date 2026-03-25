@@ -481,19 +481,23 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 #chat-bar {
   display: none;
   position: fixed;
-  bottom: 0;
-  left: 0;
+  bottom: 1.75rem;
   right: 0;
+  width: 320px;
   z-index: 99;
   background: var(--surface);
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: 6px 0 0 0;
   padding: 0.5rem 1rem;
   cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-muted);
   align-items: center;
   gap: 0.5rem;
 }
+#chat-bar:hover { color: var(--text); background: var(--bg); }
 #chat-bar svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 #chat-badge {
@@ -714,6 +718,13 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   }
 
   #chat-bar {
+    width: 100%;
+    left: 0;
+    bottom: 0;
+    border-radius: 0;
+    border-right: none;
+    border-left: none;
+    border-bottom: none;
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
     font-weight: 500;
