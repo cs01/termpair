@@ -96,6 +96,8 @@ const state = {
   terminalId: null,
   status: null,
   isPublic: false,
+  sessionEnded: false,
+  broadcastStarted: false,
   chatName: null,
   chatOpen: false,
   chatMessages: [],
@@ -140,6 +142,19 @@ function setStatus(status) {
   text.textContent = status;
 
   bar.className = status === "Connected" ? "connected" : "disconnected";
+}
+
+function showBanner(text, type) {
+  var banner = $id("session-banner");
+  if (!banner) return;
+  banner.textContent = text;
+  banner.className = type;
+  banner.style.display = "block";
+}
+
+function hideBanner() {
+  var banner = $id("session-banner");
+  if (banner) banner.style.display = "none";
 }
 
 function updateBottomBar() {
@@ -223,6 +238,10 @@ async function handleMessage(data) {
     case "aes_key_rotation":
       await handleKeyRotation(data);
       break;
+    case "start_broadcast":
+      state.broadcastStarted = true;
+      hideBanner();
+      break;
     case "chat":
       await handleChatMessage(data);
       break;
@@ -295,6 +314,8 @@ async function handleAesKeys(data) {
 
     state.aesKeys.ivCount = parseInt(data.payload.iv_count, 10);
     state.aesKeys.maxIvCount = parseInt(data.payload.max_iv_count, 10);
+    state.broadcastStarted = true;
+    hideBanner();
   } catch (e) {
     console.error("failed to obtain encryption keys:", e);
     toast("Failed to obtain encryption keys. Is your key valid?");
@@ -330,12 +351,20 @@ function getSalt() {
 }
 
 async function sendInput(input) {
+  if (state.sessionEnded) {
+    toast("Session has ended");
+    return;
+  }
   if (!state.terminalData?.allow_browser_control) {
     toast("Terminal is in read-only mode");
     return;
   }
+  if (!state.broadcastStarted) {
+    toast("Waiting for the terminal to start broadcasting...");
+    return;
+  }
   if (!state.aesKeys.browser || state.aesKeys.ivCount == null) {
-    toast("Cannot type: encryption keys not available");
+    toast("Waiting for encryption keys...");
     return;
   }
 
@@ -474,12 +503,13 @@ function escapeHtml(str) {
 
 async function sendChatMessage(text) {
   if (!state.ws || !text.trim()) return;
+  if (state.sessionEnded) { toast("Session has ended"); return; }
   var payload = { sender: state.chatName, message: text.trim(), timestamp: Date.now() };
   var msg;
   if (state.isPublic) {
     msg = JSON.stringify({ event: "chat", payload: payload });
   } else {
-    if (!state.aesKeys.unix) return;
+    if (!state.aesKeys.unix) { toast("Waiting for encryption keys..."); return; }
     state.chatIvCount++;
     var encrypted = await aesEncrypt(state.aesKeys.unix, JSON.stringify(payload), CHAT_IV_OFFSET + state.chatIvCount);
     msg = JSON.stringify({ event: "chat", payload: encrypted });
@@ -512,8 +542,15 @@ async function connect(terminalId, bootstrapKeyB64) {
   state.terminalData = await resp.json();
   state.isPublic = state.terminalData.is_public || false;
 
+  var hasBroadcastStarted = !!state.terminalData.broadcast_start_time_iso;
+  state.broadcastStarted = hasBroadcastStarted || state.isPublic;
+
   await loadXtermAssets();
   showTerminal();
+
+  if (!state.broadcastStarted) {
+    showBanner("Waiting for the terminal to start broadcasting...", "waiting");
+  }
 
   const xterm = createXterm();
   state.xterm = xterm;
@@ -596,15 +633,21 @@ async function connect(terminalId, bootstrapKeyB64) {
     });
 
     ws.addEventListener("close", (event) => {
-      const sessionEnded = event.code === 1000 || event.code === 1001;
+      const cleanClose = event.code === 1000 || event.code === 1001;
       if (!reconnectStartTime) reconnectStartTime = Date.now();
-      if (sessionEnded || Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
-        setStatus("Disconnected");
+      if (cleanClose || Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
+        state.sessionEnded = true;
+        var statusMsg = cleanClose ? "Session ended" : "Connection lost";
+        setStatus(statusMsg);
         const td = state.terminalData;
         const startedAt = td && td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
-        const duration = startedAt ? ` after ${formatElapsed(Date.now() - startedAt.getTime())}` : "";
+        const duration = startedAt ? " after " + formatElapsed(Date.now() - startedAt.getTime()) : "";
+        var bannerText = cleanClose
+          ? "Session has ended" + duration
+          : "Connection lost" + duration + " — not reconnecting";
+        showBanner(bannerText, "ended");
         xterm.writeln("");
-        xterm.writeln(`\x1b[1;31mTerminal session has ended${duration}\x1b[0m`);
+        xterm.writeln(`\x1b[1;31m${bannerText}\x1b[0m`);
         $id("client-count").textContent = "";
         return;
       }

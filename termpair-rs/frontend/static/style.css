@@ -672,7 +672,27 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   font-style: italic;
 }
 
+#session-banner {
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  flex-shrink: 0;
+}
+#session-banner.ended {
+  background: var(--status-disconnected-bg);
+  border-bottom: 1px solid var(--status-disconnected-border);
+  color: var(--error);
+}
+#session-banner.waiting {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--warning);
+}
+
 @media (max-width: 768px) {
+  #terminal-view { flex-direction: column; }
+  #terminal { max-width: 100vw; overflow: hidden; }
   #chat-sidebar {
     position: fixed;
     left: 0;
@@ -691,6 +711,13 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   @keyframes chat-slide-up {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
+  }
+
+  #chat-bar {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    justify-content: center;
   }
 }
 
