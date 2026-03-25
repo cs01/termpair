@@ -9,8 +9,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
-use crate::constants::{MAX_COMMAND_INPUT_BYTES, MAX_READ_BYTES, SUBPROTOCOL_VERSION};
 use crate::share::aes_keys::AesKeys;
+use termpair_common::constants::{MAX_COMMAND_INPUT_BYTES, MAX_READ_BYTES, SUBPROTOCOL_VERSION};
 
 const SENSITIVE_ENV_VARS: &[&str] = &[
     "AWS_ACCESS_KEY_ID",

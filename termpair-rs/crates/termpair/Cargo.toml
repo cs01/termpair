@@ -1,0 +1,37 @@
+[package]
+name = "termpair"
+version = "1.2.0"
+edition = "2021"
+description = "Securely share terminals with end-to-end encryption"
+license = "MIT"
+
+[[bin]]
+name = "termpair"
+path = "src/main.rs"
+
+[dependencies]
+termpair-common = { path = "../termpair-common" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
+futures-util = "0.3"
+serde_json = "1"
+base64 = "0.22"
+rand = "0.8"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+portable-pty = "0.9"
+open = "5"
+shell-words = "1"
+url = "2"
+http = "1"
+chrono = "0.4"
+urlencoding = "2"
+which = "7"
+zeroize = "1"
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31", features = ["term", "signal"] }
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["consoleapi", "handleapi", "processenv", "winbase", "wincon"] }

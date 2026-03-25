@@ -10,12 +10,12 @@ use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use tokio::sync::{broadcast, mpsc, watch, RwLock};
 
-use crate::constants::{
+use termpair_common::constants::{
     MAX_BROWSERS_PER_TERMINAL, MAX_TERMINALS, MAX_TERMINAL_COLS, MAX_TERMINAL_ROWS,
     MAX_WS_FRAME_BYTES, MAX_WS_MSGS_PER_SEC, SUBPROTOCOL_VERSION, TERMPAIR_VERSION,
     WS_IDLE_TIMEOUT_SECS,
 };
-use crate::types::{PublicSession, TerminalInfo, WsMessage};
+use termpair_common::types::{PublicSession, TerminalInfo, WsMessage};
 
 use super::terminal::{Terminal, TerminalId, Terminals};
 use super::AppState;
@@ -128,7 +128,8 @@ async fn handle_terminal_ws_inner(
         _ => return,
     };
 
-    let init_data: crate::types::TerminalInitData = match serde_json::from_str(&init_msg) {
+    let init_data: termpair_common::types::TerminalInitData = match serde_json::from_str(&init_msg)
+    {
         Ok(d) => d,
         Err(_) => return,
     };
@@ -279,9 +280,10 @@ async fn handle_terminal_ws_inner(
                 if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
                     match ws_msg.event.as_str() {
                         "resize" => {
-                            if let Ok(resize) = serde_json::from_value::<crate::types::ResizePayload>(
-                                ws_msg.payload.clone(),
-                            ) {
+                            if let Ok(resize) = serde_json::from_value::<
+                                termpair_common::types::ResizePayload,
+                            >(ws_msg.payload.clone())
+                            {
                                 if resize.rows > 0
                                     && resize.rows <= MAX_TERMINAL_ROWS
                                     && resize.cols > 0

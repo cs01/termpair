@@ -42,23 +42,25 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
-      - name: Build release binary
+      - name: Build release binaries
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package binary (unix)
+      - name: Package binaries (unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ../../../termpair-${{ matrix.target }}.tar.gz termpair
+          tar czf ../../../termpair-server-${{ matrix.target }}.tar.gz termpair-server
           cd ../../..
 
-      - name: Package binary (windows)
+      - name: Package binaries (windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
           7z a ../../../termpair-${{ matrix.target }}.zip termpair.exe
+          7z a ../../../termpair-server-${{ matrix.target }}.zip termpair-server.exe
           cd ../../..
 
       - name: Upload artifact
@@ -68,6 +70,8 @@ jobs:
           path: |
             termpair-rs/termpair-${{ matrix.target }}.tar.gz
             termpair-rs/termpair-${{ matrix.target }}.zip
+            termpair-rs/termpair-server-${{ matrix.target }}.tar.gz
+            termpair-rs/termpair-server-${{ matrix.target }}.zip
 
   release:
     needs: build
@@ -84,7 +88,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum termpair-*.tar.gz termpair-*.zip 2>/dev/null > sha256sums.txt
+          sha256sum termpair-*.tar.gz termpair-server-*.tar.gz termpair-*.zip termpair-server-*.zip 2>/dev/null > sha256sums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -93,4 +97,6 @@ jobs:
           files: |
             artifacts/termpair-*.tar.gz
             artifacts/termpair-*.zip
+            artifacts/termpair-server-*.tar.gz
+            artifacts/termpair-server-*.zip
             artifacts/sha256sums.txt

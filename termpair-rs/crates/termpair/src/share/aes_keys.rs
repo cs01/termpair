@@ -3,8 +3,8 @@ use base64::Engine;
 use serde_json::json;
 use zeroize::Zeroizing;
 
-use crate::constants::{JS_MAX_SAFE_INTEGER, MAX_MESSAGES_PER_KEY, ROTATION_THRESHOLD};
-use crate::encryption;
+use termpair_common::constants::{JS_MAX_SAFE_INTEGER, MAX_MESSAGES_PER_KEY, ROTATION_THRESHOLD};
+use termpair_common::encryption;
 
 pub struct AesKeys {
     pub bootstrap_key: Zeroizing<Vec<u8>>,
@@ -131,9 +131,18 @@ mod tests {
     #[test]
     fn new_keys_correct_length() {
         let keys = AesKeys::new();
-        assert_eq!(keys.bootstrap_key.len(), crate::constants::KEY_LENGTH_BYTES);
-        assert_eq!(keys.unix_key.len(), crate::constants::KEY_LENGTH_BYTES);
-        assert_eq!(keys.browser_key.len(), crate::constants::KEY_LENGTH_BYTES);
+        assert_eq!(
+            keys.bootstrap_key.len(),
+            termpair_common::constants::KEY_LENGTH_BYTES
+        );
+        assert_eq!(
+            keys.unix_key.len(),
+            termpair_common::constants::KEY_LENGTH_BYTES
+        );
+        assert_eq!(
+            keys.browser_key.len(),
+            termpair_common::constants::KEY_LENGTH_BYTES
+        );
     }
 
     #[test]

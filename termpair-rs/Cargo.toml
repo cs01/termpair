@@ -1,48 +1,7 @@
-[package]
-name = "termpair"
-version = "1.2.0"
-edition = "2021"
-description = "Securely share terminals with end-to-end encryption"
-license = "MIT"
-
-[[bin]]
-name = "termpair"
-path = "src/main.rs"
-
-[dependencies]
-axum = { version = "0.8", features = ["ws", "query"] }
-tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
-futures-util = "0.3"
-tower-http = { version = "0.6", features = ["cors", "fs", "set-header"] }
-clap = { version = "4", features = ["derive"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-aes-gcm = "0.10"
-hmac = "0.12"
-sha2 = "0.10"
-hex = "0.4"
-zeroize = "1"
-subtle = "2"
-rand = "0.8"
-base64 = "0.22"
-portable-pty = "0.9"
-rust-embed = { version = "8", features = ["compression"] }
-mime_guess = "2"
-tracing = "0.1"
-tracing-subscriber = "0.3"
-url = "2"
-http = "1"
-chrono = "0.4"
-open = "5"
-shell-words = "1"
-urlencoding = "2"
-dirs = "6"
-axum-server = { version = "0.7", features = ["tls-rustls"] }
-which = "7"
-
-[target.'cfg(unix)'.dependencies]
-nix = { version = "0.31", features = ["term", "signal"] }
-
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["consoleapi", "handleapi", "processenv", "winbase", "wincon"] }
+[workspace]
+members = [
+    "crates/termpair-common",
+    "crates/termpair",
+    "crates/termpair-server",
+]
+resolver = "2"
