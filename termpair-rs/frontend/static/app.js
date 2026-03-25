@@ -363,7 +363,6 @@ async function handleAesKeys(data) {
     state.broadcastStarted = true;
     hideBanner();
     if (state.xterm) {
-      var { terminalId } = getParams();
       showWelcomeBanner(state.xterm, terminalId);
     }
   } catch (e) {
