@@ -14,7 +14,6 @@ termpair-common = { path = "../termpair-common" }
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
-rustls = { version = "0.23", features = ["aws-lc-rs"], default-features = false }
 futures-util = "0.3"
 serde_json = "1"
 base64 = "0.22"
