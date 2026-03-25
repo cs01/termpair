@@ -25,7 +25,7 @@ pub struct AppState {
 }
 
 #[derive(Embed)]
-#[folder = "frontend/static/"]
+#[folder = "../../frontend/static/"]
 struct FrontendAssets;
 
 fn try_read_static_dir(
@@ -132,7 +132,7 @@ pub fn create_app(terminals: Terminals, static_dir: Option<PathBuf>, theme: &str
         terminals,
         static_dir: static_dir.map(Arc::new),
         connections: Arc::new(ConnectionTracker::new(
-            crate::constants::MAX_CONNECTIONS_PER_IP,
+            termpair_common::constants::MAX_CONNECTIONS_PER_IP,
         )),
         signing_key: Arc::new(signing_key),
         theme_config: Arc::new(theme_config),

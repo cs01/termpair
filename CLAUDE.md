@@ -46,15 +46,12 @@ End-to-end encrypted terminal sharing. A Unix terminal is shared in real-time to
 
 **Protocol:** WebSocket subprotocol version "3". Messages are JSON `{event, payload}`. Key events: `new_output`, `command`, `resize`, `num_clients`, `aes_keys`, `aes_key_rotation`, `new_browser_connected`, `start_broadcast`.
 
-**Key source files** (all under `termpair-rs/`):
+**Workspace layout** (`termpair-rs/`):
 
-- `src/main.rs` — CLI (clap) entry point, subcommands: `serve`, `share`
-- `src/server/` — Axum WebSocket handlers, `terminal.rs` (session state)
-- `src/share/` — PTY fork, AES key management (`aes_keys.rs`), WebSocket broadcast (`session.rs`)
-- `src/encryption.rs` — AES-128-GCM encrypt/decrypt (has unit tests)
-- `src/types.rs`, `src/constants.rs` — shared types and protocol constants
-- `frontend/static/` — vanilla JS frontend (app.js, xterm.min.js, Web Crypto API for decryption)
-- Static files are embedded into the binary via `rust-embed`
+- `crates/termpair-common/` — shared lib: encryption, types, constants
+- `crates/termpair/` — client binary (`termpair`): PTY, AES key management, WebSocket broadcast
+- `crates/termpair-server/` — server binary (`termpair-server`): Axum handlers, session state, embedded frontend
+- `frontend/static/` — vanilla JS frontend (embedded into server binary via `rust-embed`)
 
 **Legacy Python implementation** (`termpair/`, `tests/`) still exists in the repo but is not actively developed.
 
@@ -63,11 +60,11 @@ End-to-end encrypted terminal sharing. A Unix terminal is shared in real-time to
 All commands run from `termpair-rs/`.
 
 ```bash
-cargo build              # debug build
+cargo build              # build both binaries
 cargo build --release    # release build
-cargo run -- serve       # run server
-cargo run -- share --cmd bash --host http://localhost:8000
-cargo test               # run unit tests
+cargo run -p termpair-server -- --port 8000  # run server
+cargo run -p termpair -- --host http://localhost:8000  # share a terminal
+cargo test               # run all tests
 cargo fmt --check        # check formatting
 cargo clippy             # lint
 ```

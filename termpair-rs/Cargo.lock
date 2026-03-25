@@ -1874,7 +1874,50 @@ dependencies = [
 name = "termpair"
 version = "1.2.0"
 dependencies = [
+ "base64",
+ "chrono",
+ "clap",
+ "futures-util",
+ "http",
+ "nix 0.31.2",
+ "open",
+ "portable-pty",
+ "rand 0.8.5",
+ "serde_json",
+ "shell-words",
+ "termpair-common",
+ "tokio",
+ "tokio-tungstenite 0.26.2",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "urlencoding",
+ "which",
+ "winapi",
+ "zeroize",
+]
+
+[[package]]
+name = "termpair-common"
+version = "1.2.0"
+dependencies = [
  "aes-gcm",
+ "base64",
+ "chrono",
+ "hex",
+ "hmac",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "sha2",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "termpair-server"
+version = "1.2.0"
+dependencies = [
  "axum",
  "axum-server",
  "base64",
@@ -1884,28 +1927,18 @@ dependencies = [
  "futures-util",
  "hex",
  "hmac",
- "http",
  "mime_guess",
- "nix 0.31.2",
- "open",
- "portable-pty",
  "rand 0.8.5",
  "rust-embed",
  "serde",
  "serde_json",
  "sha2",
- "shell-words",
  "subtle",
+ "termpair-common",
  "tokio",
- "tokio-tungstenite 0.26.2",
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "url",
- "urlencoding",
- "which",
- "winapi",
- "zeroize",
 ]
 
 [[package]]
