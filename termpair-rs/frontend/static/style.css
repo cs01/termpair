@@ -261,12 +261,12 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   flex: 1;
   gap: 0;
   overflow: hidden;
+  background: var(--surface);
 }
 
 #terminal {
   padding: 0.5rem;
-  background: var(--surface);
-  flex: 1;
+  background: var(--terminal-bg);
   min-width: 0;
   overflow: auto;
 }
