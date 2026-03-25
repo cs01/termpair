@@ -157,6 +157,51 @@ function hideBanner() {
   if (banner) banner.style.display = "none";
 }
 
+function showWelcomeBanner(xterm, terminalId) {
+  var td = state.terminalData;
+  var startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
+  var elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
+  var cols = xterm.cols || 80;
+  var bar = "\x1b[90m" + "\u2500".repeat(Math.min(cols, 60)) + "\x1b[0m";
+
+  if (state.isPublic) {
+    var name = td.display_name || terminalId;
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 live terminal sharing\x1b[0m");
+    xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1;33m\u25cf Public session\x1b[0m \u2014 \x1b[1m" + name + "\x1b[0m");
+    xterm.writeln("  \x1b[90mThis is a public, read-only session. No encryption.\x1b[0m");
+    xterm.writeln("");
+    if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
+    xterm.writeln("  \x1b[90m  access:   \x1b[0mread-only");
+    if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+  } else {
+    var mode = td.allow_browser_control ? "read/write" : "read-only";
+    xterm.clear();
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
+    xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1;32m\u25cf Connected\x1b[0m with end-to-end encryption");
+    xterm.writeln("  \x1b[90mThe server cannot read any transmitted data.\x1b[0m");
+    xterm.writeln("");
+    if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
+    xterm.writeln("  \x1b[90m  access:   \x1b[0m" + mode);
+    if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+  }
+}
+
 function updateBottomBar() {
   const dims = $id("terminal-dimensions");
   const access = $id("access-mode");
@@ -317,6 +362,10 @@ async function handleAesKeys(data) {
     state.aesKeys.maxIvCount = parseInt(data.payload.max_iv_count, 10);
     state.broadcastStarted = true;
     hideBanner();
+    if (state.xterm) {
+      var { terminalId } = getParams();
+      showWelcomeBanner(state.xterm, terminalId);
+    }
   } catch (e) {
     console.error("failed to obtain encryption keys:", e);
     toast("Failed to obtain encryption keys. Is your key valid?");
@@ -543,8 +592,7 @@ async function connect(terminalId, bootstrapKeyB64) {
   state.terminalData = await resp.json();
   state.isPublic = state.terminalData.is_public || false;
 
-  var hasBroadcastStarted = !!state.terminalData.broadcast_start_time_iso;
-  state.broadcastStarted = hasBroadcastStarted || state.isPublic;
+  state.broadcastStarted = state.isPublic;
 
   await loadXtermAssets();
   showTerminal();
@@ -588,47 +636,9 @@ async function connect(terminalId, bootstrapKeyB64) {
 
       if (firstConnect) {
         firstConnect = false;
-        const td = state.terminalData;
-        const startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
-        const elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
-
-        var cols = xterm.cols || 80;
-        var bar = "\x1b[90m" + "\u2500".repeat(Math.min(cols, 60)) + "\x1b[0m";
 
         if (state.isPublic) {
-          var name = td.display_name || terminalId;
-          xterm.writeln("");
-          xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 live terminal sharing\x1b[0m");
-          xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
-          xterm.writeln("");
-          xterm.writeln("  " + bar);
-          xterm.writeln("");
-          xterm.writeln("  \x1b[1;33m\u25cf Public session\x1b[0m \u2014 \x1b[1m" + name + "\x1b[0m");
-          xterm.writeln("  \x1b[90mThis is a public, read-only session. No encryption.\x1b[0m");
-          xterm.writeln("");
-          if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
-          xterm.writeln("  \x1b[90m  access:   \x1b[0mread-only");
-          if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
-          xterm.writeln("");
-          xterm.writeln("  " + bar);
-          xterm.writeln("");
-        } else {
-          var mode = td.allow_browser_control ? "read/write" : "read-only";
-          xterm.writeln("");
-          xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
-          xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
-          xterm.writeln("");
-          xterm.writeln("  " + bar);
-          xterm.writeln("");
-          xterm.writeln("  \x1b[1;32m\u25cf Connected\x1b[0m with end-to-end encryption");
-          xterm.writeln("  \x1b[90mThe server cannot read any transmitted data.\x1b[0m");
-          xterm.writeln("");
-          if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
-          xterm.writeln("  \x1b[90m  access:   \x1b[0m" + mode);
-          if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
-          xterm.writeln("");
-          xterm.writeln("  " + bar);
-          xterm.writeln("");
+          showWelcomeBanner(xterm, terminalId);
         }
 
         if (!state.isPublic) {
@@ -656,6 +666,7 @@ async function connect(terminalId, bootstrapKeyB64) {
     });
 
     ws.addEventListener("close", (event) => {
+      if (state.sessionEnded) return;
       const cleanClose = event.code === 1000 || event.code === 1001;
       if (!reconnectStartTime) reconnectStartTime = Date.now();
       if (cleanClose || Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
