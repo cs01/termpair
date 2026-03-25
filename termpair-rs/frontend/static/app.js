@@ -787,8 +787,8 @@ function init() {
 
   const baseUrl = getServerBaseUrl().replace(/\/$/, "");
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
-  $id("share-command").textContent = `termpair share --host "${baseUrl}" --port ${port}`;
-  $id("share-command-public").textContent = `termpair share --public --host "${baseUrl}" --port ${port}`;
+  $id("share-command").textContent = `termpair --host "${baseUrl}" --port ${port}`;
+  $id("share-command-public").textContent = `termpair --public --host "${baseUrl}" --port ${port}`;
 
   if (!window.isSecureContext) {
     $id("secure-warning").style.display = "block";
