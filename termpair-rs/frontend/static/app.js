@@ -241,6 +241,7 @@ async function handleMessage(data) {
     case "start_broadcast":
       state.broadcastStarted = true;
       hideBanner();
+      if (state.xterm) state.xterm.clear();
       break;
     case "chat":
       await handleChatMessage(data);
@@ -548,13 +549,20 @@ async function connect(terminalId, bootstrapKeyB64) {
   await loadXtermAssets();
   showTerminal();
 
-  if (!state.broadcastStarted) {
-    showBanner("Waiting for the terminal to start broadcasting...", "waiting");
-  }
-
   const xterm = createXterm();
   state.xterm = xterm;
   xterm.open($id("terminal"));
+
+  if (!state.broadcastStarted) {
+    showBanner("Waiting for the terminal to start broadcasting...", "waiting");
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
+    xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1;33m\u25cf Waiting for terminal to start broadcasting...\x1b[0m");
+    xterm.writeln("  \x1b[90mThe session exists but the terminal hasn't started sharing yet.\x1b[0m");
+    xterm.writeln("");
+  }
 
   setupKeyHandler(xterm);
 
@@ -584,27 +592,42 @@ async function connect(terminalId, bootstrapKeyB64) {
         const startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
         const elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
 
+        var cols = xterm.cols || 80;
+        var bar = "\x1b[90m" + "\u2500".repeat(Math.min(cols, 60)) + "\x1b[0m";
+
         if (state.isPublic) {
-          const name = td.display_name || terminalId;
-          xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m\u2014 live terminal\x1b[0m");
+          var name = td.display_name || terminalId;
           xterm.writeln("");
-          xterm.writeln(`\x1b[1;33mPublic session\x1b[0m \u2014 \x1b[1m${name}\x1b[0m`);
-          xterm.writeln(`\x1b[90mThis is a public, read-only session. No encryption.\x1b[0m`);
+          xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 live terminal sharing\x1b[0m");
+          xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
           xterm.writeln("");
-          if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
-          xterm.writeln(`\x1b[90m  access:   \x1b[0mread-only`);
-          if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
+          xterm.writeln("  " + bar);
+          xterm.writeln("");
+          xterm.writeln("  \x1b[1;33m\u25cf Public session\x1b[0m \u2014 \x1b[1m" + name + "\x1b[0m");
+          xterm.writeln("  \x1b[90mThis is a public, read-only session. No encryption.\x1b[0m");
+          xterm.writeln("");
+          if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
+          xterm.writeln("  \x1b[90m  access:   \x1b[0mread-only");
+          if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
+          xterm.writeln("");
+          xterm.writeln("  " + bar);
           xterm.writeln("");
         } else {
-          const mode = td.allow_browser_control ? "read/write" : "read-only";
-          xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
+          var mode = td.allow_browser_control ? "read/write" : "read-only";
           xterm.writeln("");
-          xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
-          xterm.writeln(`\x1b[90mThe server cannot read any transmitted data.\x1b[0m`);
+          xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
+          xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
           xterm.writeln("");
-          if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
-          xterm.writeln(`\x1b[90m  access:   \x1b[0m${mode}`);
-          if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
+          xterm.writeln("  " + bar);
+          xterm.writeln("");
+          xterm.writeln("  \x1b[1;32m\u25cf Connected\x1b[0m with end-to-end encryption");
+          xterm.writeln("  \x1b[90mThe server cannot read any transmitted data.\x1b[0m");
+          xterm.writeln("");
+          if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
+          xterm.writeln("  \x1b[90m  access:   \x1b[0m" + mode);
+          if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
+          xterm.writeln("");
+          xterm.writeln("  " + bar);
           xterm.writeln("");
         }
 
