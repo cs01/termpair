@@ -610,6 +610,7 @@ async function connect(terminalId, bootstrapKeyB64) {
   const xterm = createXterm();
   state.xterm = xterm;
   xterm.open($id("terminal"));
+  $id("terminal").addEventListener("click", function() { xterm.focus(); });
 
   if (!state.broadcastStarted) {
     showBanner("Waiting for the terminal to start broadcasting...", "waiting");
