@@ -261,12 +261,13 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   flex: 1;
   gap: 0;
   overflow: hidden;
-  background: var(--surface);
+  background: var(--terminal-bg);
 }
 
 #terminal {
   padding: 0.5rem;
   background: var(--terminal-bg);
+  flex: 1;
   min-width: 0;
   overflow: auto;
 }
@@ -489,7 +490,7 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 #chat-bar {
   display: none;
   position: fixed;
-  bottom: 1.75rem;
+  bottom: 3.5rem;
   right: 0;
   width: 320px;
   z-index: 99;
