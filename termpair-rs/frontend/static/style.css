@@ -265,13 +265,11 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #terminal {
   padding: 0.5rem;
-  background: var(--bg);
+  background: var(--surface);
   flex: 1;
   min-width: 0;
   overflow: auto;
 }
-
-#terminal .xterm-viewport { background: var(--terminal-bg) !important; }
 
 #bottombar {
   border-top: 1px solid var(--border);
