@@ -60,7 +60,7 @@
           </div>
           <div class="step">
             <span class="step-num">2</span>
-            <div><strong>Run</strong> <code>termpair share</code> to start an encrypted session</div>
+            <div><strong>Run</strong> <code>termpair</code> to start an encrypted session</div>
           </div>
           <div class="step">
             <span class="step-num">3</span>
@@ -123,7 +123,8 @@
 
     <div id="terminal-view" style="display:none">
       <div id="session-banner" style="display:none" role="alert"></div>
-      <div id="terminal" role="application" aria-label="Shared terminal"></div>
+      <div id="terminal-row">
+        <div id="terminal" role="application" aria-label="Shared terminal"></div>
       <div id="chat-sidebar" style="display:none">
         <div id="chat-header">
           <span>Chat</span>
@@ -138,21 +139,21 @@
           </button>
         </form>
       </div>
-    </div>
-
-    <div id="chat-bar" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      Chat <span id="chat-badge" style="display:none">0</span>
+      <div id="chat-bar" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat <span id="chat-badge" style="display:none">0</span>
+      </div>
+      </div>
     </div>
   </main>
 
   <footer id="bottombar">
     <div id="status-bar" style="display:none" role="status" aria-live="polite">
-      <span class="status-item"><span class="status-dot"></span> <span id="status-text"></span></span>
       <span class="status-item" title="Terminal dimensions (rows x cols)"><span id="terminal-dimensions"></span></span>
       <span class="status-item" title="Browser input permission"><span id="access-mode"></span></span>
       <span class="status-item" title="Connected viewers"><span id="client-count"></span></span>
     </div>
+    <span id="status-text" style="display:none"></span>
     <div class="footer-links">
       <a href="https://chadsmith.dev">chadsmith.dev</a> &middot; <a href="https://github.com/cs01/termpair">GitHub</a>
     </div>

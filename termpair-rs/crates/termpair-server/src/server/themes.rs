@@ -14,6 +14,8 @@ pub fn get_theme_config(name: &str) -> Value {
             "showDisclaimer": true,
             "disclaimerText": "Not affiliated with or endorsed by Anthropic",
             "installCmd": "curl -fsSL https://raw.githubusercontent.com/cs01/sharemyclaude/main/install.sh | sh",
+            "shareCmd": "sharemyclaude",
+            "shareCmdPublic": "sharemyclaude --public",
             "cssVars": {
                 "--bg": "#1a1a1a",
                 "--surface": "#2a2a2a",

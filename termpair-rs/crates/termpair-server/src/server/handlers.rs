@@ -406,7 +406,12 @@ async fn handle_browser_ws_inner(socket: WebSocket, terminal_id: String, termina
                     }
                 }
                 _ = closed_rx.changed() => {
-                    let _ = ws_tx.close().await;
+                    let end_msg = serde_json::json!({"event": "session_ended", "payload": "terminal disconnected"});
+                    let _ = ws_tx.send(Message::Text(end_msg.to_string().into())).await;
+                    let _ = ws_tx.send(Message::Close(Some(axum::extract::ws::CloseFrame {
+                        code: 1000,
+                        reason: "terminal session ended".into(),
+                    }))).await;
                     break;
                 }
             }

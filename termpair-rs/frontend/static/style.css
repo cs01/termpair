@@ -249,10 +249,19 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #terminal-view {
   display: flex;
+  flex-direction: column;
   padding: 0;
   gap: 0;
   flex: 1;
   overflow: hidden;
+}
+
+#terminal-row {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  overflow: hidden;
+  background: var(--terminal-bg);
 }
 
 #terminal {
@@ -292,10 +301,7 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   display: inline-block;
 }
 
-#status-bar.connected { background: var(--status-connected-bg); border-top: 1px solid var(--status-connected-border); }
-#status-bar.connected .status-dot { background: var(--success); }
-#status-bar.disconnected { background: var(--status-disconnected-bg); border-top: 1px solid var(--status-disconnected-border); }
-#status-bar.disconnected .status-dot { background: var(--error); }
+#status-bar { background: var(--surface); border-top: 1px solid var(--border); }
 
 .footer-links {
   display: flex;
@@ -480,20 +486,21 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
 
 #chat-bar {
   display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 99;
+  width: 320px;
+  min-width: 320px;
+  flex-shrink: 0;
   background: var(--surface);
-  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
   padding: 0.5rem 1rem;
   cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-muted);
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
+#chat-bar:hover { color: var(--text); }
 #chat-bar svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 #chat-badge {
@@ -689,6 +696,11 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   border-bottom: 1px solid var(--border);
   color: var(--warning);
 }
+#session-banner.connected {
+  background: var(--status-connected-bg);
+  border-bottom: 1px solid var(--status-connected-border);
+  color: var(--success);
+}
 
 @media (max-width: 768px) {
   #terminal-view { flex-direction: column; }
@@ -714,10 +726,19 @@ button[type="submit"]:focus-visible { outline: 2px solid var(--focus); outline-o
   }
 
   #chat-bar {
+    position: fixed;
+    width: 100%;
+    min-width: 100%;
+    left: 0;
+    bottom: 0;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--border);
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
     font-weight: 500;
     justify-content: center;
+    z-index: 99;
   }
 }
 

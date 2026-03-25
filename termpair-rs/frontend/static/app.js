@@ -130,18 +130,18 @@ function httpToWs(url) {
 
 function setStatus(status) {
   state.status = status;
-  const bar = $id("status-bar");
-  const text = $id("status-text");
-
-  if (!status) {
-    bar.style.display = "none";
-    return;
+  var banner = $id("session-banner");
+  if (banner && status) {
+    banner.style.display = "block";
+    banner.textContent = status;
+    if (status === "Connected" || status.indexOf("Connected") === 0) {
+      banner.className = "connected";
+    } else if (status === "Session ended" || status === "Connection lost") {
+      banner.className = "ended";
+    } else {
+      banner.className = "waiting";
+    }
   }
-
-  bar.style.display = "flex";
-  text.textContent = status;
-
-  bar.className = status === "Connected" ? "connected" : "disconnected";
 }
 
 function showBanner(text, type) {
@@ -155,6 +155,50 @@ function showBanner(text, type) {
 function hideBanner() {
   var banner = $id("session-banner");
   if (banner) banner.style.display = "none";
+}
+
+function showWelcomeBanner(xterm, terminalId) {
+  var td = state.terminalData;
+  var startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
+  var elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
+  var cols = xterm.cols || 80;
+  var bar = "\x1b[90m" + "\u2500".repeat(Math.min(cols, 60)) + "\x1b[0m";
+
+  if (state.isPublic) {
+    var name = td.display_name || terminalId;
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 live terminal sharing\x1b[0m");
+    xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1;33m\u25cf Public session\x1b[0m \u2014 \x1b[1m" + name + "\x1b[0m");
+    xterm.writeln("  \x1b[90mThis is a public, read-only session. No encryption.\x1b[0m");
+    xterm.writeln("");
+    if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
+    xterm.writeln("  \x1b[90m  access:   \x1b[0mread-only");
+    if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+  } else {
+    var mode = td.allow_browser_control ? "read/write" : "read-only";
+    xterm.clear();
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
+    xterm.writeln("  \x1b[90mhttps://github.com/cs01/termpair\x1b[0m");
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+    xterm.writeln("  \x1b[1;32m\u25cf Connected\x1b[0m \x1b[90m\u2014 end-to-end encrypted\x1b[0m");
+    xterm.writeln("");
+    if (td.command) xterm.writeln("  \x1b[90m  command:  \x1b[0m" + td.command);
+    xterm.writeln("  \x1b[90m  access:   \x1b[0m" + mode);
+    if (elapsed) xterm.writeln("  \x1b[90m  sharing:  \x1b[0m" + elapsed);
+    xterm.writeln("");
+    xterm.writeln("  " + bar);
+    xterm.writeln("");
+  }
 }
 
 function updateBottomBar() {
@@ -241,9 +285,15 @@ async function handleMessage(data) {
     case "start_broadcast":
       state.broadcastStarted = true;
       hideBanner();
+      if (state.xterm) state.xterm.clear();
       break;
     case "chat":
       await handleChatMessage(data);
+      break;
+    case "session_ended":
+      state.sessionEnded = true;
+      setStatus("Session ended");
+      $id("client-count").textContent = "";
       break;
     case "error":
       toast("Error: " + (data.payload || "unknown"));
@@ -314,8 +364,13 @@ async function handleAesKeys(data) {
 
     state.aesKeys.ivCount = parseInt(data.payload.iv_count, 10);
     state.aesKeys.maxIvCount = parseInt(data.payload.max_iv_count, 10);
-    state.broadcastStarted = true;
-    hideBanner();
+    if (!state.broadcastStarted) {
+      state.broadcastStarted = true;
+      hideBanner();
+      if (state.xterm) {
+        showWelcomeBanner(state.xterm, terminalId);
+      }
+    }
   } catch (e) {
     console.error("failed to obtain encryption keys:", e);
     toast("Failed to obtain encryption keys. Is your key valid?");
@@ -542,19 +597,19 @@ async function connect(terminalId, bootstrapKeyB64) {
   state.terminalData = await resp.json();
   state.isPublic = state.terminalData.is_public || false;
 
-  var hasBroadcastStarted = !!state.terminalData.broadcast_start_time_iso;
-  state.broadcastStarted = hasBroadcastStarted || state.isPublic;
+  state.broadcastStarted = state.isPublic;
 
   await loadXtermAssets();
   showTerminal();
 
-  if (!state.broadcastStarted) {
-    showBanner("Waiting for the terminal to start broadcasting...", "waiting");
-  }
-
   const xterm = createXterm();
   state.xterm = xterm;
   xterm.open($id("terminal"));
+  $id("terminal").addEventListener("click", function() { xterm.focus(); });
+
+  if (!state.broadcastStarted) {
+    setStatus("Waiting for terminal to start...");
+  }
 
   setupKeyHandler(xterm);
 
@@ -576,36 +631,13 @@ async function connect(terminalId, bootstrapKeyB64) {
     ws.addEventListener("open", () => {
       reconnectAttempt = 0;
       reconnectStartTime = null;
-      setStatus("Connected");
+      setStatus(state.isPublic ? "Connected — public session" : "Connected — end-to-end encrypted");
 
       if (firstConnect) {
         firstConnect = false;
-        const td = state.terminalData;
-        const startedAt = td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
-        const elapsed = startedAt ? formatElapsed(Date.now() - startedAt.getTime()) : "";
 
         if (state.isPublic) {
-          const name = td.display_name || terminalId;
-          xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m\u2014 live terminal\x1b[0m");
-          xterm.writeln("");
-          xterm.writeln(`\x1b[1;33mPublic session\x1b[0m \u2014 \x1b[1m${name}\x1b[0m`);
-          xterm.writeln(`\x1b[90mThis is a public, read-only session. No encryption.\x1b[0m`);
-          xterm.writeln("");
-          if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
-          xterm.writeln(`\x1b[90m  access:   \x1b[0mread-only`);
-          if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
-          xterm.writeln("");
-        } else {
-          const mode = td.allow_browser_control ? "read/write" : "read-only";
-          xterm.writeln("\x1b[1mTermPair\x1b[0m \x1b[90m\u2014 secure terminal sharing\x1b[0m");
-          xterm.writeln("");
-          xterm.writeln("\x1b[1;32mConnected\x1b[0m with end-to-end encryption");
-          xterm.writeln(`\x1b[90mThe server cannot read any transmitted data.\x1b[0m`);
-          xterm.writeln("");
-          if (td.command) xterm.writeln(`\x1b[90m  command:  \x1b[0m${td.command}`);
-          xterm.writeln(`\x1b[90m  access:   \x1b[0m${mode}`);
-          if (elapsed) xterm.writeln(`\x1b[90m  sharing:  \x1b[0m${elapsed}`);
-          xterm.writeln("");
+          showWelcomeBanner(xterm, terminalId);
         }
 
         if (!state.isPublic) {
@@ -633,21 +665,12 @@ async function connect(terminalId, bootstrapKeyB64) {
     });
 
     ws.addEventListener("close", (event) => {
+      if (state.sessionEnded) return;
       const cleanClose = event.code === 1000 || event.code === 1001;
       if (!reconnectStartTime) reconnectStartTime = Date.now();
       if (cleanClose || Date.now() - reconnectStartTime > MAX_RECONNECT_TIME) {
         state.sessionEnded = true;
-        var statusMsg = cleanClose ? "Session ended" : "Connection lost";
-        setStatus(statusMsg);
-        const td = state.terminalData;
-        const startedAt = td && td.broadcast_start_time_iso ? new Date(td.broadcast_start_time_iso) : null;
-        const duration = startedAt ? " after " + formatElapsed(Date.now() - startedAt.getTime()) : "";
-        var bannerText = cleanClose
-          ? "Session has ended" + duration
-          : "Connection lost" + duration + " — not reconnecting";
-        showBanner(bannerText, "ended");
-        xterm.writeln("");
-        xterm.writeln(`\x1b[1;31m${bannerText}\x1b[0m`);
+        setStatus("Session ended");
         $id("client-count").textContent = "";
         return;
       }
@@ -760,6 +783,14 @@ function applyThemeConfig() {
       var installCode = document.querySelector("#quickstart .code-block code");
       if (installCode) installCode.textContent = cfg.installCmd;
     }
+    if (cfg.shareCmd) {
+      var sc = $id("share-command");
+      if (sc) sc.textContent = cfg.shareCmd;
+    }
+    if (cfg.shareCmdPublic) {
+      var scp = $id("share-command-public");
+      if (scp) scp.textContent = cfg.shareCmdPublic;
+    }
     var features = document.querySelector("[data-section='features']");
     if (features && cfg.showFeatures === false) features.style.display = "none";
     var callout = document.querySelector("[data-section='callout']");
@@ -787,8 +818,8 @@ function init() {
 
   const baseUrl = getServerBaseUrl().replace(/\/$/, "");
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
-  $id("share-command").textContent = `termpair share --host "${baseUrl}" --port ${port}`;
-  $id("share-command-public").textContent = `termpair share --public --host "${baseUrl}" --port ${port}`;
+  $id("share-command").textContent = `termpair --host "${baseUrl}" --port ${port}`;
+  $id("share-command-public").textContent = `termpair --public --host "${baseUrl}" --port ${port}`;
 
   if (!window.isSecureContext) {
     $id("secure-warning").style.display = "block";
